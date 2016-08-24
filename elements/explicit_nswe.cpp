@@ -48,8 +48,10 @@ explicit_nswe<dim>::explicit_nswe(explicit_nswe &&inp_cell) noexcept
 
 template <int dim>
 explicit_nswe<dim>::explicit_nswe(
-  typename GenericCell<dim>::dealiiCell &inp_cell, const unsigned &id_num_,
-  const unsigned &poly_order_, explicit_hdg_model<dim, explicit_nswe> *model_)
+  typename GenericCell<dim>::dealiiCell &inp_cell,
+  const unsigned &id_num_,
+  const unsigned &poly_order_,
+  explicit_hdg_model<dim, explicit_nswe> *model_)
   : GenericCell<dim>(inp_cell, id_num_, poly_order_),
     model(model_),
     time_integrator(model_->time_integrator),
@@ -129,8 +131,10 @@ void explicit_nswe<dim>::assign_initial_data()
     this->face_quad_bundle->get_weights();
 
   mtl::vec::dense_vector<nswe_vec> qi_0_mtl;
-  this->project_to_elem_basis(explicit_nswe_qis_func, *(this->the_elem_basis),
-                              cell_quad_weights, qi_0_mtl);
+  this->project_to_elem_basis(explicit_nswe_qis_func,
+                              *(this->the_elem_basis),
+                              cell_quad_weights,
+                              qi_0_mtl);
   for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
     for (unsigned i_poly = 0; i_poly < this->n_cell_bases; ++i_poly)
     {
@@ -144,7 +148,9 @@ void explicit_nswe<dim>::assign_initial_data()
     this->reinit_face_fe_vals(i_face);
     this->project_essential_BC_to_face(explicit_nswe_qis_func,
                                        *(this->the_face_basis),
-                                       face_quad_weights, qhat_mtl, 0.);
+                                       face_quad_weights,
+                                       qhat_mtl,
+                                       0.);
     for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
       {
@@ -202,8 +208,9 @@ explicit_nswe<dim>::get_partial_Fik_qj(const std::vector<double> &qs)
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac explicit_nswe<dim>::get_tauij_LF(
-  const std::vector<double> &qhats, const dealii::Point<dim> normal)
+typename explicit_nswe<dim>::nswe_jac
+explicit_nswe<dim>::get_tauij_LF(const std::vector<double> &qhats,
+                                 const dealii::Point<dim> normal)
 {
   assert(dim == 2);
   double q1 = qhats[0];
@@ -218,7 +225,8 @@ typename explicit_nswe<dim>::nswe_jac explicit_nswe<dim>::get_tauij_LF(
 template <int dim>
 typename explicit_nswe<dim>::nswe_jac
 explicit_nswe<dim>::get_partial_tauij_qhk_qj_LF(
-  const std::vector<double> &qs, const std::vector<double> &qhats,
+  const std::vector<double> &qs,
+  const std::vector<double> &qhats,
   const dealii::Point<dim> &normal)
 {
   assert(dim == 2);
@@ -379,9 +387,8 @@ explicit_nswe<dim>::get_Aij_absl(const std::vector<double> &qhats,
 
 template <int dim>
 template <typename T>
-Eigen::Matrix<double, dim + 1, 1>
-explicit_nswe<dim>::get_solid_wall_BB(const T &qs, const T &qhats,
-                                      const dealii::Point<dim> &normal)
+Eigen::Matrix<double, dim + 1, 1> explicit_nswe<dim>::get_solid_wall_BB(
+  const T &qs, const T &qhats, const dealii::Point<dim> &normal)
 {
   double q1 = qs[0];
   double q2 = qs[1];
@@ -540,7 +547,8 @@ explicit_nswe<dim>::get_dAik_dqhj_qk_plus(const std::vector<double> &qs,
 
 template <int dim>
 typename explicit_nswe<dim>::nswe_jac explicit_nswe<dim>::get_dAik_dqhj_qk_mnus(
-  const Eigen::Matrix<double, dim + 1, 1> &qs, const std::vector<double> &qhats,
+  const Eigen::Matrix<double, dim + 1, 1> &qs,
+  const std::vector<double> &qhats,
   const dealii::Point<dim> &normal)
 {
   assert(dim == 2);
@@ -644,8 +652,8 @@ void explicit_nswe<dim>::calculate_matrices()
       grad_N_nswe_vec_triplets.reserve(n_cell_bases * (dim + 1) * dim);
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       {
-        NT_nswe_vec.block(i_nswe_dim, i_nswe_dim * n_cell_bases, 1,
-                          n_cell_bases) =
+        NT_nswe_vec.block(
+          i_nswe_dim, i_nswe_dim * n_cell_bases, 1, n_cell_bases) =
           this->the_elem_basis->get_func_vals_at_iquad(i_quad);
       }
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
@@ -659,7 +667,8 @@ void explicit_nswe<dim>::calculate_matrices()
             grad_N_nswe_vec0(i_nswe_dim * n_cell_bases + i_poly, i_num) =
               grad_N_at_point[i_dim];
             grad_N_nswe_vec_triplets.push_back(
-              eigen3triplet(i_nswe_dim * n_cell_bases + i_poly, i_num,
+              eigen3triplet(i_nswe_dim * n_cell_bases + i_poly,
+                            i_num,
                             grad_N_at_point[i_dim]));
           }
         }
@@ -704,8 +713,8 @@ void explicit_nswe<dim>::calculate_matrices()
      */
     std::vector<dealii::Point<dim> > projected_quad_points(
       this->face_quad_bundle->size());
-    dealii::QProjector<dim>::project_to_face(*(this->face_quad_bundle), i_face,
-                                             projected_quad_points);
+    dealii::QProjector<dim>::project_to_face(
+      *(this->face_quad_bundle), i_face, projected_quad_points);
     std::vector<dealii::Point<dim> > normals =
       this->face_quad_fe_vals->get_normal_vectors();
     std::vector<double> face_JxW = this->face_quad_fe_vals->get_JxW_values();
@@ -748,8 +757,8 @@ void explicit_nswe<dim>::calculate_matrices()
       std::vector<double> qs_at_iquad(dim + 1);
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       {
-        NT_nswe_vec.block(i_nswe_dim, i_nswe_dim * n_cell_bases, 1,
-                          n_cell_bases) = NT;
+        NT_nswe_vec.block(
+          i_nswe_dim, i_nswe_dim * n_cell_bases, 1, n_cell_bases) = NT;
         qs_at_iquad[i_nswe_dim] =
           (NT *
            last_stage_q.block(i_nswe_dim * n_cell_bases, 0, n_cell_bases, 1))(
@@ -769,8 +778,8 @@ void explicit_nswe<dim>::calculate_matrices()
       std::vector<double> qhats_at_iquad(dim + 1);
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       {
-        NT_face_nswe_vec.block(i_nswe_dim, i_nswe_dim * n_face_bases, 1,
-                               n_face_bases) = NT_face;
+        NT_face_nswe_vec.block(
+          i_nswe_dim, i_nswe_dim * n_face_bases, 1, n_face_bases) = NT_face;
         unsigned row0 =
           (i_face * (dim + 1) + i_nswe_dim) * (this->n_face_bases);
         qhats_at_iquad[i_nswe_dim] =
@@ -802,12 +811,12 @@ void explicit_nswe<dim>::calculate_matrices()
       Aij_plus = get_Aij_plus(qhats_at_iquad, normals[i_face_quad]);
       Aij_mnus = get_Aij_mnus(qhats_at_iquad, normals[i_face_quad]);
       Aij_absl = get_Aij_absl(qhats_at_iquad, normals[i_face_quad]);
-      dAik_dqhj_qk_plus = get_dAik_dqhj_qk_plus(qs_at_iquad, qhats_at_iquad,
-                                                normals[i_face_quad]);
+      dAik_dqhj_qk_plus = get_dAik_dqhj_qk_plus(
+        qs_at_iquad, qhats_at_iquad, normals[i_face_quad]);
       dAik_dqhj_qinfk_mnus =
         get_dAik_dqhj_qk_mnus(qinf_vec, qhats_at_iquad, normals[i_face_quad]);
-      dAik_dqhj_qhk_absl = get_dAik_dqhj_qk_absl(qhats_at_iquad, qhats_at_iquad,
-                                                 normals[i_face_quad]);
+      dAik_dqhj_qhk_absl = get_dAik_dqhj_qk_absl(
+        qhats_at_iquad, qhats_at_iquad, normals[i_face_quad]);
 
       Eigen::Matrix<double, dim + 1, dim> Fij_hat = get_Fij(qhats_at_iquad);
       Eigen::Map<Eigen::Matrix<double, dim + 1, 1> > q_vec(qs_at_iquad.data());
@@ -851,15 +860,19 @@ void explicit_nswe<dim>::calculate_matrices()
              (Fij_hat * normal + tauij * q_vec - tauij * qh_vec);
     }
     E00.block(i_face * (dim + 1) * n_face_bases,
-              i_face * (dim + 1) * n_face_bases, (dim + 1) * n_face_bases,
+              i_face * (dim + 1) * n_face_bases,
+              (dim + 1) * n_face_bases,
               (dim + 1) * n_face_bases) = E00_on_face;
     E01.block(i_face * (dim + 1) * n_face_bases,
-              i_face * (dim + 1) * n_face_bases, (dim + 1) * n_face_bases,
+              i_face * (dim + 1) * n_face_bases,
+              (dim + 1) * n_face_bases,
               (dim + 1) * n_face_bases) = E01_on_face;
-    F04.block(i_face * (dim + 1) * n_face_bases, 0, (dim + 1) * n_face_bases,
-              1) = F04_on_face;
-    F05.block(i_face * (dim + 1) * n_face_bases, 0, (dim + 1) * n_face_bases,
-              1) = F05_on_face;
+    F04.block(
+      i_face * (dim + 1) * n_face_bases, 0, (dim + 1) * n_face_bases, 1) =
+      F04_on_face;
+    F05.block(
+      i_face * (dim + 1) * n_face_bases, 0, (dim + 1) * n_face_bases, 1) =
+      F05_on_face;
   }
 }
 
@@ -906,8 +919,11 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
     mtl::vec::dense_vector<dealii::Tensor<1, dim + 1> > qhat_mtl;
     this->reinit_face_fe_vals(i_face);
     this->project_essential_BC_to_face(
-      explicit_nswe_qis_func, *(this->the_face_basis), face_quad_weights,
-      qhat_mtl, time_integrator->get_current_stage_time());
+      explicit_nswe_qis_func,
+      *(this->the_face_basis),
+      face_quad_weights,
+      qhat_mtl,
+      time_integrator->get_current_stage_time());
     for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
       {
@@ -945,14 +961,15 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
             face_col_nums[i_num] = global_dof_number;
           }
         }
-      eigen3mat cell_mat_on_face_ = cell_mat.block(
-        i_face * (dim + 1) * this->n_face_bases,
-        i_face * (dim + 1) * this->n_face_bases, (dim + 1) * this->n_face_bases,
-        (dim + 1) * this->n_face_bases);
+      eigen3mat cell_mat_on_face_ =
+        cell_mat.block(i_face * (dim + 1) * this->n_face_bases,
+                       i_face * (dim + 1) * this->n_face_bases,
+                       (dim + 1) * this->n_face_bases,
+                       (dim + 1) * this->n_face_bases);
       std::vector<double> cell_mat_on_face(
         cell_mat_on_face_.data(), cell_mat_on_face_.data() + num_mat_elements);
-      this->model->solver->push_to_global_mat(face_row_nums, face_col_nums,
-                                              cell_mat_on_face, ADD_VALUES);
+      this->model->solver->push_to_global_mat(
+        face_row_nums, face_col_nums, cell_mat_on_face, ADD_VALUES);
     }
   }
   if (keys_ & update_rhs)
@@ -1001,8 +1018,11 @@ explicit_nswe<dim>::get_trace_increment_norm(const double *const local_uhat)
     mtl::vec::dense_vector<dealii::Tensor<1, dim + 1> > qhat_mtl;
     this->reinit_face_fe_vals(i_face);
     this->project_essential_BC_to_face(
-      explicit_nswe_qis_func, *(this->the_face_basis), face_quad_weights,
-      qhat_mtl, time_integrator->get_current_stage_time());
+      explicit_nswe_qis_func,
+      *(this->the_face_basis),
+      face_quad_weights,
+      qhat_mtl,
+      time_integrator->get_current_stage_time());
     for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
         exact_qhat((i_face * (dim + 1) + i_nswe_dim) * this->n_face_bases +
@@ -1035,7 +1055,9 @@ explicit_nswe<dim>::get_trace_increment_norm(const double *const local_uhat)
 template <int dim>
 template <typename T>
 double explicit_nswe<dim>::compute_internal_dofs(
-  const double *const, eigen3mat &q2, eigen3mat &q1,
+  const double *const,
+  eigen3mat &q2,
+  eigen3mat &q1,
   const poly_space_basis<T, dim> &output_basis)
 {
   last_step_q += model->time_integrator->get_sum_h_bi_ki(ki_s);
@@ -1094,7 +1116,8 @@ double explicit_nswe<dim>::compute_internal_dofs(
 template <int dim>
 void explicit_nswe<dim>::internal_vars_errors(const eigen3mat &u_vec,
                                               const eigen3mat &q_vec,
-                                              double &u_error, double &q_error)
+                                              double &u_error,
+                                              double &q_error)
 {
   this->reinit_cell_fe_vals();
   eigen3mat total_vec((dim + 1) * this->n_cell_bases, 1);
@@ -1155,8 +1178,8 @@ void explicit_nswe<dim>::calculate_stage_matrices()
       grad_N_nswe_vec_triplets.reserve(n_cell_bases * (dim + 1) * dim);
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       {
-        NT_nswe_vec.block(i_nswe_dim, i_nswe_dim * n_cell_bases, 1,
-                          n_cell_bases) =
+        NT_nswe_vec.block(
+          i_nswe_dim, i_nswe_dim * n_cell_bases, 1, n_cell_bases) =
           this->the_elem_basis->get_func_vals_at_iquad(i_quad);
       }
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
@@ -1170,7 +1193,8 @@ void explicit_nswe<dim>::calculate_stage_matrices()
             grad_N_nswe_vec0(i_nswe_dim * n_cell_bases + i_poly, i_num) =
               grad_N_at_point[i_dim];
             grad_N_nswe_vec_triplets.push_back(
-              eigen3triplet(i_nswe_dim * n_cell_bases + i_poly, i_num,
+              eigen3triplet(i_nswe_dim * n_cell_bases + i_poly,
+                            i_num,
                             grad_N_at_point[i_dim]));
           }
         }
@@ -1209,8 +1233,8 @@ void explicit_nswe<dim>::calculate_stage_matrices()
      */
     std::vector<dealii::Point<dim> > projected_quad_points(
       this->face_quad_bundle->size());
-    dealii::QProjector<dim>::project_to_face(*(this->face_quad_bundle), i_face,
-                                             projected_quad_points);
+    dealii::QProjector<dim>::project_to_face(
+      *(this->face_quad_bundle), i_face, projected_quad_points);
     std::vector<dealii::Point<dim> > normals =
       this->face_quad_fe_vals->get_normal_vectors();
     std::vector<double> face_JxW = this->face_quad_fe_vals->get_JxW_values();
@@ -1249,8 +1273,8 @@ void explicit_nswe<dim>::calculate_stage_matrices()
       std::vector<double> qs_at_iquad(dim + 1);
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       {
-        NT_nswe_vec.block(i_nswe_dim, i_nswe_dim * n_cell_bases, 1,
-                          n_cell_bases) = NT;
+        NT_nswe_vec.block(
+          i_nswe_dim, i_nswe_dim * n_cell_bases, 1, n_cell_bases) = NT;
         qs_at_iquad[i_nswe_dim] =
           (NT *
            last_stage_q.block(i_nswe_dim * n_cell_bases, 0, n_cell_bases, 1))(
@@ -1270,8 +1294,8 @@ void explicit_nswe<dim>::calculate_stage_matrices()
       std::vector<double> qhats_at_iquad(dim + 1);
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       {
-        NT_face_nswe_vec.block(i_nswe_dim, i_nswe_dim * n_face_bases, 1,
-                               n_face_bases) = NT_face;
+        NT_face_nswe_vec.block(
+          i_nswe_dim, i_nswe_dim * n_face_bases, 1, n_face_bases) = NT_face;
         unsigned row0 =
           (i_face * (dim + 1) + i_nswe_dim) * (this->n_face_bases);
         qhats_at_iquad[i_nswe_dim] =
@@ -1319,8 +1343,10 @@ void explicit_nswe<dim>::ready_for_next_stage()
 
   eigen3mat f03((dim + 1) * this->n_cell_bases, 1);
   mtl::vec::dense_vector<dealii::Tensor<1, dim + 1> > f03_mtl;
-  this->project_to_elem_basis(explicit_nswe_L_func, *(this->the_elem_basis),
-                              cell_quad_weights, f03_mtl,
+  this->project_to_elem_basis(explicit_nswe_L_func,
+                              *(this->the_elem_basis),
+                              cell_quad_weights,
+                              f03_mtl,
                               time_integrator->get_current_stage_time());
   for (unsigned i_poly = 0; i_poly < this->n_cell_bases; ++i_poly)
     for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)

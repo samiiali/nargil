@@ -31,6 +31,7 @@ struct generic_model
 
 #include "generic_model.cpp"
 
+#include "hdg_model_with_explicit_rk.hpp"
 #include "explicit_hdg_model.hpp"
 #include "hdg_model.hpp"
 

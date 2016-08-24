@@ -12,6 +12,9 @@ struct hdg_model;
 template <int dim, template <int> class CellType>
 struct explicit_hdg_model;
 
+template <int dim, template <int> class CellType>
+struct hdg_model_with_explicit_rk;
+
 /*!
  * \defgroup cells Cell data
  * \brief
@@ -279,6 +282,7 @@ struct GenericCell
 
 #include "elements/advection_diffusion.hpp"
 #include "elements/diffusion.hpp"
+#include "elements/explicit_gn_dispersive.hpp"
 #include "elements/explicit_nswe.hpp"
 #include "elements/gn_eps_0_beta_0.hpp"
 #include "elements/nswe.hpp"

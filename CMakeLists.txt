@@ -1,5 +1,5 @@
 # Set the name of the project and target:
-set(TARGET "GN_Solver")
+set(TARGET "nargil")
 set(DEAL_II_DIR "/workspace/Library/deal_ii/Install")
 set(EIGEN_INC "/workspace/Library/Eigen/Install_328/include/eigen3")
 set(MTL4_INC "/workspace/Library/boost/boost_1_60_0")

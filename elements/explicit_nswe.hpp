@@ -3,7 +3,7 @@
 #ifndef EXPLICIT_NL_SWE_HPP
 #define EXPLICIT_NL_SWE_HPP
 
-/*!
+/**
  * \ingroup input_data_group
  */
 template <int in_point_dim, typename output_type>
@@ -230,7 +230,7 @@ struct explicit_nswe_L_func_class
     */
     // End of first example of paper 3
     // example 2 of paper 3
-    L[0] = L[1] = L[2] = 0.;
+    L[0] = L[1] = L[2] = x0 - x0 + y0 - y0;
     // End of example 2 of paper 3
     return L;
   }
@@ -527,11 +527,13 @@ struct explicit_nswe : public GenericCell<dim>
   explicit_nswe(const explicit_nswe &inp_cell) = delete;
   explicit_nswe(explicit_nswe &&inp_cell) noexcept;
   explicit_nswe(typename GenericCell<dim>::dealiiCell &inp_cell,
-                const unsigned &id_num_, const unsigned &poly_order_,
+                const unsigned &id_num_,
+                const unsigned &poly_order_,
                 explicit_hdg_model<dim, explicit_nswe> *model_);
   ~explicit_nswe() final;
   eigen3mat A00, C01, E00, E01, F01, F02, F04, F05;
-  void assign_BCs(const bool &at_boundary, const unsigned &i_face,
+  void assign_BCs(const bool &at_boundary,
+                  const unsigned &i_face,
                   const dealii::Point<dim> &face_center);
 
   void assign_initial_data();
@@ -551,8 +553,8 @@ struct explicit_nswe : public GenericCell<dim>
   Eigen::Matrix<double, dim *(dim + 1), dim + 1>
   get_partial_Fik_qj(const std::vector<double> &qs);
 
-  nswe_jac
-  get_tauij_LF(const std::vector<double> &qs, const dealii::Point<dim> normal);
+  nswe_jac get_tauij_LF(const std::vector<double> &qs,
+                        const dealii::Point<dim> normal);
 
   nswe_jac get_d_Fij_dqk_nj(const std::vector<double> &qhats,
                             const dealii::Point<dim> &normal);
@@ -604,9 +606,8 @@ struct explicit_nswe : public GenericCell<dim>
                         const dealii::Point<dim> &normal);
 
   template <typename T>
-  Eigen::Matrix<double, dim + 1, 1>
-  get_solid_wall_BB(const T &qs, const T &qhats,
-                    const dealii::Point<dim> &normal);
+  Eigen::Matrix<double, dim + 1, 1> get_solid_wall_BB(
+    const T &qs, const T &qhats, const dealii::Point<dim> &normal);
 
   template <typename T>
   std::vector<nswe_jac> get_dRik_dqhj(const T &qhats,
@@ -640,13 +641,16 @@ struct explicit_nswe : public GenericCell<dim>
 
   template <typename T>
   double compute_internal_dofs(const double *const local_uhat,
-                               eigen3mat &solved_u_vec, eigen3mat &solved_q_vec,
+                               eigen3mat &solved_u_vec,
+                               eigen3mat &solved_q_vec,
                                const poly_space_basis<T, dim> &output_basis);
 
   double get_trace_increment_norm(const double *const local_uhat);
 
-  void internal_vars_errors(const eigen3mat &u_vec, const eigen3mat &q_vec,
-                            double &u_error, double &q_error);
+  void internal_vars_errors(const eigen3mat &u_vec,
+                            const eigen3mat &q_vec,
+                            double &u_error,
+                            double &q_error);
 
   void ready_for_next_stage();
 

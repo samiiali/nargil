@@ -213,7 +213,7 @@ struct nswe_L_func_class : public TimeFunction<in_point_dim, output_type>
     */
     // End of first example of paper 3
     // example 2 of paper 3
-    L[0] = L[1] = L[2] = 0.;
+    L[0] = L[1] = L[2] = x0 - x0 + y0 - y0;
     // End of example 2 of paper 3
     return L;
   }
@@ -829,8 +829,8 @@ struct NSWE : public GenericCell<dim>
   Eigen::Matrix<double, dim *(dim + 1), dim + 1>
   get_partial_Fik_qj(const std::vector<double> &qs);
 
-  nswe_jac
-  get_tauij_LF(const std::vector<double> &qs, const dealii::Point<dim> normal);
+  nswe_jac get_tauij_LF(const std::vector<double> &qs,
+                        const dealii::Point<dim> normal);
 
   nswe_jac get_d_Fij_dqk_nj(const std::vector<double> &qhats,
                             const dealii::Point<dim> &normal);

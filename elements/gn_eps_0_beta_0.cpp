@@ -383,9 +383,6 @@ double GN_eps_0_beta_0<dim>::compute_internal_dofs(
     this->elem_quad_bundle->get_weights();
   const std::vector<double> &face_quad_weights =
     this->face_quad_bundle->get_weights();
-  std::vector<dealii::Point<dim> > q_points_loc =
-    this->cell_quad_fe_vals->get_quadrature_points();
-  std::vector<double> quad_JxWs = this->cell_quad_fe_vals->get_JxW_values();
 
   this->reinit_cell_fe_vals();
   calculate_matrices();

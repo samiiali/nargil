@@ -52,25 +52,24 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
                         std::ofstream::out | std::fstream::app);
   }
   /* Example 1 */
-  /*
   std::vector<unsigned> repeats(dim, 1);
   repeats[0] = 1;
   dealii::Point<dim> point_1, point_2;
-  point_1 = { -1.0, -1.0 };
-  point_2 = { 1.0, 1.0 };
-  dealii::GridGenerator::subdivided_hyper_rectangle(the_grid, repeats, point_1,
-  point_2, true);
+  point_1 = {-1.0, -1.0};
+  point_2 = {1.0, 1.0};
+  dealii::GridGenerator::subdivided_hyper_rectangle(
+    the_grid, repeats, point_1, point_2, true);
   std::vector<dealii::GridTools::PeriodicFacePair<
     typename dealii::parallel::distributed::Triangulation<dim>::cell_iterator> >
     periodic_faces;
   dealii::GridTools::collect_periodic_faces(
-    the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({ 2., 0. }));
+    the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({2., 0.}));
   dealii::GridTools::collect_periodic_faces(
-    the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({ 0., 2. }));
+    the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 2.}));
   the_grid.add_periodicity(periodic_faces);
-  */
   /* End of Example 1 */
   // The narrowing channel example
+  /*
   dealii::parallel::distributed::Triangulation<dim> left_cone(
     comm,
     typename dealii::Triangulation<dim>::MeshSmoothing(
@@ -447,7 +446,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
     VecDestroy(&rhs_qh1);
   }
 
-  if (true) // Explicit NSWE test
+  if (false) // Explicit NSWE test
   {
     double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
                                          global_ops_time = 0.;
@@ -634,6 +633,102 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
     model1.DoF_H_Refine.clear();
     model1.DoF_H_System.clear();
   }
+
+  /*
+  if (true) // Explicit GN Dispersive part test
+  {
+    double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
+                                         global_ops_time = 0.;
+    explicit_RKn<4, original_RK> rk4_0(1.e-3);
+    hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> model0(this,
+                                                                   &rk4_0);
+    for (unsigned h1 = h_1; h1 < h_2; ++h1)
+    {
+      if (h1 != h_1)
+        rk4_0.reset();
+
+      refine_grid(h1, model0);
+      model0.DoF_H_System.distribute_dofs(model0.DG_System);
+      model0.DoF_H_Refine.distribute_dofs(model0.DG_Elem);
+      model0.free_containers();
+      model0.init_mesh_containers();
+      model0.set_boundary_indicator();
+      model0.count_globals();
+      //      write_grid();
+      model0.assign_initial_data(rk4_0);
+
+      std::vector<double> local_sol_vec;
+      local_sol_vec.reserve(model0.n_local_DOFs_on_this_rank);
+      for (unsigned i_time = 0; i_time < 1; ++i_time)
+      {
+        double dt_local_ops = 0.;
+        double dt_global_ops = 0.;
+        while (!rk4_0.ready_for_next_step())
+        {
+          bool iteration_required = false;
+          unsigned max_iter = 500;
+          unsigned num_iter = 0;
+          do
+          {
+            solver_update_keys keys_0 =
+              static_cast<solver_update_keys>(update_mat | update_rhs);
+            if (i_time == 0 && num_iter == 0)
+              model0.init_solver();
+            else
+              model0.reinit_solver(keys_0);
+
+            t11 = MPI_Wtime();
+            model0.assemble_globals(keys_0);
+            model0.solver->finish_assembly(keys_0);
+            t12 = MPI_Wtime();
+
+            t21 = MPI_Wtime();
+            model0.solver->form_factors(implicit_petsc_factor_type::mumps);
+            model0.solver->solve_system(sol_vec);
+            local_sol_vec =
+              model0.solver->get_local_part_of_global_vec(sol_vec, true);
+            t22 = MPI_Wtime();
+
+            iteration_required =
+              model0.check_for_next_iter(local_sol_vec.data());
+
+            ++num_iter;
+
+            if (comm_rank == 0 && (!iteration_required || num_iter == max_iter))
+              std::cout << num_iter << std::endl;
+
+            dt_local_ops += (t12 - t11);
+            dt_global_ops += (t22 - t21);
+
+          } while (iteration_required && num_iter < max_iter);
+          break;
+        }
+        t31 = MPI_Wtime();
+        model0.compute_internal_dofs(local_sol_vec.data());
+        t32 = MPI_Wtime();
+
+        dt_local_ops += (t32 - t31);
+
+        if (i_time % 10 == 0)
+          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+          vtk_visualizer(model0, i_time);
+
+        local_ops_time += dt_local_ops;
+        global_ops_time += dt_global_ops;
+
+        if (comm_rank == 0)
+          std::cout << "time: " << i_time << ", local ops: " << dt_local_ops
+                    << ", global_ops: " << dt_global_ops << std::endl;
+      }
+      if (comm_rank == 0)
+        std::cout << "Total local ops: " << local_ops_time
+                  << ", total global_ops: " << global_ops_time << std::endl;
+
+      model0.DoF_H_Refine.clear();
+      model0.DoF_H_System.clear();
+    }
+  }
+  */
   VecDestroy(&sol_vec);
 }
 
