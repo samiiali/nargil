@@ -103,7 +103,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
   dealii::GridGenerator::merge_triangulations(temp_grid, right_cone, the_grid);
   //  dealii::GridGenerator::truncated_cone(the_grid, 1., 0.2, 2.);
   // End of narrowing channel example
-  /* Francois's Example 1 */
+  // Francois's Example 1 //
   /*
   std::vector<unsigned> repeats(dim, 1);
   repeats[0] = 1;
@@ -162,6 +162,43 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
   {
     BDFIntegrator time_integrator0(1.e-3, 1);
     hdg_model<dim, Diffusion> model0(this, &time_integrator0);
+    for (unsigned h1 = h_1; h1 < h_2; ++h1)
+    {
+      if (h1 != h_1)
+        time_integrator0.reset();
+      refine_grid(h1, model0);
+      model0.DoF_H_System.distribute_dofs(model0.DG_System);
+      model0.DoF_H_Refine.distribute_dofs(model0.DG_Elem);
+
+      model0.free_containers();
+      model0.init_mesh_containers();
+      model0.set_boundary_indicator();
+      model0.count_globals();
+      write_grid();
+      model0.assign_initial_data(time_integrator0);
+
+      solver_update_keys keys_0 =
+        static_cast<solver_update_keys>(update_mat | update_rhs);
+      model0.init_solver();
+      model0.assemble_globals(keys_0);
+      model0.solver->finish_assembly(keys_0);
+      model0.solver->form_factors(implicit_petsc_factor_type::mumps);
+      model0.solver->solve_system(sol_vec);
+
+      std::vector<double> local_sol_vec(
+        model0.solver->get_local_part_of_global_vec(sol_vec, true));
+      model0.compute_internal_dofs(local_sol_vec.data());
+
+      vtk_visualizer(model0, 0);
+    }
+    model0.DoF_H_Refine.clear();
+    model0.DoF_H_System.clear();
+  }
+
+  if (false) // GN_eps_0_beta_0 test
+  {
+    BDFIntegrator time_integrator0(1.e-3, 1);
+    hdg_model<dim, GN_eps_0_beta_0> model0(this, &time_integrator0);
     for (unsigned h1 = h_1; h1 < h_2; ++h1)
     {
       if (h1 != h_1)
@@ -458,6 +495,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         rk4_0.reset();
 
       refine_grid(h1, model0);
+
       model0.DoF_H_System.distribute_dofs(model0.DG_System);
       model0.DoF_H_Refine.distribute_dofs(model0.DG_Elem);
       model0.free_containers();
@@ -467,8 +505,8 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       //      write_grid();
       model0.assign_initial_data(rk4_0);
 
-      std::vector<double> local_sol_vec;
-      local_sol_vec.reserve(model0.n_local_DOFs_on_this_rank);
+      std::vector<double> local_sol_vec0;
+      local_sol_vec0.reserve(model0.n_local_DOFs_on_this_rank);
       for (unsigned i_time = 0; i_time < 5000; ++i_time)
       {
         double dt_local_ops = 0.;
@@ -495,7 +533,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
             t21 = MPI_Wtime();
             model0.solver->form_factors(implicit_petsc_factor_type::mumps);
             model0.solver->solve_system(sol_vec);
-            local_sol_vec =
+            local_sol_vec0 =
               model0.solver->get_local_part_of_global_vec(sol_vec, true);
             t22 = MPI_Wtime();
 
@@ -506,7 +544,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
             */
 
             iteration_required =
-              model0.check_for_next_iter(local_sol_vec.data());
+              model0.check_for_next_iter(local_sol_vec0.data());
 
             ++num_iter;
 
@@ -519,7 +557,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
           } while (iteration_required && num_iter < max_iter);
         }
         t31 = MPI_Wtime();
-        model0.compute_internal_dofs(local_sol_vec.data());
+        model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
 
         dt_local_ops += (t32 - t31);
@@ -634,13 +672,13 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
     model1.DoF_H_System.clear();
   }
 
-  /*
   if (true) // Explicit GN Dispersive part test
   {
     double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
                                          global_ops_time = 0.;
     explicit_RKn<4, original_RK> rk4_0(1.e-3);
-    hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> model0(this,
+    explicit_hdg_model<dim, explicit_nswe> model0(this, &rk4_0);
+    hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> model1(this,
                                                                    &rk4_0);
     for (unsigned h1 = h_1; h1 < h_2; ++h1)
     {
@@ -648,6 +686,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         rk4_0.reset();
 
       refine_grid(h1, model0);
+
       model0.DoF_H_System.distribute_dofs(model0.DG_System);
       model0.DoF_H_Refine.distribute_dofs(model0.DG_Elem);
       model0.free_containers();
@@ -657,9 +696,21 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       //      write_grid();
       model0.assign_initial_data(rk4_0);
 
-      std::vector<double> local_sol_vec;
-      local_sol_vec.reserve(model0.n_local_DOFs_on_this_rank);
-      for (unsigned i_time = 0; i_time < 1; ++i_time)
+      model1.DoF_H_System.distribute_dofs(model1.DG_System);
+      model1.DoF_H_Refine.distribute_dofs(model1.DG_Elem);
+      model1.free_containers();
+      model1.init_mesh_containers();
+      model1.set_boundary_indicator();
+      model1.count_globals();
+      model1.assign_initial_data(rk4_0);
+
+      std::vector<double> local_sol_vec0;
+      local_sol_vec0.reserve(model0.n_local_DOFs_on_this_rank);
+
+      std::vector<double> local_sol_vec1;
+      local_sol_vec1.reserve(model1.n_local_DOFs_on_this_rank);
+
+      for (unsigned i_time = 0; i_time < 5000; ++i_time)
       {
         double dt_local_ops = 0.;
         double dt_global_ops = 0.;
@@ -685,12 +736,66 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
             t21 = MPI_Wtime();
             model0.solver->form_factors(implicit_petsc_factor_type::mumps);
             model0.solver->solve_system(sol_vec);
-            local_sol_vec =
+            local_sol_vec0 =
               model0.solver->get_local_part_of_global_vec(sol_vec, true);
             t22 = MPI_Wtime();
 
             iteration_required =
-              model0.check_for_next_iter(local_sol_vec.data());
+              model0.check_for_next_iter(local_sol_vec0.data());
+
+            ++num_iter;
+
+            if (comm_rank == 0 && (!iteration_required || num_iter == max_iter))
+              std::cout << num_iter << std::endl;
+
+            dt_local_ops += (t12 - t11);
+            dt_global_ops += (t22 - t21);
+
+          } while (iteration_required && num_iter < max_iter);
+        }
+        t31 = MPI_Wtime();
+        model0.compute_internal_dofs(local_sol_vec0.data());
+        t32 = MPI_Wtime();
+
+        dt_local_ops += (t32 - t31);
+
+        if (i_time % 10 == 0)
+          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+          vtk_visualizer(model0, i_time);
+      }
+
+      for (unsigned i_time = 0; i_time < 1; ++i_time)
+      {
+        double dt_local_ops = 0.;
+        double dt_global_ops = 0.;
+        while (!rk4_0.ready_for_next_step())
+        {
+          bool iteration_required = false;
+          unsigned max_iter = 500;
+          unsigned num_iter = 0;
+          do
+          {
+            solver_update_keys keys_0 =
+              static_cast<solver_update_keys>(update_mat | update_rhs);
+            if (i_time == 0 && num_iter == 0)
+              model1.init_solver();
+            else
+              model1.reinit_solver(keys_0);
+
+            t11 = MPI_Wtime();
+            model1.assemble_globals(keys_0);
+            model1.solver->finish_assembly(keys_0);
+            t12 = MPI_Wtime();
+
+            t21 = MPI_Wtime();
+            model1.solver->form_factors(implicit_petsc_factor_type::mumps);
+            model1.solver->solve_system(sol_vec);
+            local_sol_vec1 =
+              model1.solver->get_local_part_of_global_vec(sol_vec, true);
+            t22 = MPI_Wtime();
+
+            iteration_required =
+              model1.check_for_next_iter(local_sol_vec1.data());
 
             ++num_iter;
 
@@ -704,14 +809,14 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
           break;
         }
         t31 = MPI_Wtime();
-        model0.compute_internal_dofs(local_sol_vec.data());
+        model1.compute_internal_dofs(local_sol_vec1.data());
         t32 = MPI_Wtime();
 
         dt_local_ops += (t32 - t31);
 
         if (i_time % 10 == 0)
           //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-          vtk_visualizer(model0, i_time);
+          vtk_visualizer(model1, i_time);
 
         local_ops_time += dt_local_ops;
         global_ops_time += dt_global_ops;
@@ -724,11 +829,10 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         std::cout << "Total local ops: " << local_ops_time
                   << ", total global_ops: " << global_ops_time << std::endl;
 
-      model0.DoF_H_Refine.clear();
-      model0.DoF_H_System.clear();
+      model1.DoF_H_Refine.clear();
+      model1.DoF_H_System.clear();
     }
   }
-  */
   VecDestroy(&sol_vec);
 }
 
@@ -781,6 +885,38 @@ template <int dim>
 template <template <int> class CellType>
 void SolutionManager<dim>::refine_grid(int n,
                                        explicit_hdg_model<dim, CellType> &model)
+{
+  if (n != 0 && refn_cycle == 0)
+  {
+    the_grid.refine_global(n);
+    refn_cycle += n;
+  }
+  else if (n != 0 && !adaptive_on)
+  {
+    the_grid.refine_global(1);
+    ++refn_cycle;
+  }
+  else if (n != 0)
+  {
+    dealii::Vector<float> estimated_error_per_cell(the_grid.n_active_cells());
+    dealii::KellyErrorEstimator<dim>::estimate(
+      model.DoF_H_Refine,
+      dealii::QGauss<dim - 1>(quad_order),
+      typename dealii::FunctionMap<dim>::type(),
+      refine_solu,
+      estimated_error_per_cell);
+    dealii::parallel::distributed::GridRefinement::
+      refine_and_coarsen_fixed_number(
+        the_grid, estimated_error_per_cell, 0.3, 0.03);
+    the_grid.execute_coarsening_and_refinement();
+    ++refn_cycle;
+  }
+}
+
+template <int dim>
+template <template <int> class CellType>
+void SolutionManager<dim>::refine_grid(
+  int n, hdg_model_with_explicit_rk<dim, CellType> &model)
 {
   if (n != 0 && refn_cycle == 0)
   {

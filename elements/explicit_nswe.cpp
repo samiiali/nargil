@@ -161,6 +161,18 @@ void explicit_nswe<dim>::assign_initial_data()
 }
 
 template <int dim>
+void explicit_nswe<dim>::set_previous_step_results(eigen3mat *last_step_q_)
+{
+  last_step_q = std::move(*last_step_q_);
+}
+
+template <int dim>
+eigen3mat *explicit_nswe<dim>::get_previous_step_results()
+{
+  return &last_step_q;
+}
+
+template <int dim>
 Eigen::Matrix<double, (dim + 1), dim>
 explicit_nswe<dim>::get_Fij(const std::vector<double> &qs)
 {

@@ -1331,3 +1331,34 @@ void explicit_hdg_model<dim, CellType>::reinit_solver(
   solver_options options_ = CellType<dim>::required_solver_options();
   solver->reinit_components(this, options_, update_keys_);
 }
+
+template <int dim, template <int> class CellType>
+template <template <int> class srcCellType,
+          template <int, template <int> class> class srcModelType>
+void explicit_hdg_model<dim, CellType>::get_results_from_another_model(
+  srcModelType<dim, srcCellType> &src_model)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+  {
+    unsigned thread_id = omp_get_thread_num();
+#else
+  unsigned thread_id = 0;
+  {
+#endif
+    for (unsigned i_cell = thread_id; i_cell < all_owned_cells.size();
+         i_cell = i_cell + this->manager->n_threads)
+    {
+      std::unique_ptr<GenericCell<dim> > src_cell(
+        std::move(src_model.all_owned_cells[i_cell]));
+      std::unique_ptr<GenericCell<dim> > cell(
+        std::move(all_owned_cells[i_cell]));
+      static_cast<CellType<dim> *>(cell.get())
+        ->set_previous_step_results(
+          static_cast<srcCellType<dim> *>(src_cell.get())
+            ->get_previous_step_results());
+      all_owned_cells[i_cell] = std::move(cell);
+      src_model.all_owned_cells[i_cell] = std::move(src_cell);
+    }
+  }
+}

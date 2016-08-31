@@ -54,16 +54,29 @@ struct SolutionManager
                   bool insert_eol = true);
   void write_grid();
   void solve(const unsigned &h_1, const unsigned &h_2);
+
   template <template <int> class CellType>
   void refine_grid(int, hdg_model<dim, CellType> &);
+
   template <template <int> class CellType>
   void refine_grid(int, explicit_hdg_model<dim, CellType> &);
+
+  template <template <int> class CellType>
+  void refine_grid(int, hdg_model_with_explicit_rk<dim, CellType> &);
+
   int cell_id_to_num_finder(const dealiiCell &dealii_cell_,
                             std::map<std::string, int> &ID_to_num_map);
   void free_containers();
+
   template <template <int> class CellType>
   void vtk_visualizer(const generic_model<dim, CellType> &model,
                       const unsigned &time);
+
+  template <template <int> class src_CellType,
+            template <int> class dst_CellType>
+  void
+  switch_results_among_models(const generic_model<dim, src_CellType> &src_model,
+                              generic_model<dim, dst_CellType> &dst_model);
 
   /*! The common grid object between different hdg_model 's. In the current
    * version, all of the hdg_model 's share the same grid. However, if one

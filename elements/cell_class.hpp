@@ -113,6 +113,16 @@ struct GenericCell
             const unsigned &poly_order_,
             explicit_hdg_model<dim, type_of_cell> *model_);
 
+  /*!
+   * Factory pattern for producing new GenericCell
+   */
+  template <template <int> class type_of_cell>
+  static std::unique_ptr<GenericCell<dim, spacedim> >
+  make_cell(dealiiCell &inp_cell,
+            const unsigned &id_num_,
+            const unsigned &poly_order_,
+            hdg_model_with_explicit_rk<dim, type_of_cell> *model_);
+
   /*! \brief Moves the dealii::FEValues and dealii::FEFaceValues
    * objects between different elements and faces.
    *

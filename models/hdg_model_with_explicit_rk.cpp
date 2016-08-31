@@ -154,11 +154,9 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
         {
           if (cell->BCs[i_face] != GenericCell<dim>::periodic)
           {
-            cell->assign_local_global_cell_data(i_face,
-                                                local_dof_num_on_this_rank,
-                                                global_dof_num_on_this_rank,
-                                                this->comm_rank,
-                                                0);
+            cell->assign_local_global_cell_data(
+              i_face, local_dof_num_on_this_rank, global_dof_num_on_this_rank,
+              this->comm_rank, 0);
             local_dof_num_on_this_rank +=
               cell->dof_names_on_faces[i_face].count();
             global_dof_num_on_this_rank +=
@@ -209,8 +207,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
              */
             unsigned nb_face_of_nb_num = nb_i1->neighbor_face_no(face_nb_num);
             for (unsigned i_nb_subface = 0;
-                 i_nb_subface < face_nb->n_children();
-                 ++i_nb_subface)
+                 i_nb_subface < face_nb->n_children(); ++i_nb_subface)
             {
               const dealiiCell &nb_of_nb_i1 =
                 nb_i1->neighbor_child_on_subface(face_nb_num, i_nb_subface);
@@ -219,10 +216,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
                 unsigned nb_of_nb_num = this->manager->cell_id_to_num_finder(
                   nb_of_nb_i1, this->manager->cell_ID_to_num);
                 all_owned_cells[nb_of_nb_num]->assign_local_cell_data(
-                  nb_face_of_nb_num,
-                  local_dof_num_on_this_rank,
-                  nb_i1->subdomain_id(),
-                  i_nb_subface + 1);
+                  nb_face_of_nb_num, local_dof_num_on_this_rank,
+                  nb_i1->subdomain_id(), i_nb_subface + 1);
                 face_to_rank_recver[nb_i1->subdomain_id()]++;
                 if (!is_there_a_msg_from_rank[nb_i1->subdomain_id()])
                   is_there_a_msg_from_rank[nb_i1->subdomain_id()] = true;
@@ -234,14 +229,11 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
           }
           else if (face_i1->has_children())
           {
-            cell->assign_local_global_cell_data(i_face,
-                                                local_dof_num_on_this_rank,
-                                                global_dof_num_on_this_rank,
-                                                this->comm_rank,
-                                                0);
+            cell->assign_local_global_cell_data(
+              i_face, local_dof_num_on_this_rank, global_dof_num_on_this_rank,
+              this->comm_rank, 0);
             for (unsigned i_subface = 0;
-                 i_subface < face_i1->number_of_children();
-                 ++i_subface)
+                 i_subface < face_i1->number_of_children(); ++i_subface)
             {
               dealiiCell &&nb_i1 =
                 cell->dealii_cell->neighbor_child_on_subface(i_face, i_subface);
@@ -255,11 +247,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
                        this->manager->cell_ID_to_num.end());
                 int nb_i1_num = this->manager->cell_ID_to_num[nb_str_id];
                 all_owned_cells[nb_i1_num]->assign_local_global_cell_data(
-                  face_nb_i1,
-                  local_dof_num_on_this_rank,
-                  global_dof_num_on_this_rank,
-                  this->comm_rank,
-                  i_subface + 1);
+                  face_nb_i1, local_dof_num_on_this_rank,
+                  global_dof_num_on_this_rank, this->comm_rank, i_subface + 1);
               }
               else
               {
@@ -273,20 +262,13 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
                        ghost_ID_to_num.end());
                 unsigned nb_i1_num = ghost_ID_to_num[nb_str_id];
                 all_ghost_cells[nb_i1_num]->assign_local_global_cell_data(
-                  face_nb_i1,
-                  local_dof_num_on_this_rank,
-                  global_dof_num_on_this_rank,
-                  this->comm_rank,
-                  i_subface + 1);
+                  face_nb_i1, local_dof_num_on_this_rank,
+                  global_dof_num_on_this_rank, this->comm_rank, i_subface + 1);
                 /* Now we send id, face id, subface id, and neighbor face number
                  * to the corresponding rank. */
                 char buffer[300];
-                std::snprintf(buffer,
-                              300,
-                              "%s#%d#%d#%d",
-                              nb_str_id.c_str(),
-                              face_nb_i1,
-                              i_subface + 1,
+                std::snprintf(buffer, 300, "%s#%d#%d#%d", nb_str_id.c_str(),
+                              face_nb_i1, i_subface + 1,
                               global_dof_num_on_this_rank);
                 face_to_rank_sender[nb_i1->subdomain_id()].push_back(buffer);
                 ++mpi_request_counter;
@@ -309,17 +291,12 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
               assert(this->manager->cell_ID_to_num.find(nb_str_id) !=
                      this->manager->cell_ID_to_num.end());
               int nb_i1_num = this->manager->cell_ID_to_num[nb_str_id];
-              cell->assign_local_global_cell_data(i_face,
-                                                  local_dof_num_on_this_rank,
-                                                  global_dof_num_on_this_rank,
-                                                  this->comm_rank,
-                                                  0);
+              cell->assign_local_global_cell_data(
+                i_face, local_dof_num_on_this_rank, global_dof_num_on_this_rank,
+                this->comm_rank, 0);
               all_owned_cells[nb_i1_num]->assign_local_global_cell_data(
-                face_nb_i1,
-                local_dof_num_on_this_rank,
-                global_dof_num_on_this_rank,
-                this->comm_rank,
-                0);
+                face_nb_i1, local_dof_num_on_this_rank,
+                global_dof_num_on_this_rank, this->comm_rank, 0);
               global_dof_num_on_this_rank +=
                 cell->dof_names_on_faces[i_face].count();
             }
@@ -328,30 +305,20 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
               assert(nb_i1->is_ghost());
               if (nb_i1->subdomain_id() > this->comm_rank)
               {
-                cell->assign_local_global_cell_data(i_face,
-                                                    local_dof_num_on_this_rank,
-                                                    global_dof_num_on_this_rank,
-                                                    this->comm_rank,
-                                                    0);
+                cell->assign_local_global_cell_data(
+                  i_face, local_dof_num_on_this_rank,
+                  global_dof_num_on_this_rank, this->comm_rank, 0);
                 assert(ghost_ID_to_num.find(nb_str_id) !=
                        ghost_ID_to_num.end());
                 unsigned nb_i1_num = ghost_ID_to_num[nb_str_id];
                 all_ghost_cells[nb_i1_num]->assign_local_global_cell_data(
-                  face_nb_i1,
-                  local_dof_num_on_this_rank,
-                  global_dof_num_on_this_rank,
-                  this->comm_rank,
-                  0);
+                  face_nb_i1, local_dof_num_on_this_rank,
+                  global_dof_num_on_this_rank, this->comm_rank, 0);
                 /* Now we send id, face id, subface(=0), and neighbor face
                  * number to the corresponding rank. */
                 char buffer[300];
-                std::snprintf(buffer,
-                              300,
-                              "%s#%d#%d#%d",
-                              nb_str_id.c_str(),
-                              face_nb_i1,
-                              0,
-                              global_dof_num_on_this_rank);
+                std::snprintf(buffer, 300, "%s#%d#%d#%d", nb_str_id.c_str(),
+                              face_nb_i1, 0, global_dof_num_on_this_rank);
                 face_to_rank_sender[nb_i1->subdomain_id()].push_back(buffer);
                 global_dof_num_on_this_rank +=
                   cell->dof_names_on_faces[i_face].count();
@@ -359,8 +326,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
               }
               else
               {
-                cell->assign_local_cell_data(
-                  i_face, local_dof_num_on_this_rank, nb_i1->subdomain_id(), 0);
+                cell->assign_local_cell_data(i_face, local_dof_num_on_this_rank,
+                                             nb_i1->subdomain_id(), 0);
                 face_to_rank_recver[nb_i1->subdomain_id()]++;
                 if (!is_there_a_msg_from_rank[nb_i1->subdomain_id()])
                   is_there_a_msg_from_rank[nb_i1->subdomain_id()] = true;
@@ -381,12 +348,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
   std::vector<unsigned> dofs_count_be4_rank(this->manager->comm_size, 0);
   std::vector<unsigned> dofs_count_up2_rank(this->manager->comm_size, 0);
   unsigned n_dofs_this_rank_owns = global_dof_num_on_this_rank;
-  MPI_Allgather(&n_dofs_this_rank_owns,
-                1,
-                MPI_UNSIGNED,
-                dofs_count_up2_rank.data(),
-                1,
-                MPI_UNSIGNED,
+  MPI_Allgather(&n_dofs_this_rank_owns, 1, MPI_UNSIGNED,
+                dofs_count_up2_rank.data(), 1, MPI_UNSIGNED,
                 this->manager->comm);
 
   for (unsigned i_num = 0; i_num < this->manager->comm_size; ++i_num)
@@ -396,16 +359,14 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
   for (std::unique_ptr<GenericCell<dim> > &cell : all_owned_cells)
     for (unsigned i_face = 0; i_face < n_faces_per_cell; ++i_face)
       for (unsigned i_dof = 0;
-           i_dof < cell->dofs_ID_in_all_ranks[i_face].size();
-           ++i_dof)
+           i_dof < cell->dofs_ID_in_all_ranks[i_face].size(); ++i_dof)
         cell->dofs_ID_in_all_ranks[i_face][i_dof] +=
           dofs_count_be4_rank[this->comm_rank];
 
   for (std::unique_ptr<GenericCell<dim> > &ghost_cell : all_ghost_cells)
     for (unsigned i_face = 0; i_face < n_faces_per_cell; ++i_face)
       for (unsigned i_dof = 0;
-           i_dof < ghost_cell->dofs_ID_in_all_ranks[i_face].size();
-           ++i_dof)
+           i_dof < ghost_cell->dofs_ID_in_all_ranks[i_face].size(); ++i_dof)
         ghost_cell->dofs_ID_in_all_ranks[i_face][i_dof] +=
           dofs_count_be4_rank[this->comm_rank];
 
@@ -442,11 +403,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
         {
           {
             ghost_cell->assign_ghost_cell_data(
-              i_face,
-              ghost_dofs_counter,
-              ghost_dofs_counter,
-              ghost_cell->dealii_cell->subdomain_id(),
-              0);
+              i_face, ghost_dofs_counter, ghost_dofs_counter,
+              ghost_cell->dealii_cell->subdomain_id(), 0);
             ghost_dofs_counter -=
               ghost_cell->dof_names_on_faces[i_face].count();
           }
@@ -459,18 +417,14 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
            * rank.
            */
           ghost_cell->assign_ghost_cell_data(
-            i_face,
-            ghost_dofs_counter,
-            ghost_dofs_counter,
-            ghost_cell->dealii_cell->subdomain_id(),
-            0);
+            i_face, ghost_dofs_counter, ghost_dofs_counter,
+            ghost_cell->dealii_cell->subdomain_id(), 0);
           if (face_i1->has_children())
           {
             int face_nb_subface =
               ghost_cell->dealii_cell->neighbor_face_no(i_face);
             for (unsigned i_subface = 0;
-                 i_subface < face_i1->number_of_children();
-                 ++i_subface)
+                 i_subface < face_i1->number_of_children(); ++i_subface)
             {
               dealiiCell &&nb_subface =
                 ghost_cell->dealii_cell->neighbor_child_on_subface(i_face,
@@ -480,11 +434,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
                 unsigned nb_subface_num = this->manager->cell_id_to_num_finder(
                   nb_subface, ghost_ID_to_num);
                 all_ghost_cells[nb_subface_num]->assign_ghost_cell_data(
-                  face_nb_subface,
-                  ghost_dofs_counter,
-                  ghost_dofs_counter,
-                  nb_subface->subdomain_id(),
-                  i_subface + 1);
+                  face_nb_subface, ghost_dofs_counter, ghost_dofs_counter,
+                  nb_subface->subdomain_id(), i_subface + 1);
               }
             }
           }
@@ -501,11 +452,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
                      ->dofs_ID_in_all_ranks[face_nb_i1]
                      .size() == 0);
             all_ghost_cells[nb_i1_num]->assign_ghost_cell_data(
-              face_nb_i1,
-              ghost_dofs_counter,
-              ghost_dofs_counter,
-              nb_i1->subdomain_id(),
-              0);
+              face_nb_i1, ghost_dofs_counter, ghost_dofs_counter,
+              nb_i1->subdomain_id(), 0);
           }
           ghost_dofs_counter -= ghost_cell->dof_names_on_faces[i_face].count();
         }
@@ -532,8 +480,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
    * Phase 1 : Send Loop
    */
   for (auto &&i_send = face_to_rank_sender.rbegin();
-       i_send != face_to_rank_sender.rend();
-       ++i_send)
+       i_send != face_to_rank_sender.rend(); ++i_send)
   {
     assert(this->comm_rank != i_send->first);
     if (this->comm_rank < i_send->first)
@@ -543,12 +490,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
       std::vector<MPI_Request> all_mpi_reqs_of_rank(num_sends);
       for (auto &&msg_it : face_to_rank_sender[i_send->first])
       {
-        MPI_Isend((char *)msg_it.c_str(),
-                  msg_it.size() + 1,
-                  MPI_CHAR,
-                  i_send->first,
-                  this->manager->refn_cycle,
-                  this->manager->comm,
+        MPI_Isend((char *)msg_it.c_str(), msg_it.size() + 1, MPI_CHAR,
+                  i_send->first, this->manager->refn_cycle, this->manager->comm,
                   &all_mpi_reqs_of_rank[jth_rank_on_i_send]);
         ++jth_rank_on_i_send;
       }
@@ -572,11 +515,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
         no_msg_left = false;
       int flag = 0;
       if (this->comm_rank > i_recv->first)
-        MPI_Iprobe(i_recv->first,
-                   this->manager->refn_cycle,
-                   this->manager->comm,
-                   &flag,
-                   MPI_STATUS_IGNORE);
+        MPI_Iprobe(i_recv->first, this->manager->refn_cycle,
+                   this->manager->comm, &flag, MPI_STATUS_IGNORE);
       if (flag)
       {
         assert(i_recv->second);
@@ -590,12 +530,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
            ++jth_rank_on_i_recv)
       {
         char buffer[300];
-        MPI_Recv(&buffer[0],
-                 300,
-                 MPI_CHAR,
-                 i_recv->first,
-                 this->manager->refn_cycle,
-                 this->manager->comm,
+        MPI_Recv(&buffer[0], 300, MPI_CHAR, i_recv->first,
+                 this->manager->refn_cycle, this->manager->comm,
                  &all_mpi_stats_of_rank[recv_counter]);
         std::vector<std::string> tokens;
         Tokenize(buffer, tokens, "#");
@@ -633,8 +569,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
    * Phase 2 : Send Loop
    */
   for (auto &&i_send = face_to_rank_sender.rbegin();
-       i_send != face_to_rank_sender.rend();
-       ++i_send)
+       i_send != face_to_rank_sender.rend(); ++i_send)
   {
     assert(this->comm_rank != i_send->first);
     if (this->comm_rank > i_send->first)
@@ -644,12 +579,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
       std::vector<MPI_Request> all_mpi_reqs_of_rank(num_sends);
       for (auto &&msg_it : face_to_rank_sender[i_send->first])
       {
-        MPI_Isend((char *)msg_it.c_str(),
-                  msg_it.size() + 1,
-                  MPI_CHAR,
-                  i_send->first,
-                  this->manager->refn_cycle,
-                  this->manager->comm,
+        MPI_Isend((char *)msg_it.c_str(), msg_it.size() + 1, MPI_CHAR,
+                  i_send->first, this->manager->refn_cycle, this->manager->comm,
                   &all_mpi_reqs_of_rank[jth_rank_on_i_send]);
         ++jth_rank_on_i_send;
       }
@@ -671,11 +602,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
         no_msg_left = false;
       int flag = 0;
       if (this->comm_rank < i_recv->first)
-        MPI_Iprobe(i_recv->first,
-                   this->manager->refn_cycle,
-                   this->manager->comm,
-                   &flag,
-                   MPI_STATUS_IGNORE);
+        MPI_Iprobe(i_recv->first, this->manager->refn_cycle,
+                   this->manager->comm, &flag, MPI_STATUS_IGNORE);
       if (flag)
       {
         assert(i_recv->second);
@@ -689,12 +617,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
            ++jth_rank_on_i_recv)
       {
         char buffer[300];
-        MPI_Recv(&buffer[0],
-                 300,
-                 MPI_CHAR,
-                 i_recv->first,
-                 this->manager->refn_cycle,
-                 this->manager->comm,
+        MPI_Recv(&buffer[0], 300, MPI_CHAR, i_recv->first,
+                 this->manager->refn_cycle, this->manager->comm,
                  &all_mpi_stats_of_rank[recv_counter]);
         std::vector<std::string> tokens;
         Tokenize(buffer, tokens, "#");
@@ -763,16 +687,14 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
   std::vector<GenericDOF<dim> > all_owned_dofs(global_dof_num_on_this_rank);
   for (typename GenericCell<dim>::vec_iter_ptr_type cell_it =
          all_owned_cells.begin();
-       cell_it != all_owned_cells.end();
-       ++cell_it)
+       cell_it != all_owned_cells.end(); ++cell_it)
   {
     for (unsigned i_face = 0; i_face < (*cell_it)->n_faces; ++i_face)
     {
       if ((*cell_it)->face_owner_rank[i_face] == this->comm_rank)
       {
         for (unsigned i_dof = 0;
-             i_dof < (*cell_it)->dofs_ID_in_all_ranks[i_face].size();
-             ++i_dof)
+             i_dof < (*cell_it)->dofs_ID_in_all_ranks[i_face].size(); ++i_dof)
         {
           int dof_i1 = (*cell_it)->dofs_ID_in_all_ranks[i_face][i_dof] -
                        dofs_count_be4_rank[this->comm_rank];
@@ -789,8 +711,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
 
   for (typename GenericCell<dim>::vec_iter_ptr_type ghost_cell_it =
          all_ghost_cells.begin();
-       ghost_cell_it != all_ghost_cells.end();
-       ++ghost_cell_it)
+       ghost_cell_it != all_ghost_cells.end(); ++ghost_cell_it)
   {
     for (unsigned i_face = 0; i_face < (*ghost_cell_it)->n_faces; ++i_face)
     {
@@ -874,10 +795,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
   }
 
   MPI_Allreduce(&this->n_global_DOFs_rank_owns,
-                &this->n_global_DOFs_on_all_ranks,
-                1,
-                MPI_UNSIGNED,
-                MPI_SUM,
+                &this->n_global_DOFs_on_all_ranks, 1, MPI_UNSIGNED, MPI_SUM,
                 this->manager->comm);
 
   int dof_counter = 0;
@@ -901,8 +819,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
     for (unsigned i_face = 0; i_face < n_faces_per_cell; ++i_face)
     {
       for (unsigned i_dof = 0;
-           i_dof < cell->dofs_ID_in_this_rank[i_face].size();
-           ++i_dof)
+           i_dof < cell->dofs_ID_in_this_rank[i_face].size(); ++i_dof)
       {
         int index1 = cell->dofs_ID_in_this_rank[i_face][i_dof];
         int index2 = cell->dofs_ID_in_all_ranks[i_face][i_dof];
@@ -945,13 +862,11 @@ void hdg_model_with_explicit_rk<dim, CellType>::count_globals()
   */
 
   char buffer[100];
-  std::snprintf(buffer,
-                100,
-                "Number of DOFs in this rank is: %d and number of dofs "
-                "in all "
-                "ranks is : %d",
-                this->n_global_DOFs_rank_owns,
-                this->n_global_DOFs_on_all_ranks);
+  std::snprintf(
+    buffer, 100, "Number of DOFs in this rank is: %d and number of dofs "
+                 "in all "
+                 "ranks is : %d",
+    this->n_global_DOFs_rank_owns, this->n_global_DOFs_on_all_ranks);
   this->manager->out_logger(this->manager->execution_time, buffer, true);
   //  std::cout << buffer << std::endl;
 }
@@ -976,15 +891,12 @@ void hdg_model_with_explicit_rk<dim, CellType>::assign_initial_data(
     const dealii::UpdateFlags &p2_flags = dealii::update_quadrature_points;
     const dealii::UpdateFlags &p3_flags = dealii::update_quadrature_points;
     const dealii::UpdateFlags &p4_flags = dealii::update_quadrature_points;
-    FE_val_ptr p1(new dealii::FEValues<dim>(this->manager->elem_mapping,
-                                            DG_Elem,
-                                            this->manager->elem_quad_bundle,
-                                            p1_flags));
+    FE_val_ptr p1(
+      new dealii::FEValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                this->manager->elem_quad_bundle, p1_flags));
     FEFace_val_ptr p2(
-      new dealii::FEFaceValues<dim>(this->manager->elem_mapping,
-                                    DG_Elem,
-                                    this->manager->face_quad_bundle,
-                                    p2_flags));
+      new dealii::FEFaceValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                    this->manager->face_quad_bundle, p2_flags));
     FE_val_ptr p3(new dealii::FEValues<dim>(
       this->manager->elem_mapping, DG_Elem, LGL_elem_support_points, p3_flags));
     FEFace_val_ptr p4(new dealii::FEFaceValues<dim>(
@@ -1043,15 +955,12 @@ void hdg_model_with_explicit_rk<dim, CellType>::assemble_globals(
     const dealii::UpdateFlags &p4_flags =
       dealii::update_quadrature_points | dealii::update_face_normal_vectors;
 
-    FE_val_ptr p1(new dealii::FEValues<dim>(this->manager->elem_mapping,
-                                            DG_Elem,
-                                            this->manager->elem_quad_bundle,
-                                            p1_flags));
+    FE_val_ptr p1(
+      new dealii::FEValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                this->manager->elem_quad_bundle, p1_flags));
     FEFace_val_ptr p2(
-      new dealii::FEFaceValues<dim>(this->manager->elem_mapping,
-                                    DG_Elem,
-                                    this->manager->face_quad_bundle,
-                                    p2_flags));
+      new dealii::FEFaceValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                    this->manager->face_quad_bundle, p2_flags));
     FE_val_ptr p3(new dealii::FEValues<dim>(
       this->manager->elem_mapping, DG_Elem, LGL_elem_support_points, p3_flags));
     FEFace_val_ptr p4(new dealii::FEFaceValues<dim>(
@@ -1097,15 +1006,12 @@ bool hdg_model_with_explicit_rk<dim, CellType>::check_for_next_iter(
     const dealii::UpdateFlags &p3_flags = dealii::update_default;
     const dealii::UpdateFlags &p4_flags = dealii::update_quadrature_points;
 
-    FE_val_ptr p1(new dealii::FEValues<dim>(this->manager->elem_mapping,
-                                            DG_Elem,
-                                            this->manager->elem_quad_bundle,
-                                            p1_flags));
+    FE_val_ptr p1(
+      new dealii::FEValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                this->manager->elem_quad_bundle, p1_flags));
     FEFace_val_ptr p2(
-      new dealii::FEFaceValues<dim>(this->manager->elem_mapping,
-                                    DG_Elem,
-                                    this->manager->face_quad_bundle,
-                                    p2_flags));
+      new dealii::FEFaceValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                    this->manager->face_quad_bundle, p2_flags));
     FE_val_ptr p3(new dealii::FEValues<dim>(
       this->manager->elem_mapping, DG_Elem, LGL_elem_support_points, p3_flags));
     FEFace_val_ptr p4(new dealii::FEFaceValues<dim>(
@@ -1127,12 +1033,8 @@ bool hdg_model_with_explicit_rk<dim, CellType>::check_for_next_iter(
   }
 
   double global_iter_increment;
-  MPI_Allreduce(&this_iter_increment,
-                &global_iter_increment,
-                1,
-                MPI_DOUBLE,
-                MPI_SUM,
-                this->manager->comm);
+  MPI_Allreduce(&this_iter_increment, &global_iter_increment, 1, MPI_DOUBLE,
+                MPI_SUM, this->manager->comm);
 
   if (sqrt(global_iter_increment) < 1E-12)
   {
@@ -1157,24 +1059,18 @@ bool hdg_model_with_explicit_rk<dim, CellType>::check_for_next_iter(
       const dealii::UpdateFlags &p3_flags = dealii::update_quadrature_points;
       const dealii::UpdateFlags &p4_flags = dealii::update_quadrature_points;
 
-      FE_val_ptr p1(new dealii::FEValues<dim>(this->manager->elem_mapping,
-                                              DG_Elem,
-                                              this->manager->elem_quad_bundle,
-                                              p1_flags));
-      FEFace_val_ptr p2(
-        new dealii::FEFaceValues<dim>(this->manager->elem_mapping,
-                                      DG_Elem,
-                                      this->manager->face_quad_bundle,
-                                      p2_flags));
+      FE_val_ptr p1(
+        new dealii::FEValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                  this->manager->elem_quad_bundle, p1_flags));
+      FEFace_val_ptr p2(new dealii::FEFaceValues<dim>(
+        this->manager->elem_mapping, DG_Elem, this->manager->face_quad_bundle,
+        p2_flags));
       FE_val_ptr p3(new dealii::FEValues<dim>(this->manager->elem_mapping,
-                                              DG_Elem,
-                                              LGL_elem_support_points,
+                                              DG_Elem, LGL_elem_support_points,
                                               p3_flags));
       FEFace_val_ptr p4(
-        new dealii::FEFaceValues<dim>(this->manager->elem_mapping,
-                                      DG_Elem,
-                                      LGL_face_support_points,
-                                      p4_flags));
+        new dealii::FEFaceValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                      LGL_face_support_points, p4_flags));
 
       for (unsigned i_cell = thread_id; i_cell < all_owned_cells.size();
            i_cell = i_cell + this->manager->n_threads)
@@ -1238,15 +1134,12 @@ bool hdg_model_with_explicit_rk<dim, CellType>::compute_internal_dofs(
     const dealii::UpdateFlags &p3_flags = dealii::update_quadrature_points;
     const dealii::UpdateFlags &p4_flags = dealii::update_quadrature_points;
 
-    FE_val_ptr p1(new dealii::FEValues<dim>(this->manager->elem_mapping,
-                                            DG_Elem,
-                                            this->manager->elem_quad_bundle,
-                                            p1_flags));
+    FE_val_ptr p1(
+      new dealii::FEValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                this->manager->elem_quad_bundle, p1_flags));
     FEFace_val_ptr p2(
-      new dealii::FEFaceValues<dim>(this->manager->elem_mapping,
-                                    DG_Elem,
-                                    this->manager->face_quad_bundle,
-                                    p2_flags));
+      new dealii::FEFaceValues<dim>(this->manager->elem_mapping, DG_Elem,
+                                    this->manager->face_quad_bundle, p2_flags));
     FE_val_ptr p3(new dealii::FEValues<dim>(
       this->manager->elem_mapping, DG_Elem, LGL_elem_support_points, p3_flags));
     FEFace_val_ptr p4(new dealii::FEFaceValues<dim>(
@@ -1265,8 +1158,8 @@ bool hdg_model_with_explicit_rk<dim, CellType>::compute_internal_dofs(
       eigen3mat u_vec, q_vec;
       this_iter_increment +=
         static_cast<CellType<dim> *>(cell.get())
-          ->compute_internal_dofs(
-            local_uhat, u_vec, q_vec, std::move(the_elem_equal_dist_basis));
+          ->compute_internal_dofs(local_uhat, u_vec, q_vec,
+                                  std::move(the_elem_equal_dist_basis));
       cell->internal_vars_errors(u_vec, q_vec, u_error, q_error);
       /* Finally, we detach fevalues and give back cell contents back */
       cell->detach_FEValues(p1, p2, p3, p4);
@@ -1277,16 +1170,12 @@ bool hdg_model_with_explicit_rk<dim, CellType>::compute_internal_dofs(
   cell_local_nodal.copy_to_global_vec(this->manager->visual_solu);
 
   double global_u_error, global_q_error, global_iter_increment;
-  MPI_Reduce(
-    &u_error, &global_u_error, 1, MPI_DOUBLE, MPI_SUM, 0, this->manager->comm);
-  MPI_Reduce(
-    &q_error, &global_q_error, 1, MPI_DOUBLE, MPI_SUM, 0, this->manager->comm);
-  MPI_Allreduce(&this_iter_increment,
-                &global_iter_increment,
-                1,
-                MPI_DOUBLE,
-                MPI_SUM,
-                this->manager->comm);
+  MPI_Reduce(&u_error, &global_u_error, 1, MPI_DOUBLE, MPI_SUM, 0,
+             this->manager->comm);
+  MPI_Reduce(&q_error, &global_q_error, 1, MPI_DOUBLE, MPI_SUM, 0,
+             this->manager->comm);
+  MPI_Allreduce(&this_iter_increment, &global_iter_increment, 1, MPI_DOUBLE,
+                MPI_SUM, this->manager->comm);
 
   if (this->comm_rank == 0)
     std::cout << sqrt(global_iter_increment) << std::endl;
@@ -1317,16 +1206,13 @@ bool hdg_model_with_explicit_rk<dim, CellType>::compute_internal_dofs(
     if (this->comm_rank == 0)
     {
       char buffer[200];
-      std::snprintf(buffer,
-                    200,
-                    " NEl : %10d, || uh - u ||_L2 : %12.4e; || q - qh ||_L2 "
-                    "is: "
-                    "%12.4e; || "
-                    "div(q - qh) ||_L2 : %12.4e; || ",
-                    this->manager->the_grid.n_global_active_cells(),
-                    sqrt(global_u_error),
-                    sqrt(global_q_error),
-                    sqrt(div_q_error));
+      std::snprintf(
+        buffer, 200, " NEl : %10d, || uh - u ||_L2 : %12.4e; || q - qh ||_L2 "
+                     "is: "
+                     "%12.4e; || "
+                     "div(q - qh) ||_L2 : %12.4e; || ",
+        this->manager->the_grid.n_global_active_cells(), sqrt(global_u_error),
+        sqrt(global_q_error), sqrt(div_q_error));
       this->manager->convergence_result << buffer << std::endl;
     }
 #ifdef _OPENMP
@@ -1367,4 +1253,35 @@ void hdg_model_with_explicit_rk<dim, CellType>::reinit_solver(
 {
   solver_options options_ = CellType<dim>::required_solver_options();
   solver->reinit_components(this, options_, update_keys_);
+}
+
+template <int dim, template <int> class CellType>
+template <template <int> class srcCellType,
+          template <int, template <int> class> class srcModelType>
+void hdg_model_with_explicit_rk<dim, CellType>::get_results_from_another_model(
+  srcModelType<dim, srcCellType> &src_model)
+{
+#ifdef _OPENMP
+#pragma omp parallel
+  {
+    unsigned thread_id = omp_get_thread_num();
+#else
+  unsigned thread_id = 0;
+  {
+#endif
+    for (unsigned i_cell = thread_id; i_cell < all_owned_cells.size();
+         i_cell = i_cell + this->manager->n_threads)
+    {
+      std::unique_ptr<GenericCell<dim> > src_cell(
+        std::move(src_model.all_owned_cells[i_cell]));
+      std::unique_ptr<GenericCell<dim> > cell(
+        std::move(all_owned_cells[i_cell]));
+      static_cast<CellType<dim> *>(cell.get())
+        ->set_previous_step_results(
+          static_cast<srcCellType<dim> *>(src_cell.get())
+            ->get_previous_step_results());
+      all_owned_cells[i_cell] = std::move(cell);
+      src_model.all_owned_cells[i_cell] = std::move(src_cell);
+    }
+  }
 }

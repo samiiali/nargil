@@ -59,6 +59,11 @@ struct hdg_model_with_explicit_rk : public generic_model<dim, CellType>
   void init_solver();
   void reinit_solver(const solver_update_keys &update_keys_);
 
+  template <template <int> class srcCellType,
+            template <int, template <int> class> class srcModelType>
+  void
+  get_results_from_another_model(srcModelType<dim, srcCellType> &src_model);
+
   explicit_RKn<4, original_RK> *time_integrator;
   std::unique_ptr<generic_solver<dim, CellType> > solver;
 };

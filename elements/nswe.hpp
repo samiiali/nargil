@@ -124,7 +124,7 @@ struct nswe_L_func_class : public TimeFunction<in_point_dim, output_type>
 {
   virtual output_type value(const dealii::Point<in_point_dim> &x,
                             const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
+                            const double & = 0) const final
   {
     double x0 = x[0];
     double y0 = x[1];

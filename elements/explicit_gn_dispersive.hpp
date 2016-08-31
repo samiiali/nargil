@@ -16,8 +16,8 @@ struct explicit_gn_dispersive_L_class
                             const double & = 0) const final
   {
     dealii::Tensor<1, in_point_dim> L;
-    L[0] = 4. / 3. * sin(x[1]);
-    L[1] = 4. / 3. * cos(x[0]);
+    L[0] = 4. / 3. * sin(x[0]);
+    L[1] = 4. / 3. * cos(x[1]);
     /*
     L[0] = (1.0 + M_PI * M_PI / 3.0) * sin(M_PI * x[0]);
     L[1] = 0.0;
@@ -247,7 +247,7 @@ struct explicit_gn_dispersive : public GenericCell<dim>
     typename GenericCell<dim>::dealiiCell &inp_cell,
     const unsigned &id_num_,
     const unsigned &poly_order_,
-    explicit_hdg_model<dim, explicit_gn_dispersive> *model_);
+    hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model_);
   ~explicit_gn_dispersive() final;
   eigen3mat A02, B01T, C01, A01, B02, D01, C02, L01, C03T, E01;
   void assign_BCs(const bool &at_boundary,
@@ -259,6 +259,10 @@ struct explicit_gn_dispersive : public GenericCell<dim>
   void calculate_stage_matrices();
 
   void assign_initial_data();
+
+  void set_previous_step_results(eigen3mat *last_step_q);
+
+  eigen3mat *get_previous_step_results();
 
   void assemble_globals(const solver_update_keys &keys_);
 
@@ -279,10 +283,10 @@ struct explicit_gn_dispersive : public GenericCell<dim>
 
   void ready_for_next_stage();
 
-  std::vector<double> taus;
+  void ready_for_next_iteration();
 
-  explicit_hdg_model<dim, explicit_gn_dispersive> *model;
-  hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model2;
+  std::vector<double> taus;
+  hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model;
   explicit_RKn<4, original_RK> *time_integrator;
 
   static explicit_nswe_qis_func_class<dim, nswe_vec> explicit_gn_dispersive_qs;

@@ -72,6 +72,19 @@ GenericCell<dim, spacedim>::make_cell(
 }
 
 template <int dim, int spacedim>
+template <template <int> class type_of_cell>
+std::unique_ptr<GenericCell<dim, spacedim> >
+GenericCell<dim, spacedim>::make_cell(
+  dealiiCell &inp_cell,
+  const unsigned &id_num_,
+  const unsigned &poly_order_,
+  hdg_model_with_explicit_rk<dim, type_of_cell> *model_)
+{
+  return std::unique_ptr<type_of_cell<dim> >(
+    new type_of_cell<dim>(inp_cell, id_num_, poly_order_, model_));
+}
+
+template <int dim, int spacedim>
 void GenericCell<dim, spacedim>::attach_FEValues(
   FE_val_ptr &cell_quad_fe_vals_,
   FEFace_val_ptr &face_quad_fe_vals_,

@@ -55,10 +55,10 @@ explicit_gn_dispersive<dim>::explicit_gn_dispersive(
   typename GenericCell<dim>::dealiiCell &inp_cell,
   const unsigned &id_num_,
   const unsigned &poly_order_,
-  explicit_hdg_model<dim, explicit_gn_dispersive> *model_)
+  hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model_)
   : GenericCell<dim>(inp_cell, id_num_, poly_order_),
-    model(model_),
     taus(this->n_faces, -10.0),
+    model(model_),
     time_integrator(model_->time_integrator),
     last_step_q((dim + 1) * this->n_cell_bases, 1),
     last_stage_q((dim + 1) * this->n_cell_bases, 1),
@@ -94,6 +94,19 @@ explicit_gn_dispersive<dim>::~explicit_gn_dispersive<dim>()
 template <int dim>
 void explicit_gn_dispersive<dim>::assign_initial_data()
 {
+}
+
+template <int dim>
+void explicit_gn_dispersive<dim>::set_previous_step_results(
+  eigen3mat *last_step_q_)
+{
+  last_step_q = std::move(*last_step_q_);
+}
+
+template <int dim>
+eigen3mat *explicit_gn_dispersive<dim>::get_previous_step_results()
+{
+  return &last_step_q;
 }
 
 template <int dim>
@@ -146,10 +159,16 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
         grad_NT(i_dim, i_poly) = grad_N_at_point[i_dim];
       }
     }
+    Eigen::Matrix<double, dim, 1> L01_at_quad;
+    dealii::Tensor<1, dim> L01_at_quad_tensor = explicit_gn_dispersive_L.value(
+      quad_pt_locs[i_quad], quad_pt_locs[i_quad]);
+    for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
+      L01_at_quad(i_dim, 0) = L01_at_quad_tensor[i_dim];
     A01 += cell_JxW[i_quad] * N_vec * N_vec.transpose();
     A02 += cell_JxW[i_quad] * NT.transpose() * NT;
     B01T += cell_JxW[i_quad] * grad_NT.transpose() * N_vec.transpose();
     B02 += cell_JxW[i_quad] * N_vec * grad_NT;
+    L01 += cell_JxW[i_quad] * N_vec * L01_at_quad;
   }
   eigen3mat normal(dim, 1);
   std::vector<dealii::Point<dim - 1> > face_quad_points =
@@ -161,6 +180,8 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
     eigen3mat C02_on_face =
       eigen3mat::Zero(dim * n_cell_bases, dim * n_face_bases);
     eigen3mat C03T_on_face = eigen3mat::Zero(dim * n_face_bases, n_cell_bases);
+    eigen3mat E01_on_face =
+      eigen3mat::Zero(dim * n_face_bases, dim * n_face_bases);
     /*
      * Here, we project face quadratue points to the element space.
      * So that we can integrate a function which is defined on the element
@@ -205,7 +226,10 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       C02_on_face += taus[i_face] * face_JxW[i_face_quad] * N_vec * NT_face_vec;
       C01_on_face +=
         face_JxW[i_face_quad] * Nj * normal.transpose() * NT_face_vec;
-      C03T_on_face += 1.0 * C01_on_face.transpose();
+      C03T_on_face += face_JxW[i_face_quad] * NT_face_vec.transpose() * normal *
+                      Nj.transpose();
+      E01_on_face += taus[i_face] * face_JxW[i_face_quad] *
+                     NT_face_vec.transpose() * NT_face_vec;
     }
     C02.block(
       0, i_face * dim * n_face_bases, dim * n_cell_bases, dim * n_face_bases) =
@@ -216,6 +240,10 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
     C03T.block(
       i_face * dim * n_face_bases, 0, dim * n_face_bases, n_cell_bases) =
       C03T_on_face;
+    E01.block(i_face * dim * n_face_bases,
+              i_face * dim * n_face_bases,
+              dim * n_face_bases,
+              dim * n_face_bases) = E01_on_face;
   }
 }
 
@@ -263,14 +291,6 @@ void explicit_gn_dispersive<dim>::assemble_globals(
       }
     }
   }
-
-  mtl::vec::dense_vector<dealii::Tensor<1, dim> > L_vec_mtl;
-  this->project_to_elem_basis(
-    explicit_gn_dispersive_L, *(this->the_elem_basis), quad_weights, L_vec_mtl);
-  for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
-    for (unsigned i_poly = 0; i_poly < this->n_cell_bases; ++i_poly)
-      L01(i_dim * this->n_cell_bases + i_poly, 0) = L_vec_mtl[i_poly][i_dim];
-  L01 = A01 * L01;
 
   for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
   {
@@ -325,7 +345,7 @@ void explicit_gn_dispersive<dim>::assemble_globals(
     }
     eigen3mat w1 = mat1_ldlt.solve(L01 + mat2 * w1_hat);
     eigen3mat w2 = std::move(A2_inv * (-B01T * w1 + C01 * w1_hat));
-    eigen3mat jth_col_vec = (C03T * w2 + C02.transpose() * w1 - E01 * w1_hat);
+    eigen3mat jth_col_vec = -(C03T * w2 + C02.transpose() * w1 - E01 * w1_hat);
     std::vector<double> rhs_col(jth_col_vec.data(),
                                 jth_col_vec.data() + jth_col_vec.rows());
     model->solver->push_to_rhs_vec(row_nums, rhs_col, ADD_VALUES);
@@ -346,7 +366,7 @@ void explicit_gn_dispersive<dim>::assemble_globals(
 template <int dim>
 template <typename T>
 double explicit_gn_dispersive<dim>::compute_internal_dofs(
-  const double *const,
+  const double *const local_hat_vec,
   eigen3mat &W2,
   eigen3mat &W1,
   const poly_space_basis<T, dim> &output_basis)
@@ -365,14 +385,6 @@ double explicit_gn_dispersive<dim>::compute_internal_dofs(
     std::move(alpha / 3.0 * B02 * A2_inv * C01 - alpha / 3.0 * C02);
   eigen3ldlt mat1_ldlt = std::move(mat1.ldlt());
 
-  mtl::vec::dense_vector<dealii::Tensor<1, dim> > L_vec_mtl;
-  this->project_to_elem_basis(
-    explicit_gn_dispersive_L, *(this->the_elem_basis), quad_weights, L_vec_mtl);
-  for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
-    for (unsigned i_poly = 0; i_poly < this->n_cell_bases; ++i_poly)
-      L01(i_dim * this->n_cell_bases + i_poly, 0) = L_vec_mtl[i_poly][i_dim];
-  L01 = A01 * L01;
-
   eigen3mat exact_W1_hat(dim * this->n_faces * this->n_face_bases, 1);
   for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
   {
@@ -390,6 +402,21 @@ double explicit_gn_dispersive<dim>::compute_internal_dofs(
   }
 
   eigen3mat solved_W1_hat = exact_W1_hat;
+  for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
+  {
+    for (unsigned i_dof = 0; i_dof < this->dofs_ID_in_this_rank[i_face].size();
+         ++i_dof)
+    {
+      for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
+      {
+        int global_dof_number =
+          this->dofs_ID_in_this_rank[i_face][i_dof] * this->n_face_bases +
+          i_poly;
+        solved_W1_hat((i_face * dim + i_dof) * this->n_face_bases + i_poly, 0) =
+          local_hat_vec[global_dof_number];
+      }
+    }
+  }
 
   W1 = mat1_ldlt.solve(L01 + mat2 * solved_W1_hat);
   W2 = std::move(A2_inv * (-B01T * W1 + C01 * solved_W1_hat));
@@ -436,16 +463,17 @@ double explicit_gn_dispersive<dim>::compute_internal_dofs(
   wreck_it_Ralph(A02);
   wreck_it_Ralph(B01T);
   wreck_it_Ralph(B02);
+  wreck_it_Ralph(C03T);
   wreck_it_Ralph(D01);
   wreck_it_Ralph(C02);
   wreck_it_Ralph(C01);
+  wreck_it_Ralph(E01);
   wreck_it_Ralph(L01);
-
   return 0.;
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::internal_vars_errors(const eigen3mat &u_vec,
+void explicit_gn_dispersive<dim>::internal_vars_errors(const eigen3mat &,
                                                        const eigen3mat &q_vec,
                                                        double &u_error,
                                                        double &q_error)
@@ -462,8 +490,8 @@ void explicit_gn_dispersive<dim>::internal_vars_errors(const eigen3mat &u_vec,
 }
 
 template <int dim>
-double explicit_gn_dispersive<dim>::get_iteration_increment_norm(
-  const double *const local_uhat)
+double
+explicit_gn_dispersive<dim>::get_iteration_increment_norm(const double *const)
 {
   return 0.0;
 }
@@ -476,74 +504,14 @@ void explicit_gn_dispersive<dim>::calculate_stage_matrices()
 template <int dim>
 void explicit_gn_dispersive<dim>::ready_for_next_stage()
 {
-  const std::vector<double> &quad_weights =
-    this->elem_quad_bundle->get_weights();
-  const std::vector<double> &face_quad_weights =
-    this->face_quad_bundle->get_weights();
-
-  this->reinit_cell_fe_vals();
-  calculate_matrices();
-  eigen3mat A2_inv = std::move(A02.inverse());
-  eigen3mat mat1 = std::move(A01 + B02 * A2_inv * B01T - D01);
-  eigen3mat mat2 = std::move(-B02 * A2_inv * C01 + C02);
-  eigen3ldlt mat1_ldlt = std::move(mat1.ldlt());
-
-  mtl::vec::dense_vector<dealii::Tensor<1, dim> > L_vec_mtl;
-  this->project_to_elem_basis(
-    explicit_gn_dispersive_L, *(this->the_elem_basis), quad_weights, L_vec_mtl);
-  for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
-    for (unsigned i_poly = 0; i_poly < this->n_cell_bases; ++i_poly)
-      L01(i_dim * this->n_cell_bases + i_poly, 0) = L_vec_mtl[i_poly][i_dim];
-
-  eigen3mat exact_W1_hat(dim * this->n_faces * this->n_face_bases, 1);
-  for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
-  {
-    mtl::vec::dense_vector<dealii::Tensor<1, dim> > W1_hat_mtl;
-    this->reinit_face_fe_vals(i_face);
-    this->project_essential_BC_to_face(explicit_gn_dispersive_W1,
-                                       *(this->the_face_basis),
-                                       face_quad_weights,
-                                       W1_hat_mtl,
-                                       0.0);
-    for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
-      for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
-        exact_W1_hat((i_face * dim + i_dim) * this->n_face_bases + i_poly) =
-          W1_hat_mtl[i_poly][i_dim];
-  }
-
-  eigen3mat solved_W1_hat = exact_W1_hat;
-  /*
-  for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
-  {
-    for (unsigned i_dof = 0; i_dof < this->dofs_ID_in_this_rank[i_face].size();
-         ++i_dof)
-    {
-      for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
-      {
-        int global_dof_number =
-          this->dofs_ID_in_this_rank[i_face][i_dof] * this->n_face_bases +
-          i_poly;
-        solved_q1_hat((i_face * dim + i_dof) * this->n_face_bases + i_poly, 0) =
-          local_uhat_vec[global_dof_number];
-      }
-    }
-  }
-  */
-
-  eigen3mat W1 = mat1_ldlt.solve(L01 + mat2 * solved_W1_hat);
-  eigen3mat W2 = std::move(A2_inv * (-B01T * W1 + C01 * solved_W1_hat));
-
-  wreck_it_Ralph(A01);
-  wreck_it_Ralph(A02);
-  wreck_it_Ralph(B01T);
-  wreck_it_Ralph(B02);
-  wreck_it_Ralph(D01);
-  wreck_it_Ralph(C02);
-  wreck_it_Ralph(C01);
-  wreck_it_Ralph(L01);
 }
 
 template <int dim>
 void explicit_gn_dispersive<dim>::ready_for_next_time_step()
+{
+}
+
+template <int dim>
+void explicit_gn_dispersive<dim>::ready_for_next_iteration()
 {
 }
