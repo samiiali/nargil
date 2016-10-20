@@ -2,11 +2,17 @@
 #include "support_classes.hpp"
 
 template <int dim>
+explicit_nswe_grad_b_func_class<dim, dealii::Tensor<1, dim> >
+  explicit_nswe<dim>::explicit_nswe_grad_b_func{};
+
+template <int dim>
 explicit_nswe_qis_func_class<dim, typename explicit_nswe<dim>::nswe_vec>
   explicit_nswe<dim>::explicit_nswe_qis_func{};
+
 template <int dim>
 explicit_nswe_L_func_class<dim, typename explicit_nswe<dim>::nswe_vec>
   explicit_nswe<dim>::explicit_nswe_L_func{};
+
 template <int dim>
 explicit_nswe_zero_func_class<dim, typename explicit_nswe<dim>::nswe_vec>
   explicit_nswe<dim>::explicit_nswe_zero_func{};
@@ -69,13 +75,11 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
                                     const dealii::Point<dim> &face_center)
 {
   // Example 1
-  /*
   if (at_boundary && face_center[0] < 1000)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
-  */
   // End of example 1
   // Paper 3 - Example 2
   /*
@@ -92,6 +96,7 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
   */
   // End of Paper 3 - example 2
   // Narrowing channel in paper 3
+  /*
   if (at_boundary && face_center[0] < -2.0 + 1e-6)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
@@ -107,7 +112,17 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
+  */
   // End of narrowing channel in paper3
+  // Green-Naghdi first example: Flat bottom
+  /*
+  if (at_boundary)
+  {
+    this->BCs[i_face] = GenericCell<dim>::BC::essential;
+    this->dof_names_on_faces[i_face].resize(dim + 1, 0);
+  }
+  */
+  // End of Green-Naghdi first example: Flat bottom
   else
   {
     this->BCs[i_face] = GenericCell<dim>::BC::not_set;
@@ -171,6 +186,23 @@ eigen3mat *explicit_nswe<dim>::get_previous_step_results()
 {
   return &last_step_q;
 }
+
+/*
+template <int dim>
+void explicit_nswe<dim>::set_previous_step_results1(ResultPacket result_)
+{
+  last_step_q = std::move(*result_.last_q);
+  last_stage_q = last_step_q;
+  last_iter_qhat = std::move(*result_.last_qhat);
+}
+
+template <int dim>
+ResultPacket explicit_nswe<dim>::get_previous_step_results1()
+{
+  ResultPacket result(&last_step_q, &last_iter_qhat);
+  return result;
+}
+*/
 
 template <int dim>
 Eigen::Matrix<double, (dim + 1), dim>
@@ -617,10 +649,8 @@ void explicit_nswe<dim>::calculate_matrices()
   const unsigned elem_quad_size = this->elem_quad_bundle->size();
   std::vector<dealii::DerivativeForm<1, dim, dim> > d_forms =
     this->cell_quad_fe_vals->get_inverse_jacobians();
-  /*
   std::vector<dealii::Point<dim> > quad_pt_locs =
     this->cell_quad_fe_vals->get_quadrature_points();
-  */
   std::vector<double> cell_JxW = this->cell_quad_fe_vals->get_JxW_values();
   mtl::mat::compressed2D<dealii::Tensor<2, dim> > d_forms_mat(
     elem_quad_size, elem_quad_size, elem_quad_size);
@@ -642,6 +672,7 @@ void explicit_nswe<dim>::calculate_matrices()
   F02 = eigen3mat::Zero((dim + 1) * n_cell_bases, 1);
   F04 = eigen3mat::Zero(n_faces * (dim + 1) * n_face_bases, 1);
   F05 = eigen3mat::Zero(n_faces * (dim + 1) * n_face_bases, 1);
+  F06 = eigen3mat::Zero((dim + 1) * n_cell_bases, 1);
 
   /*
    * Integrating over the cell domain.
@@ -660,6 +691,13 @@ void explicit_nswe<dim>::calculate_matrices()
         eigen3mat::Zero((dim + 1) * n_cell_bases, dim * (dim + 1));
       eigen3sparse_mat grad_N_nswe_vec((dim + 1) * n_cell_bases,
                                        dim * (dim + 1));
+      dealii::Tensor<1, dim> grad_b_at_quad_tensor =
+        explicit_nswe_grad_b_func.value(quad_pt_locs[i_quad],
+                                        quad_pt_locs[i_quad]);
+      Eigen::Matrix<double, dim + 1, 1> grad_b_at_quad;
+      grad_b_at_quad(0, 0) = 0.;
+      for (unsigned i_dim = 1; i_dim < dim + 1; ++i_dim)
+        grad_b_at_quad(i_dim, 0) = grad_b_at_quad_tensor[i_dim - 1];
       std::vector<eigen3triplet> grad_N_nswe_vec_triplets;
       grad_N_nswe_vec_triplets.reserve(n_cell_bases * (dim + 1) * dim);
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
@@ -701,6 +739,8 @@ void explicit_nswe<dim>::calculate_matrices()
        */
       A00 += cell_JxW[i_quad] * NT_nswe_vec.transpose() * NT_nswe_vec;
       F02 += cell_JxW[i_quad] * grad_N_nswe_vec0 * Fij_reshaped;
+      F06 += cell_JxW[i_quad] * gravity * last_stage_qs_at_i_quad[0] *
+             NT_nswe_vec.transpose() * grad_b_at_quad;
     }
   }
   /*
@@ -1014,6 +1054,7 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
   wreck_it_Ralph(F02);
   wreck_it_Ralph(F04);
   wreck_it_Ralph(F05);
+  wreck_it_Ralph(F06);
 }
 
 template <int dim>
@@ -1122,6 +1163,7 @@ double explicit_nswe<dim>::compute_internal_dofs(
   wreck_it_Ralph(F02);
   wreck_it_Ralph(F04);
   wreck_it_Ralph(F05);
+  wreck_it_Ralph(F06);
   return 0.0;
 }
 
@@ -1149,10 +1191,8 @@ void explicit_nswe<dim>::calculate_stage_matrices()
   const unsigned elem_quad_size = this->elem_quad_bundle->size();
   std::vector<dealii::DerivativeForm<1, dim, dim> > d_forms =
     this->cell_quad_fe_vals->get_inverse_jacobians();
-  /*
   std::vector<dealii::Point<dim> > quad_pt_locs =
     this->cell_quad_fe_vals->get_quadrature_points();
-  */
   std::vector<double> cell_JxW = this->cell_quad_fe_vals->get_JxW_values();
   mtl::mat::compressed2D<dealii::Tensor<2, dim> > d_forms_mat(
     elem_quad_size, elem_quad_size, elem_quad_size);
@@ -1168,6 +1208,7 @@ void explicit_nswe<dim>::calculate_stage_matrices()
   A00 = eigen3mat::Zero((dim + 1) * n_cell_bases, (dim + 1) * n_cell_bases);
   F01 = eigen3mat::Zero((dim + 1) * n_cell_bases, 1);
   F02 = eigen3mat::Zero((dim + 1) * n_cell_bases, 1);
+  F06 = eigen3mat::Zero((dim + 1) * n_cell_bases, 1);
 
   /*
    * Integrating over the cell domain.
@@ -1186,6 +1227,14 @@ void explicit_nswe<dim>::calculate_stage_matrices()
         eigen3mat::Zero((dim + 1) * n_cell_bases, dim * (dim + 1));
       eigen3sparse_mat grad_N_nswe_vec((dim + 1) * n_cell_bases,
                                        dim * (dim + 1));
+      dealii::Tensor<1, dim> grad_b_at_quad_tensor =
+        explicit_nswe_grad_b_func.value(quad_pt_locs[i_quad],
+                                        quad_pt_locs[i_quad]);
+      Eigen::Matrix<double, dim + 1, 1> grad_b_at_quad;
+      grad_b_at_quad[0] = 0.;
+      for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
+        grad_b_at_quad[i_dim + 1] = grad_b_at_quad_tensor[i_dim];
+
       std::vector<eigen3triplet> grad_N_nswe_vec_triplets;
       grad_N_nswe_vec_triplets.reserve(n_cell_bases * (dim + 1) * dim);
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
@@ -1227,6 +1276,8 @@ void explicit_nswe<dim>::calculate_stage_matrices()
        */
       A00 += cell_JxW[i_quad] * NT_nswe_vec.transpose() * NT_nswe_vec;
       F02 += cell_JxW[i_quad] * grad_N_nswe_vec0 * Fij_reshaped;
+      F06 += cell_JxW[i_quad] * gravity * last_stage_qs_at_i_quad[0] *
+             NT_nswe_vec.transpose() * grad_b_at_quad;
     }
   }
   /*
@@ -1366,12 +1417,14 @@ void explicit_nswe<dim>::ready_for_next_stage()
         f03_mtl[i_poly][i_nswe_dim];
 
   Eigen::FullPivLU<eigen3mat> A00_lu(A00);
+  //  eigen3mat ki = A00_lu.solve(-(F01 - F02 + F06 - A00 * f03));
   eigen3mat ki = A00_lu.solve(-(F01 - F02 - A00 * f03));
   ki_s[model->time_integrator->get_current_stage() - 1] = ki;
 
   wreck_it_Ralph(A00);
   wreck_it_Ralph(F01);
   wreck_it_Ralph(F02);
+  wreck_it_Ralph(F06);
 }
 
 template <int dim>

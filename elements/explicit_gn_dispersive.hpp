@@ -1,8 +1,81 @@
 #include "cell_class.hpp"
-#include "elements/explicit_nswe.hpp"
+#include "explicit_nswe.hpp"
 
 #ifndef EXPLICIT_GN_DISPERSIVE
 #define EXPLICIT_GN_DISPERSIVE
+
+double alpha = 1.1;
+
+/**
+ * \ingroup input_data_group
+ */
+template <int in_point_dim, typename output_type>
+struct explicit_gn_dispersive_grad_grad_b_class
+  : public TimeFunction<in_point_dim, output_type>
+{
+  virtual output_type value(const dealii::Point<in_point_dim> &x,
+                            const dealii::Point<in_point_dim> &,
+                            const double & = 0) const final
+  {
+    dealii::Tensor<2, 2> grad_grad_b;
+    // Example zero !
+    // End of example zero !
+    grad_grad_b[0][0] = sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
+    grad_grad_b[0][1] = 2 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
+    grad_grad_b[1][0] = 2 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
+    grad_grad_b[1][1] = 4 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
+    return grad_grad_b;
+  }
+};
+
+/**
+ * \ingroup input_data_group
+ */
+template <int in_point_dim, typename output_type>
+struct explicit_gn_dispersive_qis_class
+  : public TimeFunction<in_point_dim, output_type>
+{
+  virtual output_type value(const dealii::Point<in_point_dim> &x,
+                            const dealii::Point<in_point_dim> &,
+                            const double & = 0) const final
+  {
+    dealii::Tensor<1, in_point_dim + 1> qis;
+    // Example zero !
+    qis[0] = 5 + sin(x[0] + x[1]);
+    qis[1] = sin(x[0]) * (5 + sin(x[0] + x[1]));
+    qis[2] = cos(x[1]) * (5 + sin(x[0] + x[1]));
+    // End of example zero !
+
+    return qis;
+  }
+};
+
+/**
+ * \ingroup input_data_group
+ */
+template <int in_point_dim, typename output_type>
+struct explicit_gn_dispersive_W2_class
+  : public TimeFunction<in_point_dim, output_type>
+{
+  virtual output_type value(const dealii::Point<in_point_dim> &x,
+                            const dealii::Point<in_point_dim> &,
+                            const double & = 0) const final
+  {
+    double W2;
+    // Example zero !
+    W2 = 2. * (9. * cos(x[0]) + cos(x[0] + 2 * x[1]) - 9 * sin(x[1]) +
+               sin(2 * x[0] + x[1]));
+    // End of example zero !
+
+    // Example 1
+    /*
+    W2 = (5 + x[0]) *
+         ((5 + x[0]) * cos(x[0]) - sin(x[0]) - (5 + x[0]) * sin(x[1]));
+    */
+    // End of example 1.
+    return W2;
+  }
+};
 
 /**
  * \ingroup input_data_group
@@ -16,12 +89,132 @@ struct explicit_gn_dispersive_L_class
                             const double & = 0) const final
   {
     dealii::Tensor<1, in_point_dim> L;
-    L[0] = 4. / 3. * sin(x[0]);
-    L[1] = 4. / 3. * cos(x[1]);
+
+    double x1 = x[0];
+    double y1 = x[1];
+    double g = 9.81;
     /*
-    L[0] = (1.0 + M_PI * M_PI / 3.0) * sin(M_PI * x[0]);
-    L[1] = 0.0;
+    L[0] =
+      (-3 * alpha * cos(x1 - y1) + ((-12 * g) / alpha + 24 * alpha) * cos(y1) -
+       (120 * g * cos(x1 + y1)) / alpha - 87 * alpha * cos(x1 + y1) +
+       9 * alpha * cos(3 * (x1 + y1)) - 32 * alpha * cos(2 * x1 + y1) -
+       39 * alpha * cos(x1 + 3 * y1) + (12 * g * cos(2 * x1 + 3 * y1)) / alpha -
+       12 * alpha * cos(2 * x1 + 3 * y1) - 12 * alpha * cos(2 * x1 + 5 * y1) +
+       24 * sin(x1) + 156 * alpha * sin(x1) + 24 * alpha * sin(2 * y1) -
+       (12 * g * sin(2 * (x1 + y1))) / alpha - 48 * alpha * sin(2 * (x1 + y1)) -
+       (120 * g * sin(x1 + 2 * y1)) / alpha + 16 * alpha * sin(x1 + 2 * y1) -
+       12 * alpha * sin(2 * (x1 + 2 * y1)) + 6 * alpha * sin(x1 + 4 * y1) -
+       6 * alpha * sin(3 * x1 + 4 * y1)) /
+      24.;
+    L[1] = (alpha * cos(x1 - y1)) / 8. + (1 - g / alpha + 8 * alpha) * cos(y1) -
+           (5 * g * cos(x1 + y1)) / alpha - (37 * alpha * cos(x1 + y1)) / 8. +
+           (3 * alpha * cos(3 * (x1 + y1))) / 8. -
+           (2 * alpha * cos(2 * x1 + y1)) / 3. -
+           (47 * alpha * cos(x1 + 3 * y1)) / 8. +
+           (g * cos(2 * x1 + 3 * y1)) / alpha - alpha * cos(2 * x1 + 3 * y1) -
+           alpha * cos(2 * x1 + 5 * y1) + alpha * sin(x1) +
+           5 * alpha * sin(2 * y1) - (g * sin(2 * (x1 + y1))) / (2. * alpha) -
+           alpha * sin(2 * (x1 + y1)) - (10 * g * sin(x1 + 2 * y1)) / alpha +
+           (4 * alpha * sin(x1 + 2 * y1)) / 3. -
+           alpha * sin(2 * (x1 + 2 * y1)) + (alpha * sin(x1 + 4 * y1)) / 2. -
+           (alpha * sin(3 * x1 + 4 * y1)) / 2.;
     */
+    L[0] =
+      -(36 * alpha * cos(x1 - 3 * y1) -
+        2 * alpha * (-1673 + 6 * alpha) * cos(x1 - y1) +
+        105 * alpha * cos(2 * x1 - y1) + 48 * g * cos(y1) +
+        234 * alpha * cos(y1) - 96 * pow(alpha, 2) * cos(y1) +
+        777 * alpha * cos(3 * y1) + 3 * alpha * cos(5 * y1) +
+        480 * g * cos(x1 + y1) + 2450 * alpha * cos(x1 + y1) -
+        348 * pow(alpha, 2) * cos(x1 + y1) - 2010 * alpha * cos(3 * (x1 + y1)) +
+        36 * pow(alpha, 2) * cos(3 * (x1 + y1)) +
+        180 * alpha * cos(5 * (x1 + y1)) - 771 * alpha * cos(2 * x1 + y1) +
+        128 * pow(alpha, 2) * cos(2 * x1 + y1) +
+        3072 * alpha * cos(3 * x1 + y1) + 74 * alpha * cos(x1 + 3 * y1) -
+        156 * pow(alpha, 2) * cos(x1 + 3 * y1) - 48 * g * cos(2 * x1 + 3 * y1) -
+        324 * alpha * cos(2 * x1 + 3 * y1) +
+        48 * pow(alpha, 2) * cos(2 * x1 + 3 * y1) -
+        105 * alpha * cos(4 * x1 + 3 * y1) - 20 * alpha * cos(5 * x1 + 3 * y1) +
+        762 * alpha * cos(x1 + 5 * y1) - 72 * alpha * cos(2 * x1 + 5 * y1) +
+        48 * pow(alpha, 2) * cos(2 * x1 + 5 * y1) -
+        2742 * alpha * cos(3 * x1 + 5 * y1) +
+        129 * alpha * cos(4 * x1 + 5 * y1) -
+        135 * alpha * cos(2 * x1 + 7 * y1) -
+        378 * alpha * cos(3 * x1 + 7 * y1) +
+        150 * alpha * cos(4 * x1 + 7 * y1) + 30 * alpha * cos(5 * x1 + 7 * y1) -
+        3 * alpha * cos(6 * x1 + 7 * y1) + 12 * alpha * cos(4 * x1 + 9 * y1) -
+        258 * alpha * sin(x1) - 624 * pow(alpha, 2) * sin(x1) -
+        5180 * alpha * sin(2 * x1) + 6 * alpha * sin(3 * x1) -
+        372 * alpha * sin(x1 - 2 * y1) + 3 * alpha * sin(2 * (x1 - y1)) +
+        96 * pow(alpha, 2) * sin(2 * y1) + 48 * g * sin(2 * (x1 + y1)) +
+        535 * alpha * sin(2 * (x1 + y1)) -
+        192 * pow(alpha, 2) * sin(2 * (x1 + y1)) -
+        1100 * alpha * sin(4 * (x1 + y1)) + 9 * alpha * sin(6 * (x1 + y1)) +
+        452 * alpha * sin(2 * (2 * x1 + y1)) + 480 * g * sin(x1 + 2 * y1) +
+        3174 * alpha * sin(x1 + 2 * y1) -
+        64 * pow(alpha, 2) * sin(x1 + 2 * y1) +
+        3332 * alpha * sin(2 * (x1 + 2 * y1)) -
+        48 * pow(alpha, 2) * sin(2 * (x1 + 2 * y1)) -
+        318 * alpha * sin(3 * (x1 + 2 * y1)) -
+        24 * alpha * sin(4 * (x1 + 2 * y1)) +
+        372 * alpha * sin(3 * x1 + 2 * y1) +
+        1467 * alpha * sin(2 * (x1 + 3 * y1)) - 90 * alpha * sin(x1 + 4 * y1) -
+        24 * pow(alpha, 2) * sin(x1 + 4 * y1) -
+        72 * alpha * sin(3 * x1 + 4 * y1) +
+        24 * pow(alpha, 2) * sin(3 * x1 + 4 * y1) -
+        6 * alpha * sin(5 * x1 + 4 * y1) + 42 * alpha * sin(x1 + 6 * y1) -
+        540 * alpha * sin(4 * x1 + 6 * y1) + 42 * alpha * sin(5 * x1 + 6 * y1) -
+        132 * alpha * sin(3 * x1 + 8 * y1) +
+        12 * alpha * sin(5 * x1 + 8 * y1)) /
+      (96. * alpha);
+    L[1] =
+      -(-108 * alpha * cos(x1 - 3 * y1) +
+        2 * alpha * (-1673 + 6 * alpha) * cos(x1 - y1) +
+        210 * alpha * cos(2 * x1 - y1) + 96 * g * cos(y1) +
+        372 * alpha * cos(y1) - 768 * pow(alpha, 2) * cos(y1) +
+        1554 * alpha * cos(3 * y1) + 6 * alpha * cos(5 * y1) +
+        480 * g * cos(x1 + y1) + 2450 * alpha * cos(x1 + y1) -
+        444 * pow(alpha, 2) * cos(x1 + y1) - 2010 * alpha * cos(3 * (x1 + y1)) +
+        36 * pow(alpha, 2) * cos(3 * (x1 + y1)) +
+        180 * alpha * cos(5 * (x1 + y1)) - 1542 * alpha * cos(2 * x1 + y1) +
+        64 * pow(alpha, 2) * cos(2 * x1 + y1) +
+        1024 * alpha * cos(3 * x1 + y1) + 222 * alpha * cos(x1 + 3 * y1) -
+        564 * pow(alpha, 2) * cos(x1 + 3 * y1) - 96 * g * cos(2 * x1 + 3 * y1) -
+        648 * alpha * cos(2 * x1 + 3 * y1) +
+        96 * pow(alpha, 2) * cos(2 * x1 + 3 * y1) -
+        210 * alpha * cos(4 * x1 + 3 * y1) - 12 * alpha * cos(5 * x1 + 3 * y1) +
+        3810 * alpha * cos(x1 + 5 * y1) - 144 * alpha * cos(2 * x1 + 5 * y1) +
+        96 * pow(alpha, 2) * cos(2 * x1 + 5 * y1) -
+        4570 * alpha * cos(3 * x1 + 5 * y1) +
+        258 * alpha * cos(4 * x1 + 5 * y1) -
+        270 * alpha * cos(2 * x1 + 7 * y1) -
+        882 * alpha * cos(3 * x1 + 7 * y1) +
+        300 * alpha * cos(4 * x1 + 7 * y1) + 42 * alpha * cos(5 * x1 + 7 * y1) -
+        6 * alpha * cos(6 * x1 + 7 * y1) + 24 * alpha * cos(4 * x1 + 9 * y1) -
+        324 * alpha * sin(x1) - 96 * pow(alpha, 2) * sin(x1) +
+        12 * alpha * sin(3 * x1) - 744 * alpha * sin(x1 - 2 * y1) -
+        3 * alpha * sin(2 * (x1 - y1)) + 3092 * alpha * sin(2 * y1) +
+        480 * pow(alpha, 2) * sin(2 * y1) - 1116 * alpha * sin(4 * y1) +
+        48 * g * sin(2 * (x1 + y1)) + 535 * alpha * sin(2 * (x1 + y1)) -
+        96 * pow(alpha, 2) * sin(2 * (x1 + y1)) -
+        1100 * alpha * sin(4 * (x1 + y1)) + 9 * alpha * sin(6 * (x1 + y1)) +
+        226 * alpha * sin(2 * (2 * x1 + y1)) + 960 * g * sin(x1 + 2 * y1) +
+        6348 * alpha * sin(x1 + 2 * y1) -
+        128 * pow(alpha, 2) * sin(x1 + 2 * y1) +
+        6664 * alpha * sin(2 * (x1 + 2 * y1)) -
+        96 * pow(alpha, 2) * sin(2 * (x1 + 2 * y1)) -
+        636 * alpha * sin(3 * (x1 + 2 * y1)) -
+        48 * alpha * sin(4 * (x1 + 2 * y1)) +
+        744 * alpha * sin(3 * x1 + 2 * y1) +
+        4401 * alpha * sin(2 * (x1 + 3 * y1)) - 180 * alpha * sin(x1 + 4 * y1) -
+        48 * pow(alpha, 2) * sin(x1 + 4 * y1) -
+        144 * alpha * sin(3 * x1 + 4 * y1) +
+        48 * pow(alpha, 2) * sin(3 * x1 + 4 * y1) -
+        12 * alpha * sin(5 * x1 + 4 * y1) + 84 * alpha * sin(x1 + 6 * y1) -
+        810 * alpha * sin(4 * x1 + 6 * y1) + 84 * alpha * sin(5 * x1 + 6 * y1) -
+        264 * alpha * sin(3 * x1 + 8 * y1) +
+        24 * alpha * sin(5 * x1 + 8 * y1)) /
+      (96. * alpha);
     return L;
   }
 };
@@ -213,11 +406,64 @@ struct explicit_gn_dispersive_W1_class
  *   \partial_t (h V) = \frac 1 \alpha g h \nabla \zeta - W_1
  * \f]
  * Hence, we can go to the next stage or time step.
+ *
+ * ## Equations with varying topography:
+ * \f$h \mathcal Q_1\f$ has the following form:
+ * \f[
+ * \begin{aligned}
+ * hQ_1(V) =& \frac 2 3 \nabla \left(h^3 \partial_x V \cdot
+ * \partial_yV^\perp+h^3 (\nabla\cdot V)^2\right)
+ * +\frac 1 2 \nabla \left(h^2 V\cdot (V\cdot \nabla)\nabla b\right) \notag \\
+ * &+ h^2 \left(\partial_x V \cdot \partial_y V^\perp + (\nabla \cdot V)^2
+ * \right) \nabla b
+ * + h\left(V \cdot (V \cdot \nabla)\nabla b \right) \nabla b.
+ * \end{aligned}
+ * \f]
+ * On the right side of the dispersive part we will have \f$\frac 1 \alpha g h
+ * \nabla \zeta + h \mathcal Q_1(V)\f$. We test this equation by \f$P_1 \f$
+ * and use divergence theorem for the terms with 2nd derivatives. Hence, we
+ * will get:
+ * \f[
+ * \begin{aligned}
+ * (h\mathcal Q_1(V), P_1) &=
+ * \frac 2 3 \left<h^3\partial_x V \cdot \partial_y V^{\perp} + h^3 (\nabla
+ * \cdot V)^2 , P_1\cdot \mathbf n \right>
+ * - \frac 2 3 \left(h^3 \partial_x V \cdot \partial_y V^{\perp} + h^3 (\nabla
+ * \cdot V)^2 , \nabla \cdot P_1 \right) \\
+ * &+ \frac 1 2 \left< h^2 V\cdot (V \cdot \nabla)\nabla b, P_1 \cdot \mathbf n
+ * \right>
+ * - \frac 1 2 \left(h^2 V\cdot (V \cdot \nabla)\nabla b,\nabla \cdot P_1
+ * \right) \\
+ * &+ \left( h^2 \nabla b \left( \partial_x V \cdot \partial_y V^{\perp}
+ * + (\nabla \cdot V)^2 \right) , P_1 \right)
+ *  + \left(h \nabla b \left(V \cdot (V \cdot \nabla)\nabla b \right),
+ * P_1 \right)
+ * \end{aligned}
+ * \f]
+ * Let us use the following naming:
+ * \f[
+ * \begin{gathered}
+ * L_{21} = \frac 2 3 \left<h^3\partial_x V \cdot \partial_y V^{\perp} + h^3
+ * (\nabla \cdot V)^2 , P_1\cdot \mathbf n \right>
+ * + \frac 1 2 \left< h^2 V\cdot (V \cdot \nabla)\nabla b, P_1 \cdot \mathbf n
+ * \right>, \\
+ * L_{10} = \frac 1 \alpha g \left( h (\nabla h - \nabla b), P_1 \right),\\
+ * L_{11} = - \frac 2 3 \left(h^3 \partial_x V \cdot \partial_y V^{\perp} + h^3
+ * (\nabla \cdot V)^2 , \nabla \cdot P_1 \right)
+ * - \frac 1 2 \left(h^2 V\cdot (V \cdot \nabla)\nabla b,\nabla \cdot P_1
+ * \right), \\
+ * L_{12} = \left( h^2 \nabla b \left( \partial_x V \cdot \partial_y V^{\perp}
+ * + (\nabla \cdot V)^2 \right) , P_1 \right)
+ *  + \left(h \nabla b \left(V \cdot (V \cdot \nabla)\nabla b \right),
+ * P_1 \right).
+ * \end{gathered}
+ * \f]
  */
 template <int dim>
 struct explicit_gn_dispersive : public GenericCell<dim>
 {
-  const double alpha = 1.0;
+  const double alpha = 1.1;
+  const double gravity = 9.81;
   using elem_basis_type = typename GenericCell<dim>::elem_basis_type;
   typedef std::unique_ptr<dealii::FEValues<dim> > FE_val_ptr;
   typedef std::unique_ptr<dealii::FEFaceValues<dim> > FEFace_val_ptr;
@@ -249,7 +495,8 @@ struct explicit_gn_dispersive : public GenericCell<dim>
     const unsigned &poly_order_,
     hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model_);
   ~explicit_gn_dispersive() final;
-  eigen3mat A02, B01T, C01, A01, B02, D01, C02, L01, C03T, E01;
+  eigen3mat A02, B01T, C01, A01, B02, D01, C02, A03, B03T, L01, C03T, E01, C04T,
+    L10, L11, L12, L21;
   void assign_BCs(const bool &at_boundary,
                   const unsigned &i_face,
                   const dealii::Point<dim> &face_center);
@@ -263,6 +510,12 @@ struct explicit_gn_dispersive : public GenericCell<dim>
   void set_previous_step_results(eigen3mat *last_step_q);
 
   eigen3mat *get_previous_step_results();
+
+  /*
+  void set_previous_step_results1(ResultPacket result);
+
+  ResultPacket get_previous_step_results1();
+  */
 
   void assemble_globals(const solver_update_keys &keys_);
 
@@ -289,14 +542,29 @@ struct explicit_gn_dispersive : public GenericCell<dim>
   hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model;
   explicit_RKn<4, original_RK> *time_integrator;
 
-  static explicit_nswe_qis_func_class<dim, nswe_vec> explicit_gn_dispersive_qs;
+  static explicit_gn_dispersive_qis_class<dim, nswe_vec>
+    explicit_gn_dispersive_qs;
+  static explicit_nswe_grad_b_func_class<dim, dealii::Tensor<1, dim> >
+    explicit_nswe_grad_b_func;
+  static explicit_gn_dispersive_grad_grad_b_class<dim, dealii::Tensor<2, dim> >
+    grad_grad_b_func;
   static explicit_gn_dispersive_L_class<dim, dealii::Tensor<1, dim> >
     explicit_gn_dispersive_L;
   static explicit_gn_dispersive_W1_class<dim, dealii::Tensor<1, dim> >
     explicit_gn_dispersive_W1;
+  static explicit_gn_dispersive_W2_class<dim, double> explicit_gn_dispersive_W2;
 
   eigen3mat last_step_q;
   eigen3mat last_stage_q;
+  /*
+   * Last step qhat is only required for some of the boundary integrals.
+   * Actually we only use last step h_hat, and hv1_hat and hv2_hat are
+   * unnecessary. The point is that in this element h and h_hat are constant
+   * due to partial_t h being zero. So, we can use h for all stages in a given
+   * step. We move this variable between different elements, so there is
+   * no concern about storage.
+  eigen3mat last_step_qhat;
+   */
 
   std::vector<eigen3mat> ki_s;
 };

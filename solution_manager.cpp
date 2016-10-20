@@ -51,96 +51,101 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     execution_time.open("Execution_Time.txt",
                         std::ofstream::out | std::fstream::app);
   }
-  /* Example 1 */
-  std::vector<unsigned> repeats(dim, 1);
-  repeats[0] = 1;
-  dealii::Point<dim> point_1, point_2;
-  point_1 = {-1.0, -1.0};
-  point_2 = {1.0, 1.0};
-  dealii::GridGenerator::subdivided_hyper_rectangle(
-    the_grid, repeats, point_1, point_2, true);
-  std::vector<dealii::GridTools::PeriodicFacePair<
-    typename dealii::parallel::distributed::Triangulation<dim>::cell_iterator> >
-    periodic_faces;
-  dealii::GridTools::collect_periodic_faces(
-    the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({2., 0.}));
-  dealii::GridTools::collect_periodic_faces(
-    the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 2.}));
-  the_grid.add_periodicity(periodic_faces);
-  /* End of Example 1 */
-  // The narrowing channel example
-  /*
-  dealii::parallel::distributed::Triangulation<dim> left_cone(
-    comm,
-    typename dealii::Triangulation<dim>::MeshSmoothing(
-      dealii::Triangulation<dim>::smoothing_on_refinement |
-      dealii::Triangulation<dim>::smoothing_on_coarsening));
-  dealii::parallel::distributed::Triangulation<dim> mid_cone(
-    comm,
-    typename dealii::Triangulation<dim>::MeshSmoothing(
-      dealii::Triangulation<dim>::smoothing_on_refinement |
-      dealii::Triangulation<dim>::smoothing_on_coarsening));
-  dealii::parallel::distributed::Triangulation<dim> right_cone(
-    comm,
-    typename dealii::Triangulation<dim>::MeshSmoothing(
-      dealii::Triangulation<dim>::smoothing_on_refinement |
-      dealii::Triangulation<dim>::smoothing_on_coarsening));
-  dealii::GridGenerator::truncated_cone(left_cone, 1., 0.6, 1.);
-  dealii::GridGenerator::truncated_cone(mid_cone, 0.6, 0.4, 0.5);
-  dealii::GridGenerator::truncated_cone(right_cone, 0.4, 0.2, 0.5);
-  dealii::Tensor<1, dim> left_shift(dealii::Point<dim>(-1.0, 0.0));
-  dealii::Tensor<1, dim> mid_shift(dealii::Point<dim>(0.5, 0.0));
-  dealii::Tensor<1, dim> right_shift(dealii::Point<dim>(1.5, 0.0));
-  dealii::GridTools::shift(left_shift, left_cone);
-  dealii::GridTools::shift(mid_shift, mid_cone);
-  dealii::GridTools::shift(right_shift, right_cone);
-  dealii::parallel::distributed::Triangulation<dim> temp_grid(
-    comm,
-    typename dealii::Triangulation<dim>::MeshSmoothing(
-      dealii::Triangulation<dim>::smoothing_on_refinement |
-      dealii::Triangulation<dim>::smoothing_on_coarsening));
-  dealii::GridGenerator::merge_triangulations(left_cone, mid_cone, temp_grid);
-  dealii::GridGenerator::merge_triangulations(temp_grid, right_cone, the_grid);
-  //  dealii::GridGenerator::truncated_cone(the_grid, 1., 0.2, 2.);
-  // End of narrowing channel example
-  // Francois's Example 1 //
-  /*
-  std::vector<unsigned> repeats(dim, 1);
-  repeats[0] = 1;
-  dealii::Point<dim> point_1, point_2;
-  point_1 = { -0.5, -0.5 };
-  point_2 = { 0.5, 0.5 };
-  dealii::GridGenerator::subdivided_hyper_rectangle(the_grid, repeats, point_1,
-  point_2, true);
-  std::vector<dealii::GridTools::PeriodicFacePair<
-    typename dealii::parallel::distributed::Triangulation<dim>::cell_iterator> >
-    periodic_faces;
-  dealii::GridTools::collect_periodic_faces(
-    the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({ 1., 0. }));
-  dealii::GridTools::collect_periodic_faces(
-    the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({ 0., 1. }));
-  the_grid.add_periodicity(periodic_faces);
-  */
-  /* End of Francois's Example 1 */
-  // Francois's example 2
-  /*
-  std::vector<unsigned> repeats(dim, 1);
-  repeats[0] = 1;
-  dealii::Point<dim> point_1, point_2;
-  point_1 = { 0.4, -1.0 };
-  point_2 = { 1.6, 1.0 };
-  dealii::GridGenerator::subdivided_hyper_rectangle(the_grid, repeats, point_1,
-  point_2, true);
-  std::vector<dealii::GridTools::PeriodicFacePair<
-    typename dealii::parallel::distributed::Triangulation<dim>::cell_iterator> >
-    periodic_faces;
-  dealii::GridTools::collect_periodic_faces(
-    the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({ 1.2, 0. }));
-  dealii::GridTools::collect_periodic_faces(
-    the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({ 0., 2. }));
-  the_grid.add_periodicity(periodic_faces);
-  */
-  // End of Francois's example 2
+  if (true) // Example 1
+  {
+    std::vector<unsigned> repeats(dim, 1);
+    repeats[0] = 1;
+    dealii::Point<dim> point_1, point_2;
+    point_1 = {-1.0, -1.0};
+    point_2 = {1.0, 1.0};
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      the_grid, repeats, point_1, point_2, true);
+    std::vector<dealii::GridTools::PeriodicFacePair<
+      typename dealii::parallel::distributed::Triangulation<
+        dim>::cell_iterator> >
+      periodic_faces;
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({2., 0.}));
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 2.}));
+    the_grid.add_periodicity(periodic_faces);
+  } // End of Example 1
+
+  if (false) // The narrowing channel example
+  {
+    dealii::parallel::distributed::Triangulation<dim> left_cone(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::parallel::distributed::Triangulation<dim> mid_cone(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::parallel::distributed::Triangulation<dim> right_cone(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::GridGenerator::truncated_cone(left_cone, 1., 0.6, 1.);
+    dealii::GridGenerator::truncated_cone(mid_cone, 0.6, 0.4, 0.5);
+    dealii::GridGenerator::truncated_cone(right_cone, 0.4, 0.2, 0.5);
+    dealii::Tensor<1, dim> left_shift(dealii::Point<dim>(-1.0, 0.0));
+    dealii::Tensor<1, dim> mid_shift(dealii::Point<dim>(0.5, 0.0));
+    dealii::Tensor<1, dim> right_shift(dealii::Point<dim>(1.5, 0.0));
+    dealii::GridTools::shift(left_shift, left_cone);
+    dealii::GridTools::shift(mid_shift, mid_cone);
+    dealii::GridTools::shift(right_shift, right_cone);
+    dealii::parallel::distributed::Triangulation<dim> temp_grid(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::GridGenerator::merge_triangulations(left_cone, mid_cone, temp_grid);
+    dealii::GridGenerator::merge_triangulations(
+      temp_grid, right_cone, the_grid);
+  } // End of narrowing channel example
+
+  if (false) // Francois's Example 1
+  {
+    std::vector<unsigned> repeats(dim, 1);
+    repeats[0] = 1;
+    dealii::Point<dim> point_1, point_2;
+    point_1 = {-0.5, -0.5};
+    point_2 = {0.5, 0.5};
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      the_grid, repeats, point_1, point_2, true);
+    std::vector<dealii::GridTools::PeriodicFacePair<
+      typename dealii::parallel::distributed::Triangulation<
+        dim>::cell_iterator> >
+      periodic_faces;
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({1., 0.}));
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 1.}));
+    the_grid.add_periodicity(periodic_faces);
+  } // End of Francois's Example 1
+
+  if (false) // Francois's example 2
+  {
+    std::vector<unsigned> repeats(dim, 1);
+    repeats[0] = 1;
+    dealii::Point<dim> point_1, point_2;
+    point_1 = {0.4, -1.0};
+    point_2 = {1.6, 1.0};
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      the_grid, repeats, point_1, point_2, true);
+    std::vector<dealii::GridTools::PeriodicFacePair<
+      typename dealii::parallel::distributed::Triangulation<
+        dim>::cell_iterator> >
+      periodic_faces;
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({1.2, 0.}));
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 2.}));
+    the_grid.add_periodicity(periodic_faces);
+  } // End of Francois's example 2
 }
 
 template <int dim>
@@ -182,6 +187,13 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       model0.init_solver();
       model0.assemble_globals(keys_0);
       model0.solver->finish_assembly(keys_0);
+
+      if (comm_size == 1)
+      {
+        Mat *the_global_mat = model0.solver->get_petsc_mat();
+        MatView(*the_global_mat, PETSC_VIEWER_STDOUT_SELF);
+      }
+
       model0.solver->form_factors(implicit_petsc_factor_type::mumps);
       model0.solver->solve_system(sol_vec);
 
@@ -514,7 +526,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
-          unsigned max_iter = 500;
+          unsigned max_iter = 10;
           unsigned num_iter = 0;
           do
           {
@@ -677,13 +689,17 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
     double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
                                          global_ops_time = 0.;
     explicit_RKn<4, original_RK> rk4_0(1.e-3);
+    explicit_RKn<4, original_RK> rk4_1(2.e-3);
     explicit_hdg_model<dim, explicit_nswe> model0(this, &rk4_0);
     hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> model1(this,
-                                                                   &rk4_0);
+                                                                   &rk4_1);
     for (unsigned h1 = h_1; h1 < h_2; ++h1)
     {
       if (h1 != h_1)
+      {
         rk4_0.reset();
+        rk4_1.reset();
+      }
 
       refine_grid(h1, model0);
 
@@ -702,7 +718,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       model1.init_mesh_containers();
       model1.set_boundary_indicator();
       model1.count_globals();
-      model1.assign_initial_data(rk4_0);
+      model1.assign_initial_data(rk4_1);
 
       std::vector<double> local_sol_vec0;
       local_sol_vec0.reserve(model0.n_local_DOFs_on_this_rank);
@@ -710,14 +726,18 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       std::vector<double> local_sol_vec1;
       local_sol_vec1.reserve(model1.n_local_DOFs_on_this_rank);
 
-      for (unsigned i_time = 0; i_time < 5000; ++i_time)
+      for (unsigned i_time = 0; i_time < 200; ++i_time)
       {
         double dt_local_ops = 0.;
         double dt_global_ops = 0.;
+
+        /*
+         * First phase of time splitting
+         */
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
-          unsigned max_iter = 500;
+          unsigned max_iter = 10;
           unsigned num_iter = 0;
           do
           {
@@ -750,25 +770,17 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
 
             dt_local_ops += (t12 - t11);
             dt_global_ops += (t22 - t21);
-
           } while (iteration_required && num_iter < max_iter);
         }
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
 
-        dt_local_ops += (t32 - t31);
-
-        if (i_time % 10 == 0)
-          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-          vtk_visualizer(model0, i_time);
-      }
-
-      for (unsigned i_time = 0; i_time < 1; ++i_time)
-      {
-        double dt_local_ops = 0.;
-        double dt_global_ops = 0.;
-        while (!rk4_0.ready_for_next_step())
+        //
+        // Second phase of time splitting.
+        //
+        model1.get_results_from_another_model(model0);
+        while (!rk4_1.ready_for_next_step())
         {
           bool iteration_required = false;
           unsigned max_iter = 500;
@@ -812,11 +824,62 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         model1.compute_internal_dofs(local_sol_vec1.data());
         t32 = MPI_Wtime();
 
+        //
+        // Third phase of time splitting
+        //
+        model0.get_results_from_another_model(model1);
+        while (!rk4_0.ready_for_next_step())
+        {
+          bool iteration_required = false;
+          unsigned max_iter = 10;
+          unsigned num_iter = 0;
+          do
+          {
+            solver_update_keys keys_0 =
+              static_cast<solver_update_keys>(update_mat | update_rhs);
+            //
+            // if (i_time == 0 && num_iter == 0)
+            //  model0.init_solver();
+            // else
+            //
+            model0.reinit_solver(keys_0);
+
+            t11 = MPI_Wtime();
+            model0.assemble_globals(keys_0);
+            model0.solver->finish_assembly(keys_0);
+            t12 = MPI_Wtime();
+
+            t21 = MPI_Wtime();
+            model0.solver->form_factors(implicit_petsc_factor_type::mumps);
+            model0.solver->solve_system(sol_vec);
+            local_sol_vec0 =
+              model0.solver->get_local_part_of_global_vec(sol_vec, true);
+            t22 = MPI_Wtime();
+
+            iteration_required =
+              model0.check_for_next_iter(local_sol_vec0.data());
+
+            ++num_iter;
+
+            if (comm_rank == 0 && (!iteration_required || num_iter == max_iter))
+              std::cout << num_iter << std::endl;
+
+            dt_local_ops += (t12 - t11);
+            dt_global_ops += (t22 - t21);
+          } while (iteration_required && num_iter < max_iter);
+        }
+        t31 = MPI_Wtime();
+        model0.compute_internal_dofs(local_sol_vec0.data());
+        t32 = MPI_Wtime();
+
+        //
+        // Time splitting finished. Going for calculation of the results.
+        //
         dt_local_ops += (t32 - t31);
 
-        if (i_time % 10 == 0)
+        if (i_time % 5 == 0)
           //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-          vtk_visualizer(model1, i_time);
+          vtk_visualizer(model0, i_time);
 
         local_ops_time += dt_local_ops;
         global_ops_time += dt_global_ops;
@@ -825,10 +888,13 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
           std::cout << "time: " << i_time << ", local ops: " << dt_local_ops
                     << ", global_ops: " << dt_global_ops << std::endl;
       }
+
       if (comm_rank == 0)
         std::cout << "Total local ops: " << local_ops_time
                   << ", total global_ops: " << global_ops_time << std::endl;
 
+      model0.DoF_H_Refine.clear();
+      model0.DoF_H_System.clear();
       model1.DoF_H_Refine.clear();
       model1.DoF_H_System.clear();
     }
@@ -1053,7 +1119,7 @@ void SolutionManager<dim>::write_grid()
   if (dim == 2)
   {
     std::ofstream Grid1_OutFile(
-      "/workspace/Shared/All_Codes/deal_II/GN_Solver/build/Grid1" +
+      "/org/groups/chg/_Ali_/My_Stuff/Shared/All_Codes/deal_II/nargil/build/" +
       std::to_string(refn_cycle) + std::to_string(comm_rank) + ".svg");
     Grid1_Out.write_svg(the_grid, Grid1_OutFile);
   }

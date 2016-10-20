@@ -1,8 +1,8 @@
 # Set the name of the project and target:
 set(TARGET "nargil")
-set(DEAL_II_DIR "/workspace/Library/deal_ii/Install")
-set(EIGEN_INC "/workspace/Library/Eigen/Install_328/include/eigen3")
-set(MTL4_INC "/workspace/Library/boost/boost_1_60_0")
+set(DEAL_II_DIR "/org/groups/chg/_Ali_/Libraries/deal.II/install/")
+set(EIGEN_INC "/org/groups/chg/_Ali_/Libraries/Eigen/eigen_3_2_10/")
+set(MTL4_INC "/org/groups/chg/_Ali_/Libraries/MTL4/")
 
 # IMPORTANT : THIS PART CORRESPONDS TO GCC COMPILER. HOWEVER YOU CAN USE
 # GCC WITH INTEL libiomp5.so

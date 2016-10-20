@@ -8,35 +8,39 @@ static double eps_inv = 1.E9;
 template <int dim>
 Eigen::Matrix<double, 2, 1> b_magnetic_field(const dealii::Point<dim> &x)
 {
-  // Francois's first example
-  /*
-  Eigen::Matrix<double, 2, 1> B;
-  B << M_PI * cos(M_PI * x[0]) * sin(M_PI * x[1]),
-    -M_PI * sin(M_PI * x[0]) * cos(M_PI * x[1]);
-  Eigen::Matrix<double, 2, 1> b = B / sqrt(B.squaredNorm());
-  */
-  // End of Francois's first example
-  // Francois's second example
-  double x0 = x[0];
-  double y0 = x[1];
-  Eigen::Matrix<double, 2, 1> B;
-  B << y0 *
-         (1.0454094304027911248139427451111 - 6.344929669275584 * pow(x0, 4) -
-          3.045900221537398 * pow(y0, 2) + 0.7139527551314367 * pow(y0, 4) +
-          pow(x0, 2) * (4.9974868672199735 + 3.1052605622150047 * pow(y0, 2)) +
-          pow(x0, 2) * (9.137700664612193 + 5.354645663485775 * pow(x0, 2) -
-                        7.139527551314367 * pow(y0, 2)) *
-            log(x0)),
-    x0 * (1.0924999150635792 - 1.9208977712867574 * pow(x0, 4) -
-          9.566337199526071 * pow(y0, 2) + 0.23225160672109002 * pow(y0, 4) +
-          pow(x0, 2) * (0.7918182674569383 + 10.012536506808281 * pow(y0, 2)) +
-          (0.8904094304027912 + 1.3386614158714438 * pow(x0, 4) -
-           9.137700664612193 * pow(y0, 2) + 3.5697637756571834 * pow(y0, 4) +
-           pow(x0, 2) * (4.568850332306096492013787610749 -
-                         10.70929132697155 * pow(y0, 2))) *
-            log(x0));
-  Eigen::Matrix<double, 2, 1> b = B / sqrt(B.squaredNorm());
-  // End of Francois's second example
+  Eigen::Matrix<double, 2, 1> b;
+  if (false) // Francois's first example
+  {
+    Eigen::Matrix<double, 2, 1> B;
+    B << M_PI * cos(M_PI * x[0]) * sin(M_PI * x[1]),
+      -M_PI * sin(M_PI * x[0]) * cos(M_PI * x[1]);
+    b = B / sqrt(B.squaredNorm());
+  } // End of Francois's first example
+
+  if (true) // Francois's second example
+  {
+    double x0 = x[0];
+    double y0 = x[1];
+    Eigen::Matrix<double, 2, 1> B;
+    B << y0 *
+           (1.0454094304027911248139427451111 - 6.344929669275584 * pow(x0, 4) -
+            3.045900221537398 * pow(y0, 2) + 0.7139527551314367 * pow(y0, 4) +
+            pow(x0, 2) *
+              (4.9974868672199735 + 3.1052605622150047 * pow(y0, 2)) +
+            pow(x0, 2) * (9.137700664612193 + 5.354645663485775 * pow(x0, 2) -
+                          7.139527551314367 * pow(y0, 2)) *
+              log(x0)),
+      x0 *
+        (1.0924999150635792 - 1.9208977712867574 * pow(x0, 4) -
+         9.566337199526071 * pow(y0, 2) + 0.23225160672109002 * pow(y0, 4) +
+         pow(x0, 2) * (0.7918182674569383 + 10.012536506808281 * pow(y0, 2)) +
+         (0.8904094304027912 + 1.3386614158714438 * pow(x0, 4) -
+          9.137700664612193 * pow(y0, 2) + 3.5697637756571834 * pow(y0, 4) +
+          pow(x0, 2) * (4.568850332306096492013787610749 -
+                        10.70929132697155 * pow(y0, 2))) *
+           log(x0));
+    b = B / sqrt(B.squaredNorm());
+  } // End of Francois's second example
   return b;
 }
 
@@ -60,17 +64,18 @@ struct kappa_inv_class : public Function<in_point_dim, output_type>
                             const dealii::Point<in_point_dim> &) const final
   {
     Eigen::Matrix2d kappa_inv_;
-    /* Example 1 */
-    //    kappa_inv_ << 1.0 / exp(x[0] + x[1]), 0.0, 0.0, 1.0 / exp(x[0] -
-    //    x[1]);
-    /* End of example 1 */
+    if (false) // Example 1
+    {
+      kappa_inv_ << 1.0 / exp(x[0] + x[1]), 0.0, 0.0, 1.0 / exp(x[0] - x[1]);
+    } // End of example 1
 
-    // Francois's Example 1 //
-    Eigen::Matrix<double, 2, 1> b = b_magnetic_field(x);
-    Eigen::Matrix2d kappa =
-      Eigen::Matrix2d::Identity() + (eps_inv - 1) * b * b.transpose();
-    kappa_inv_ = kappa.inverse();
-    // End of example 1 //
+    if (true) // Francois's Example 1 and 2 //
+    {
+      Eigen::Matrix<double, 2, 1> b = b_magnetic_field(x);
+      Eigen::Matrix2d kappa =
+        Eigen::Matrix2d::Identity() + (eps_inv - 1) * b * b.transpose();
+      kappa_inv_ = kappa.inverse();
+    } // End of example 1 //
 
     return kappa_inv_;
   }
@@ -85,9 +90,7 @@ struct tau_func_class : public TimeFunction<in_point_dim, double>
                        const double & = 0.) const final
   {
     double tau = 5E4;
-
-    // Francios's example //
-    if (in_point_dim == 2)
+    if (true) // Francios's example //
     {
       Eigen::Matrix<double, 2, 1> b = b_magnetic_field(x);
       Eigen::Matrix<double, 2, 1> vec1, vec2;
@@ -96,8 +99,7 @@ struct tau_func_class : public TimeFunction<in_point_dim, double>
       double vec1_dot_n = fabs(vec1[0] * fabs(n[0]) + vec1[1] * fabs(n[1]));
       double vec2_dot_n = fabs(vec1[0] * fabs(n[0]) + vec1[1] * fabs(n[1]));
       tau = vec1_dot_n * 1 + vec2_dot_n * tau;
-    }
-    // End of Francois's example
+    } // End of Francois's example
 
     return tau;
   }
@@ -123,16 +125,20 @@ struct u_func_class : public TimeFunction<in_point_dim, double>
                        const double & = 0.) const final
   {
     double u_func = 0;
+
     if (in_point_dim == 2)
     {
-      /* Example 1 */
-      u_func = sin(M_PI * x[0]) * cos(M_PI * x[1]);
+      if (false) // Example 1
+        u_func = sin(M_PI * x[0]) * cos(M_PI * x[1]);
 
-      /* Francois's Example 1 */
-      u_func = cos(M_PI * x[0]) * cos(M_PI * x[1]);
+      if (false) // Francois's Example 1
+        u_func = cos(M_PI * x[0]) * cos(M_PI * x[1]);
     }
     if (in_point_dim == 3)
-      u_func = sin(M_PI * x[0]) * cos(M_PI * x[1]) * sin(M_PI * x[2]);
+    {
+      if (false)
+        u_func = sin(M_PI * x[0]) * cos(M_PI * x[1]) * sin(M_PI * x[2]);
+    }
 
     return u_func;
   }
@@ -193,9 +199,8 @@ template <int in_point_dim>
 struct divq_func_class : public Function<in_point_dim, double>
 {
   virtual double value(const dealii::Point<in_point_dim> &x,
-                       const dealii::Point<in_point_dim> &n) const final
+                       const dealii::Point<in_point_dim> &) const final
   {
-    n *n;
     if (in_point_dim == 3)
       return 3 * M_PI * M_PI * sin(M_PI * x[0]) * cos(M_PI * x[1]) *
              sin(M_PI * x[2]);
@@ -225,43 +230,51 @@ struct f_func_class : public TimeFunction<in_point_dim, double>
     double f_func = 0;
     if (in_point_dim == 2)
     {
-      /*
-      f_func = M_PI * M_PI * sin(M_PI * x[0]) * cos(M_PI * x[1]) *
-                 (exp(x[0] + x[1]) + exp(x[0] - x[1])) -
-               M_PI * exp(x[0] + x[1]) * cos(M_PI * x[0]) * cos(M_PI * x[1]) -
-               M_PI * exp(x[0] - x[1]) * sin(M_PI * x[0]) * sin(M_PI * x[1]);
-      */
+      if (false)
+      {
+        f_func = M_PI * M_PI * sin(M_PI * x[0]) * cos(M_PI * x[1]) *
+                   (exp(x[0] + x[1]) + exp(x[0] - x[1])) -
+                 M_PI * exp(x[0] + x[1]) * cos(M_PI * x[0]) * cos(M_PI * x[1]) -
+                 M_PI * exp(x[0] - x[1]) * sin(M_PI * x[0]) * sin(M_PI * x[1]);
+      }
 
-      f_func = -2 * M_PI * M_PI * cos(M_PI * x[0]) * cos(M_PI * x[1]);
+      if (false) // Francois's first example
+      {
+        f_func = -2 * M_PI * M_PI * cos(M_PI * x[0]) * cos(M_PI * x[1]);
+        f_func = -f_func;
+      }
 
-      double x0 = x[0];
-      double y0 = x[1];
-      double psi0 =
-        0.0864912785478786 - 0.3573346678775552 * pow(x0, 6) -
-        0.5227047152013956 * pow(y0, 2) + 0.7614750553843495 * pow(y0, 4) -
-        0.11899212585523944 * pow(y0, 6) +
-        pow(x0, 4) * (-0.08759857890489645 + 3.172464834637792 * pow(y0, 2)) +
-        pow(x0, 2) * (0.32364759993109177 - 2.4987434336099867 * pow(y0, 2) -
-                      0.7763151405537512 * pow(y0, 4)) +
-        pow(x0, 2) *
-          (0.4452047152013956 + 0.22311023597857396 * pow(x0, 4) -
-           4.568850332306097 * pow(y0, 2) + 1.7848818878285917 * pow(y0, 4) +
-           pow(x0, 2) *
-             (1.1422125830765242 - 2.6773228317428877 * pow(y0, 2))) *
-          log(x0);
-      f_func = 0.0;
-      if (psi0 > 0.)
-        f_func = 0.9 * pow(psi0, 1. / 3.);
-      if (psi0 < 0.)
-        f_func = -0.9 * pow(-psi0, 1. / 3.);
-      //      f_func = 100.0;
+      if (true) // Francois's second example
+      {
+        double x0 = x[0];
+        double y0 = x[1];
+        double psi0 =
+          0.0864912785478786 - 0.3573346678775552 * pow(x0, 6) -
+          0.5227047152013956 * pow(y0, 2) + 0.7614750553843495 * pow(y0, 4) -
+          0.11899212585523944 * pow(y0, 6) +
+          pow(x0, 4) * (-0.08759857890489645 + 3.172464834637792 * pow(y0, 2)) +
+          pow(x0, 2) * (0.32364759993109177 - 2.4987434336099867 * pow(y0, 2) -
+                        0.7763151405537512 * pow(y0, 4)) +
+          pow(x0, 2) *
+            (0.4452047152013956 + 0.22311023597857396 * pow(x0, 4) -
+             4.568850332306097 * pow(y0, 2) + 1.7848818878285917 * pow(y0, 4) +
+             pow(x0, 2) *
+               (1.1422125830765242 - 2.6773228317428877 * pow(y0, 2))) *
+            log(x0);
+        f_func = 0.0;
+        if (psi0 > 0.)
+          f_func = 0.9 * pow(psi0, 1. / 3.);
+        if (psi0 < 0.)
+          f_func = -0.9 * pow(-psi0, 1. / 3.);
+        f_func = -f_func;
+      }
     }
     if (in_point_dim == 3)
-      f_func = 3 * M_PI * M_PI * sin(M_PI * x[0]) * cos(M_PI * x[1]) *
-               sin(M_PI * x[2]);
+      if (false) // A three dim example
+        f_func = 3 * M_PI * M_PI * sin(M_PI * x[0]) * cos(M_PI * x[1]) *
+                 sin(M_PI * x[2]);
 
-    //    f_func = 0;
-    return -f_func;
+    return f_func;
   }
 };
 
@@ -286,12 +299,15 @@ struct dirichlet_BC_func_class : public TimeFunction<in_point_dim, double>
                        const double & = 0.0) const final
   {
     double gD;
-    gD = 0;
-    if (x[0] < -1 + 1E-10)
-      gD = 10;
 
-    gD = u_func.value(x, x);
-    gD = 10.0;
+    if (false) // Define gD based on u
+      gD = u_func.value(x, x);
+
+    if (false) // One of examples
+      gD = 0;
+
+    if (true) // Francois's second example
+      gD = 10.0;
 
     return gD;
   }
@@ -317,8 +333,7 @@ struct neumann_BC_func_class : public Function<in_point_dim, double>
   {
     q_func_class<in_point_dim, dealii::Tensor<1, in_point_dim> > q_func;
     double gN;
-    gN = 0;
-    if (x[1] < -1.0 + 1.0E-10 || x[1] > 1.0 - 1.0E-10)
+    if (false) // One of the examples
       gN = 0;
 
     gN = q_func.value(x, x) * n;

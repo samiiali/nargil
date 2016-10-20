@@ -6,15 +6,6 @@
 #ifndef CELL_CLASS_HPP
 #define CELL_CLASS_HPP
 
-template <int dim, template <int> class CellType>
-struct hdg_model;
-
-template <int dim, template <int> class CellType>
-struct explicit_hdg_model;
-
-template <int dim, template <int> class CellType>
-struct hdg_model_with_explicit_rk;
-
 /*!
  * \defgroup cells Cell data
  * \brief

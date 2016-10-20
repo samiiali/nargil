@@ -7,6 +7,26 @@
  * \ingroup input_data_group
  */
 template <int in_point_dim, typename output_type>
+struct explicit_nswe_grad_b_func_class
+  : public TimeFunction<in_point_dim, output_type>
+{
+  virtual output_type value(const dealii::Point<in_point_dim> &x,
+                            const dealii::Point<in_point_dim> &,
+                            const double & = 0) const final
+  {
+    dealii::Tensor<1, in_point_dim, double> grad_b;
+    // Example 1:
+    grad_b[0] = sin(x[0] + 2. * x[1]);
+    grad_b[1] = 2. * sin(x[0] + 2. * x[1]);
+    /* End of Example 1 */
+    return grad_b;
+  }
+};
+
+/**
+ * \ingroup input_data_group
+ */
+template <int in_point_dim, typename output_type>
 struct explicit_nswe_zero_func_class
   : public TimeFunction<in_point_dim, output_type>
 {
@@ -80,14 +100,12 @@ struct explicit_nswe_qis_func_class
     */
     // End of Example 2.
     // First example in paper 3
-    /*
     double x0 = x[0];
     double y0 = x[1];
     double t0 = t;
     qs[0] = 2 + exp(sin(3 * x0) * sin(3 * y0) - sin(3 * t0));
     qs[1] = cos(x0 - 4 * t0);
     qs[2] = sin(y0 + 4 * t0);
-    */
     // End of first example in paper 3
     // Second example in paper 3
     /*
@@ -102,6 +120,7 @@ struct explicit_nswe_qis_func_class
     */
     // End of second example in paper 3
     // Narrowing channel in paper 3
+    /*
     if (t < 1.e-8)
     {
       qs[0] = 1.5;
@@ -120,7 +139,15 @@ struct explicit_nswe_qis_func_class
       qs[1] = 1.e-3;
       qs[2] = 0;
     }
+    */
     // End of narrowing channel in paper 3
+    // Green-Naghdi first example : Flat bottom
+    /*
+    qs[0] = 7.;
+    qs[1] = 5 + sin(M_PI * x[1]);
+    qs[2] = -3. - cos(M_PI * x[0]);
+    */
+    // End of Green-Naghdi first example : Flat bottom
     return qs;
   }
 };
@@ -134,7 +161,7 @@ struct explicit_nswe_L_func_class
 {
   virtual output_type value(const dealii::Point<in_point_dim> &x,
                             const dealii::Point<in_point_dim> &,
-                            const double & = 0) const final
+                            const double &t = 0) const final
   {
     double x0 = x[0];
     double y0 = x[1];
@@ -191,27 +218,25 @@ struct explicit_nswe_L_func_class
     */
     // End of Example 1
     // First example of paper 3
-    /*
     double t0 = t;
     L[0] = -3 * exp(-sin(3 * t0) + sin(3 * x0) * sin(3 * y0)) * cos(3 * t0) +
            cos(4 * t0 + y0) + sin(4 * t0 - x0);
-    L[1] =
-      (-3 * exp(3 * sin(3 * t0) + sin(3 * x0) * sin(3 * y0)) *
-         pow(cos(4 * t0 - x0), 2) * cos(3 * x0) * sin(3 * y0) +
-       (2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
-         (exp(3 * sin(3 * t0)) * sin(8 * t0 - 2 * x0) -
-          (2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
-            (4 * exp(2 * sin(3 * t0)) * sin(4 * t0 - x0) -
-             3 * exp(sin(3 * x0) * sin(3 * y0)) *
+    L[1] = (-3 * exp(3 * sin(3 * t0) + sin(3 * x0) * sin(3 * y0)) *
+              pow(cos(4 * t0 - x0), 2) * cos(3 * x0) * sin(3 * y0) +
+            (2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
+              (exp(3 * sin(3 * t0)) * sin(8 * t0 - 2 * x0) -
                (2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
-               cos(3 * x0) * sin(3 * y0))) +
-       exp(3 * sin(3 * t0)) * cos(4 * t0 - x0) *
-         ((2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) * cos(4 * t0 +
-    y0) -
-          3 * exp(sin(3 * x0) * sin(3 * y0)) * cos(3 * y0) * sin(3 * x0) *
-            sin(4 * t0 + y0))) /
-      (exp(2 * sin(3 * t0)) *
-       pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 2));
+                 (4 * exp(2 * sin(3 * t0)) * sin(4 * t0 - x0) -
+                  3 * exp(sin(3 * x0) * sin(3 * y0)) *
+                    (2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
+                    cos(3 * x0) * sin(3 * y0))) +
+            exp(3 * sin(3 * t0)) * cos(4 * t0 - x0) *
+              ((2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
+                 cos(4 * t0 + y0) -
+               3 * exp(sin(3 * x0) * sin(3 * y0)) * cos(3 * y0) * sin(3 * x0) *
+                 sin(4 * t0 + y0))) /
+           (exp(2 * sin(3 * t0)) *
+            pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 2));
     L[2] = (4 * exp(2 * sin(3 * t0)) *
               pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 2) *
               cos(4 * t0 + y0) +
@@ -227,10 +252,10 @@ struct explicit_nswe_L_func_class
                  sin(2 * (4 * t0 + y0)))) /
            (exp(2 * sin(3 * t0)) *
             pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 2));
-    */
     // End of first example of paper 3
+
     // example 2 of paper 3
-    L[0] = L[1] = L[2] = x0 - x0 + y0 - y0;
+    //    L[0] = L[1] = L[2] = x0 - x0 + y0 - y0;
     // End of example 2 of paper 3
     return L;
   }
@@ -495,10 +520,24 @@ struct explicit_nswe_L_func_class
  * \f[
  *   (E_{00}+E_{01}) \delta \hat Q  = - F_{04} - F_{05}.
  * \f]
+ * ### Solving equation with topography
+ * One of the terms that we have not included in the above equations is the
+ * topography term. The equations with topography can be written as follows
+ * (assuming that \f$h(X,t) = h_0 + \zeta(X,t) - b(X)\f$):
+ * \f[
+ * \begin{cases}
+ * \partial_{t} h + \nabla\cdot(h V) = 0,\\
+ * \partial_t (hV) + \nabla (\frac 1 2 g h^2) + \nabla \cdot (hV \otimes V) + gh
+ * \nabla b = 0.
+ * \end{cases}
+ * \f]
+ * Obviously, all of the terms are the same as before, except the additional
+ * \f$g h \nabla b\f$. We define \f$f_{06}(gh \nabla b, \mathbf p)\f$
  */
 template <int dim>
 struct explicit_nswe : public GenericCell<dim>
 {
+  const double gravity = 9.81;
   using elem_basis_type = typename GenericCell<dim>::elem_basis_type;
   typedef std::unique_ptr<dealii::FEValues<dim> > FE_val_ptr;
   typedef std::unique_ptr<dealii::FEFaceValues<dim> > FEFace_val_ptr;
@@ -531,7 +570,7 @@ struct explicit_nswe : public GenericCell<dim>
                 const unsigned &poly_order_,
                 explicit_hdg_model<dim, explicit_nswe> *model_);
   ~explicit_nswe() final;
-  eigen3mat A00, C01, E00, E01, F01, F02, F04, F05;
+  eigen3mat A00, C01, E00, E01, F01, F02, F04, F05, F06;
   void assign_BCs(const bool &at_boundary,
                   const unsigned &i_face,
                   const dealii::Point<dim> &face_center);
@@ -550,6 +589,12 @@ struct explicit_nswe : public GenericCell<dim>
    *
    */
   eigen3mat *get_previous_step_results();
+
+  /*
+  void set_previous_step_results1(ResultPacket result_);
+
+  ResultPacket get_previous_step_results1();
+  */
 
   /**
    *
@@ -675,6 +720,8 @@ struct explicit_nswe : public GenericCell<dim>
   static explicit_nswe_qis_func_class<dim, nswe_vec> explicit_nswe_qis_func;
   static explicit_nswe_zero_func_class<dim, nswe_vec> explicit_nswe_zero_func;
   static explicit_nswe_L_func_class<dim, nswe_vec> explicit_nswe_L_func;
+  static explicit_nswe_grad_b_func_class<dim, dealii::Tensor<1, dim> >
+    explicit_nswe_grad_b_func;
 
   eigen3mat last_step_q;
   eigen3mat last_iter_qhat;

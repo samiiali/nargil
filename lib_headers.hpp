@@ -89,4 +89,13 @@ typedef Eigen::SparseMatrix<double> eigen3sparse_mat;
 typedef Eigen::Triplet<double> eigen3triplet;
 typedef Eigen::LDLT<eigen3mat, Eigen::Lower> eigen3ldlt;
 
+template <int dim, template <int> class CellType>
+struct hdg_model;
+
+template <int dim, template <int> class CellType>
+struct explicit_hdg_model;
+
+template <int dim, template <int> class CellType>
+struct hdg_model_with_explicit_rk;
+
 #endif
