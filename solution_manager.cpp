@@ -51,7 +51,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     execution_time.open("Execution_Time.txt",
                         std::ofstream::out | std::fstream::app);
   }
-  if (true) // Example 1
+  if (false) // Example 1
   {
     std::vector<unsigned> repeats(dim, 1);
     repeats[0] = 1;
@@ -146,6 +146,28 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
       the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 2.}));
     the_grid.add_periodicity(periodic_faces);
   } // End of Francois's example 2
+
+  // Dissertation example 2
+  if (true)
+  {
+    std::vector<unsigned> repeats(dim, 2);
+    repeats[0] = 200;
+    dealii::Point<dim> point_1, point_2;
+    point_1 = {-50, -1};
+    point_2 = {50, 1};
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      the_grid, repeats, point_1, point_2, true);
+    std::vector<dealii::GridTools::PeriodicFacePair<
+      typename dealii::parallel::distributed::Triangulation<
+        dim>::cell_iterator> >
+      periodic_faces;
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({100, 0.}));
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 2.0}));
+    the_grid.add_periodicity(periodic_faces);
+  }
+  // End of Dissertation example 2
 }
 
 template <int dim>
@@ -726,7 +748,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       std::vector<double> local_sol_vec1;
       local_sol_vec1.reserve(model1.n_local_DOFs_on_this_rank);
 
-      for (unsigned i_time = 0; i_time < 200; ++i_time)
+      for (unsigned i_time = 0; i_time < 5000; ++i_time)
       {
         double dt_local_ops = 0.;
         double dt_global_ops = 0.;
@@ -775,59 +797,68 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
+        //        if (i_time % 10 == 0)
+        //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+        //          vtk_visualizer(model0, i_time * 3);
 
         //
         // Second phase of time splitting.
         //
-        model1.get_results_from_another_model(model0);
-        while (!rk4_1.ready_for_next_step())
+        if (i_time > 2000)
         {
-          bool iteration_required = false;
-          unsigned max_iter = 500;
-          unsigned num_iter = 0;
-          do
+          model1.get_results_from_another_model(model0);
+          while (!rk4_1.ready_for_next_step())
           {
-            solver_update_keys keys_0 =
-              static_cast<solver_update_keys>(update_mat | update_rhs);
-            if (i_time == 0 && num_iter == 0)
-              model1.init_solver();
-            else
-              model1.reinit_solver(keys_0);
+            bool iteration_required = false;
+            unsigned max_iter = 10;
+            unsigned num_iter = 0;
+            do
+            {
+              solver_update_keys keys_0 =
+                static_cast<solver_update_keys>(update_mat | update_rhs);
+              if (i_time == 0 && num_iter == 0)
+                model1.init_solver();
+              else
+                model1.reinit_solver(keys_0);
 
-            t11 = MPI_Wtime();
-            model1.assemble_globals(keys_0);
-            model1.solver->finish_assembly(keys_0);
-            t12 = MPI_Wtime();
+              t11 = MPI_Wtime();
+              model1.assemble_globals(keys_0);
+              model1.solver->finish_assembly(keys_0);
+              t12 = MPI_Wtime();
 
-            t21 = MPI_Wtime();
-            model1.solver->form_factors(implicit_petsc_factor_type::mumps);
-            model1.solver->solve_system(sol_vec);
-            local_sol_vec1 =
-              model1.solver->get_local_part_of_global_vec(sol_vec, true);
-            t22 = MPI_Wtime();
+              t21 = MPI_Wtime();
+              model1.solver->form_factors(implicit_petsc_factor_type::mumps);
+              model1.solver->solve_system(sol_vec);
+              local_sol_vec1 =
+                model1.solver->get_local_part_of_global_vec(sol_vec, true);
+              t22 = MPI_Wtime();
 
-            iteration_required =
-              model1.check_for_next_iter(local_sol_vec1.data());
+              iteration_required =
+                model1.check_for_next_iter(local_sol_vec1.data());
 
-            ++num_iter;
+              ++num_iter;
 
-            if (comm_rank == 0 && (!iteration_required || num_iter == max_iter))
-              std::cout << num_iter << std::endl;
+              if (comm_rank == 0 &&
+                  (!iteration_required || num_iter == max_iter))
+                std::cout << num_iter << std::endl;
 
-            dt_local_ops += (t12 - t11);
-            dt_global_ops += (t22 - t21);
+              dt_local_ops += (t12 - t11);
+              dt_global_ops += (t22 - t21);
 
-          } while (iteration_required && num_iter < max_iter);
-          break;
+            } while (iteration_required && num_iter < max_iter);
+          }
+          t31 = MPI_Wtime();
+          model1.compute_internal_dofs(local_sol_vec1.data());
+          t32 = MPI_Wtime();
+          if (i_time % 10 == 0)
+            //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+            vtk_visualizer(model1, i_time * 3 + 1);
+          model0.get_results_from_another_model(model1);
         }
-        t31 = MPI_Wtime();
-        model1.compute_internal_dofs(local_sol_vec1.data());
-        t32 = MPI_Wtime();
 
         //
         // Third phase of time splitting
         //
-        model0.get_results_from_another_model(model1);
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
@@ -871,15 +902,14 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
+        if (i_time % 10 == 0)
+          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+          vtk_visualizer(model0, i_time * 3 + 2);
 
         //
         // Time splitting finished. Going for calculation of the results.
         //
         dt_local_ops += (t32 - t31);
-
-        if (i_time % 5 == 0)
-          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-          vtk_visualizer(model0, i_time);
 
         local_ops_time += dt_local_ops;
         global_ops_time += dt_global_ops;

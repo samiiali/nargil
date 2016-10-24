@@ -84,6 +84,8 @@ struct base_explicit_RKn
   virtual ~base_explicit_RKn() {}
 
  protected:
+  double get_h_() { return h; }
+
   template <typename T>
   T get_sum_h_aij_kj_(const std::vector<T> &kj)
   {
@@ -193,6 +195,8 @@ struct explicit_RKn<4, original_RK> : public base_explicit_RKn<4>
   }
 
   ~explicit_RKn() {}
+
+  double get_h() { return this->get_h_(); }
 
   template <typename T>
   T get_sum_h_aij_kj(const std::vector<T> &kj)

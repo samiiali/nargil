@@ -15,10 +15,16 @@ struct explicit_nswe_grad_b_func_class
                             const double & = 0) const final
   {
     dealii::Tensor<1, in_point_dim, double> grad_b;
-    // Example 1:
+    // GN example 1:
+    /*
     grad_b[0] = sin(x[0] + 2. * x[1]);
     grad_b[1] = 2. * sin(x[0] + 2. * x[1]);
-    /* End of Example 1 */
+    */
+    /* End of GN example 1 */
+    // Example 2
+    grad_b[0] = 0.;
+    grad_b[1] = 0.;
+    // End of example 2
     return grad_b;
   }
 };
@@ -100,12 +106,14 @@ struct explicit_nswe_qis_func_class
     */
     // End of Example 2.
     // First example in paper 3
+    /*
     double x0 = x[0];
     double y0 = x[1];
     double t0 = t;
     qs[0] = 2 + exp(sin(3 * x0) * sin(3 * y0) - sin(3 * t0));
     qs[1] = cos(x0 - 4 * t0);
     qs[2] = sin(y0 + 4 * t0);
+    */
     // End of first example in paper 3
     // Second example in paper 3
     /*
@@ -141,13 +149,37 @@ struct explicit_nswe_qis_func_class
     }
     */
     // End of narrowing channel in paper 3
-    // Green-Naghdi first example : Flat bottom
+    // G-N example 1
     /*
-    qs[0] = 7.;
-    qs[1] = 5 + sin(M_PI * x[1]);
-    qs[2] = -3. - cos(M_PI * x[0]);
+    double x0 = x[0];
+    double y0 = x[1];
+    double t0 = t;
+    qs[0] = 2 + exp(sin(x0 + y0 + t0));
+    qs[1] = sin(2. * x0 - t0) / 3.;
+    qs[2] = cos(y0 + t0);
     */
-    // End of Green-Naghdi first example : Flat bottom
+    // G-N example 1
+    // G-N example 2
+    /*
+    double x0 = x[0];
+    double y0 = x[1];
+    double t0 = t;
+    qs[0] = 5 + sin(4 * x0 - t0);
+    qs[1] = cos(5 * y0 - t0);
+    qs[2] = sin(3 * y0 + t);
+    */
+    // Dissertation example 2
+    if (t < 2)
+    {
+      qs[0] = 10. + sin(M_PI * 2 * t);
+    }
+    else
+    {
+      qs[0] = 10.;
+    }
+    qs[1] = qs[2] = 0;
+    // End of Dissertation example 2
+
     return qs;
   }
 };
@@ -218,6 +250,7 @@ struct explicit_nswe_L_func_class
     */
     // End of Example 1
     // First example of paper 3
+    /*
     double t0 = t;
     L[0] = -3 * exp(-sin(3 * t0) + sin(3 * x0) * sin(3 * y0)) * cos(3 * t0) +
            cos(4 * t0 + y0) + sin(4 * t0 - x0);
@@ -253,10 +286,53 @@ struct explicit_nswe_L_func_class
            (exp(2 * sin(3 * t0)) *
             pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 2));
     // End of first example of paper 3
-
+    */
     // example 2 of paper 3
     //    L[0] = L[1] = L[2] = x0 - x0 + y0 - y0;
     // End of example 2 of paper 3
+
+    // Green-Naghdi example
+    /*
+    double g = 9.81;
+    L[0] = (2 * cos(t - 2 * x0)) / 3. +
+           exp(sin(t + x0 + y0)) * cos(t + x0 + y0) - sin(t + y0);
+    L[1] = (-3 * pow(2 + exp(sin(t + x0 + y0)), 2) * cos(t - 2 * x0) +
+            exp(sin(t + x0 + y0)) * cos(t + x0 + y0) *
+              (9 * pow(2 + exp(sin(t + x0 + y0)), 3) +
+               3 * cos(t + y0) * sin(t - 2 * x0) - pow(sin(t - 2 * x0), 2)) +
+            (2 + exp(sin(t + x0 + y0))) *
+              (-2 * sin(2 * (t - 2 * x0)) + 3 * sin(t - 2 * x0) * sin(t + y0) +
+               9 * pow(2 + exp(sin(t + x0 + y0)), 2) * g * sin(x0 + 2 * y0))) /
+           (9. * pow(2 + exp(sin(t + x0 + y0)), 2));
+    L[2] = (2 * (2 + exp(sin(t + x0 + y0))) * cos(t - 2 * x0) * cos(t + y0) +
+            exp(sin(t + x0 + y0)) * cos(t + x0 + y0) *
+              (3 * pow(2 + exp(sin(t + x0 + y0)), 3) - 3 * pow(cos(t + y0), 2) +
+               cos(t + y0) * sin(t - 2 * x0)) -
+            3 * (2 + exp(sin(t + x0 + y0))) *
+              ((2 + exp(sin(t + x0 + y0))) * sin(t + y0) + sin(2 * (t + y0)) -
+               2 * pow(2 + exp(sin(t + x0 + y0)), 2) * g * sin(x0 + 2 * y0))) /
+           (3. * pow(2 + exp(sin(t + x0 + y0)), 2));
+    */
+    // End of Green-Naghdi example
+    // Example 2 of Green-Naghdi
+    /*
+    L[0] = -cos(t - 4 * x0) + 3 * cos(t + 3 * y0);
+    L[1] = (-4 * cos(t - 4 * x0) *
+              (pow(cos(t - 5 * y0), 2) + pow(-5 + sin(t - 4 * x0), 3)) +
+            (cos(2 * (t - y0)) - 4 * cos(8 * y0)) * (-5 + sin(t - 4 * x0))) /
+             pow(-5 + sin(t - 4 * x0), 2) -
+           sin(t - 5 * y0);
+    L[2] = cos(t + 3 * y0) +
+           (-4 * cos(t - 4 * x0) * cos(t - 5 * y0) * sin(t + 3 * y0) -
+            3 * (-5 + sin(t - 4 * x0)) * sin(2 * (t + 3 * y0))) /
+             pow(-5 + sin(t - 4 * x0), 2);
+    */
+    // End of example 2 of Green-Naghdi
+    // Dissertation example 2
+    L[0] = 0;
+    L[1] = 0;
+    L[2] = 0;
+    // End of Dissertaton example 2
     return L;
   }
 };

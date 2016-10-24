@@ -1182,7 +1182,8 @@ bool hdg_model_with_explicit_rk<dim, CellType>::check_for_next_iter(
         std::unique_ptr<GenericCell<dim> > cell(
           std::move(all_owned_cells[i_cell]));
         cell->attach_FEValues(p1, p2, p3, p4);
-        static_cast<CellType<dim> *>(cell.get())->ready_for_next_stage();
+        static_cast<CellType<dim> *>(cell.get())
+          ->ready_for_next_stage(local_uhat);
         cell->detach_FEValues(p1, p2, p3, p4);
         all_owned_cells[i_cell] = std::move(cell);
       }

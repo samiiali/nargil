@@ -75,25 +75,25 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
                                     const dealii::Point<dim> &face_center)
 {
   // Example 1
+  /*
   if (at_boundary && face_center[0] < 1000)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
+  */
   // End of example 1
   // Paper 3 - Example 2
-  /*
-  if (at_boundary && face_center[0] < -1.0 + 1e-6)
+  if (at_boundary && face_center[0] < -50. + 1.e-6)
   {
-    this->BCs[i_face] = GenericCell<dim>::BC::essential;
-    this->dof_names_on_faces[i_face].resize(dim + 1, 0);
+    this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
+    this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
   else if (at_boundary)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
-  */
   // End of Paper 3 - example 2
   // Narrowing channel in paper 3
   /*
@@ -1417,8 +1417,8 @@ void explicit_nswe<dim>::ready_for_next_stage()
         f03_mtl[i_poly][i_nswe_dim];
 
   Eigen::FullPivLU<eigen3mat> A00_lu(A00);
-  //  eigen3mat ki = A00_lu.solve(-(F01 - F02 + F06 - A00 * f03));
-  eigen3mat ki = A00_lu.solve(-(F01 - F02 - A00 * f03));
+  eigen3mat ki = A00_lu.solve(-(F01 - F02 + F06 - A00 * f03));
+  //  eigen3mat ki = A00_lu.solve(-(F01 - F02 - A00 * f03));
   ki_s[model->time_integrator->get_current_stage() - 1] = ki;
 
   wreck_it_Ralph(A00);
