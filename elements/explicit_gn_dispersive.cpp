@@ -97,26 +97,32 @@ void explicit_gn_dispersive<dim>::assign_BCs(
   const dealii::Point<dim> &face_center)
 {
   // Green-Naghdi first example: Flat bottom
-  /*
-  if (at_boundary && face_center[0] < -0.99)
+  if (at_boundary && (face_center[0] < -0.99 || face_center[0] > 0.99))
   {
     this->BCs[i_face] = GenericCell<dim>::BC::essential;
     this->dof_names_on_faces[i_face].resize(dim, 1);
+    this->dof_names_on_faces[i_face][1] = 0;
   }
-  else if (at_boundary && std::abs(face_center[1]) > 0.99)
+  /*
+  else if (at_boundary)
+  {
+    this->BCs[i_face] = GenericCell<dim>::BC::essential;
+    this->dof_names_on_faces[i_face].resize(dim, 1);
+    this->dof_names_on_faces[i_face][1] = 0;
+  }
+  */
+  /*
+  else if (at_boundary)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim, 1);
-  }
-  else if (at_boundary && face_center[0] > 0.99)
-  {
-    this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
-    this->dof_names_on_faces[i_face].resize(dim, 1);
+    this->dof_names_on_faces[i_face][1] = 0;
   }
   */
   // End of Green-Naghdi first example: Flat bottom
   // Dissertation example 2
-  if (at_boundary && face_center[0] < -50 + 1.e-6)
+  /*
+  if (at_boundary && face_center[0] < -5 + 1.e-6)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::essential;
     this->dof_names_on_faces[i_face].resize(dim, 1);
@@ -126,11 +132,13 @@ void explicit_gn_dispersive<dim>::assign_BCs(
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
+  */
   // End of dissertation example 2
   else
   {
     this->BCs[i_face] = GenericCell<dim>::BC::not_set;
     this->dof_names_on_faces[i_face].resize(dim, 1);
+    this->dof_names_on_faces[i_face][1] = 0;
   }
 }
 
@@ -355,7 +363,9 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       Eigen::Matrix<double, dim, 1> L01_at_quad, grad_b_at_quad;
       dealii::Tensor<1, dim> L01_at_quad_tensor =
         explicit_gn_dispersive_L.value(quad_pt_locs[i_quad],
-                                       quad_pt_locs[i_quad]);
+                                       quad_pt_locs[i_quad],
+                                       time_integrator->get_current_time() +
+                                         time_integrator->get_cih());
       dealii::Tensor<1, dim> grad_b_at_quad_tensor =
         explicit_nswe_grad_b_func.value(quad_pt_locs[i_quad],
                                         quad_pt_locs[i_quad]);
@@ -517,10 +527,18 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       dealii::Tensor<1, dim> hVinf_t_tensor = hVinf_t_func.value(
         face_quad_pt_locs[i_face_quad],
         face_quad_pt_locs[i_face_quad],
-        time_integrator->get_current_time() + time_integrator->get_h() / 2.);
+        time_integrator->get_current_time() + time_integrator->get_cih());
       Eigen::Matrix<double, dim, 1> hVinf_t_at_quad;
       hVinf_t_at_quad(0, 0) = hVinf_t_tensor[0];
       hVinf_t_at_quad(1, 0) = hVinf_t_tensor[1];
+
+      Eigen::Matrix<double, 2, 1> W1_val_vec;
+      dealii::Tensor<1, dim> W1_vec_tensor = explicit_gn_dispersive_W1.value(
+        face_quad_pt_locs[i_face_quad],
+        face_quad_pt_locs[i_face_quad],
+        time_integrator->get_current_time() + time_integrator->get_cih());
+      W1_val_vec(0, 0) = W1_vec_tensor[0];
+      W1_val_vec(1, 0) = W1_vec_tensor[1];
 
       double tau_on_face = -20.;
 
@@ -652,6 +670,7 @@ void explicit_gn_dispersive<dim>::assemble_globals(
   */
 
   last_stage_q = last_step_q + time_integrator->get_sum_h_aij_kj(ki_s);
+  //  last_stage_q = last_step_q;
   calculate_matrices();
   eigen3mat A2_inv = std::move(A02.inverse());
   eigen3mat mat1 = std::move(
@@ -728,7 +747,7 @@ void explicit_gn_dispersive<dim>::assemble_globals(
                                            face_quad_weights,
                                            w1_hat_mtl,
                                            time_integrator->get_current_time() +
-                                             time_integrator->get_h() / 2.);
+                                             time_integrator->get_cih());
         for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
           for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
             w1_hat((i_face * dim + i_dim) * this->n_face_bases + i_poly) =
@@ -788,6 +807,7 @@ double explicit_gn_dispersive<dim>::compute_internal_dofs(
 
   W2 = last_step_q.block(0, 0, this->n_cell_bases, 1);
   W1 = last_step_q.block(this->n_cell_bases, 0, dim * this->n_cell_bases, 1);
+  //  W1 = stored_W1;
 
   eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(W2);
   eigen3mat nodal_q(dim * this->n_cell_bases, 1);
@@ -863,10 +883,21 @@ void explicit_gn_dispersive<dim>::internal_vars_errors(const eigen3mat &u_vec,
   eigen3mat total_vec((dim + 1) * this->n_cell_bases, 1);
   total_vec << u_vec, q_vec;
 
+  /*
   double error_u2 = this->get_error_in_cell(
     explicit_gn_dispersive_qs,
     total_vec,
     time_integrator->get_current_time() + time_integrator->get_h() / 2.);
+  */
+
+  double error_u2 =
+    this->get_error_in_cell(explicit_gn_dispersive_qs,
+                            last_step_q,
+                            time_integrator->get_current_time());
+
+  //  double error_u2 = this->get_error_in_cell(
+  //    explicit_gn_dispersive_W1, stored_W1,
+  //    time_integrator->get_current_time());
   //  double error_q2 = this->get_error_in_cell(
   //    explicit_gn_dispersive_W2, u_vec, time_integrator->get_current_time());
   u_error += error_u2;
@@ -914,7 +945,8 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
                                        *(this->the_face_basis),
                                        face_quad_weights,
                                        W1_hat_mtl,
-                                       0.0);
+                                       time_integrator->get_current_time() +
+                                         time_integrator->get_cih());
     for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
       for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
         exact_W1_hat((i_face * dim + i_dim) * this->n_face_bases + i_poly) =
@@ -922,6 +954,7 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
   }
 
   eigen3mat solved_W1_hat = exact_W1_hat;
+  /*
   for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
   {
     for (unsigned i_dof = 0; i_dof < this->dofs_ID_in_this_rank[i_face].size();
@@ -937,8 +970,9 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
       }
     }
   }
+  */
 
-  eigen3mat W1 =
+  eigen3mat W1 = stored_W1 =
     mat1_lu.solve(L01 + L10 + L11 + L12 + L21 + mat2 * solved_W1_hat);
 
   //  eigen3mat W2 = std::move(A2_inv * (-B01T * W1 + C01 * solved_W1_hat));

@@ -100,9 +100,9 @@ struct explicit_nswe_qis_func_class
     // End of Example 1.
     //     Example 2:
     /*
-    qs[0] = 7 + sin(x[0] - t);
-    qs[1] = 5 + sin(x[0] + 3 * t);
-    qs[2] = -3 - cos(x[1] + 4 * t);
+    qs[0] = 2. + exp(sin(x[0] + x[1] - t));
+    qs[1] = cos(x[0] - 4 * t);
+    qs[2] = sin(x[1] + 4 * t);
     */
     // End of Example 2.
     // First example in paper 3
@@ -149,15 +149,23 @@ struct explicit_nswe_qis_func_class
     }
     */
     // End of narrowing channel in paper 3
-    // G-N example 1
+    // G-N example zero
     /*
     double x0 = x[0];
     double y0 = x[1];
     double t0 = t;
-    qs[0] = 2 + exp(sin(x0 + y0 + t0));
-    qs[1] = sin(2. * x0 - t0) / 3.;
-    qs[2] = cos(y0 + t0);
+    qs[0] = 5. + sin(4 * x[0]);
+    qs[1] = 3.;
+    qs[2] = 3.;
     */
+    // G-N example zero
+    // G-N example 1
+    double x0 = x[0];
+    double y0 = x[1];
+    double t0 = t;
+    qs[0] = 5. + sin(4. * x0);
+    qs[1] = sin(x0 - t0);
+    qs[2] = 0.;
     // G-N example 1
     // G-N example 2
     /*
@@ -168,17 +176,48 @@ struct explicit_nswe_qis_func_class
     qs[1] = cos(5 * y0 - t0);
     qs[2] = sin(3 * y0 + t);
     */
-    // Dissertation example 2
-    if (t < 2)
+    // Checking inflow and outflow BC
+    /*
+    double t0 = t;
+    if (t0 < 1.E-6)
     {
-      qs[0] = 10. + sin(M_PI * 2 * t);
+      if (x[0] >= 19.5 && x[0] <= 20.5)
+        qs[0] = 2. + cos(M_PI * (x[0] - 20.));
+      else
+        qs[0] = 2.;
     }
     else
     {
-      qs[0] = 10.;
+      qs[0] = 2.;
     }
-    qs[1] = qs[2] = 0;
-    // End of Dissertation example 2
+    qs[1] = 0;
+    qs[2] = 0;
+    */
+    //
+    // Exact solution of Green-Naghdi:
+    /*
+    if (t0 <= 1.e-6)
+    {
+      double a_GN = 0.25;
+      double h_b = 1.0;
+      double x_0 = 20.;
+      double g = 9.81;
+      double c_GN = sqrt(g * (h_b + a_GN));
+      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
+      double zeta_GN =
+        pow(acosh(1. / (kappa_GN * (x[0] - x_0 - c_GN * t0))), 2);
+      qs[0] = h_b + zeta_GN;
+      qs[1] = (c_GN * (1. - h_b / (zeta_GN + h_b))) * qs[0];
+      qs[2] = 0.;
+    }
+    else
+    {
+      qs[0] = 0;
+      qs[1] = 0;
+      qs[2] = 0;
+    }
+    */
+    // End of checking inflow and outflow BC
 
     return qs;
   }
@@ -236,19 +275,33 @@ struct explicit_nswe_L_func_class
     // End of Example 1
     // Example 2:
     /*
-    L[0] = -cos(t - x0) + cos(3 * t + x0) + sin(4 * t + y0);
-    L[1] = 3 * cos(3 * t + x0) + cos(t - x0) * (7 - sin(t - x0)) -
-           (2 * cos(3 * t + x0) * (5 + sin(3 * t + x0))) / (-7 + sin(t - x0)) -
-           (cos(t - x0) * pow(5 + sin(3 * t + x0), 2)) / pow(-7 + sin(t - x0),
-    2) +
-           ((5 + sin(3 * t + x0)) * sin(4 * t + y0)) / (7 - sin(t - x0));
-    L[2] = (cos(3 * t + x0) * (3 + cos(4 * t + y0))) / (-7 + sin(t - x0)) +
-           (cos(t - x0) * (3 + cos(4 * t + y0)) * (5 + sin(3 * t + x0))) /
-             pow(-7 + sin(t - x0), 2) +
-           4 * sin(4 * t + y0) +
-           (2 * (3 + cos(4 * t + y0)) * sin(4 * t + y0)) / (-7 + sin(t - x0));
+    double g = 9.81;
+    L[0] = -(cos(t - x0 - y0) / exp(sin(t - x0 - y0))) + cos(4 * t + y0) +
+           sin(4 * t - x0);
+    L[1] =
+      ((pow(1 + 2 * exp(sin(t - x0 - y0)), 3) * g * cos(t - x0 - y0)) /
+         exp(4 * sin(t - x0 - y0)) -
+       (pow(cos(4 * t - x0), 2) * cos(t - x0 - y0)) / exp(sin(t - x0 - y0)) +
+       (2 + exp(-sin(t - x0 - y0))) * cos(4 * t - x0) * cos(4 * t + y0) +
+       (2 + exp(-sin(t - x0 - y0))) * sin(8 * t - 2 * x0) -
+       4 * pow(2 + exp(-sin(t - x0 - y0)), 2) * sin(4 * t - x0) -
+       (cos(4 * t - x0) * cos(t - x0 - y0) * sin(4 * t + y0)) /
+         exp(sin(t - x0 - y0)) +
+       pow(2 + exp(-sin(t - x0 - y0)), 3) * g * sin(x0 + 2 * y0)) /
+      pow(2 + exp(-sin(t - x0 - y0)), 2);
+    L[2] =
+      ((pow(1 + 2 * exp(sin(t - x0 - y0)), 3) * g * cos(t - x0 - y0)) /
+         exp(4 * sin(t - x0 - y0)) +
+       4 * pow(2 + exp(-sin(t - x0 - y0)), 2) * cos(4 * t + y0) -
+       (cos(4 * t - x0) * cos(t - x0 - y0) * sin(4 * t + y0)) /
+         exp(sin(t - x0 - y0)) +
+       (2 + exp(-sin(t - x0 - y0))) * sin(4 * t - x0) * sin(4 * t + y0) -
+       (cos(t - x0 - y0) * pow(sin(4 * t + y0), 2)) / exp(sin(t - x0 - y0)) +
+       (2 + exp(-sin(t - x0 - y0))) * sin(2 * (4 * t + y0)) +
+       2 * pow(2 + exp(-sin(t - x0 - y0)), 3) * g * sin(x0 + 2 * y0)) /
+      pow(2 + exp(-sin(t - x0 - y0)), 2);
     */
-    // End of Example 1
+    // End of Example 2
     // First example of paper 3
     /*
     double t0 = t;
@@ -285,8 +338,8 @@ struct explicit_nswe_L_func_class
                  sin(2 * (4 * t0 + y0)))) /
            (exp(2 * sin(3 * t0)) *
             pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 2));
-    // End of first example of paper 3
     */
+    // End of first example of paper 3
     // example 2 of paper 3
     //    L[0] = L[1] = L[2] = x0 - x0 + y0 - y0;
     // End of example 2 of paper 3
@@ -314,20 +367,13 @@ struct explicit_nswe_L_func_class
            (3. * pow(2 + exp(sin(t + x0 + y0)), 2));
     */
     // End of Green-Naghdi example
-    // Example 2 of Green-Naghdi
-    /*
-    L[0] = -cos(t - 4 * x0) + 3 * cos(t + 3 * y0);
-    L[1] = (-4 * cos(t - 4 * x0) *
-              (pow(cos(t - 5 * y0), 2) + pow(-5 + sin(t - 4 * x0), 3)) +
-            (cos(2 * (t - y0)) - 4 * cos(8 * y0)) * (-5 + sin(t - 4 * x0))) /
-             pow(-5 + sin(t - 4 * x0), 2) -
-           sin(t - 5 * y0);
-    L[2] = cos(t + 3 * y0) +
-           (-4 * cos(t - 4 * x0) * cos(t - 5 * y0) * sin(t + 3 * y0) -
-            3 * (-5 + sin(t - 4 * x0)) * sin(2 * (t + 3 * y0))) /
-             pow(-5 + sin(t - 4 * x0), 2);
-    */
-    // End of example 2 of Green-Naghdi
+    // Example zero of Green-Naghdi
+    double g = 9.81;
+    L[0] = -cos(t - 4 * x0);
+    L[1] = (4 * cos(t - 4 * x0) * (-9 + g * pow(5 - sin(t - 4 * x0), 3))) /
+           pow(-5 + sin(t - 4 * x0), 2);
+    L[2] = (-36 * cos(t - 4 * x0)) / pow(-5 + sin(t - 4 * x0), 2);
+    // End of example zero of Green-Naghdi
     // Dissertation example 2
     L[0] = 0;
     L[1] = 0;
@@ -608,7 +654,8 @@ struct explicit_nswe_L_func_class
  * \end{cases}
  * \f]
  * Obviously, all of the terms are the same as before, except the additional
- * \f$g h \nabla b\f$. We define \f$f_{06}(gh \nabla b, \mathbf p)\f$
+ * \f$g h \nabla b\f$. We define \f$f_{06}(\mathbf p) = (gh \nabla b, \mathbf
+ * p)\f$, and take this term to the right hand side of the element equations.
  */
 template <int dim>
 struct explicit_nswe : public GenericCell<dim>

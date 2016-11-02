@@ -51,7 +51,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     execution_time.open("Execution_Time.txt",
                         std::ofstream::out | std::fstream::app);
   }
-  if (false) // Example 1
+  if (true) // Example 1
   {
     std::vector<unsigned> repeats(dim, 1);
     repeats[0] = 1;
@@ -148,13 +148,13 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
   } // End of Francois's example 2
 
   // Dissertation example 2
-  if (true)
+  if (false)
   {
-    std::vector<unsigned> repeats(dim, 2);
+    std::vector<unsigned> repeats(dim, 1);
     repeats[0] = 200;
     dealii::Point<dim> point_1, point_2;
-    point_1 = {-50, -1};
-    point_2 = {50, 1};
+    point_1 = {0., 0.};
+    point_2 = {40., .5};
     dealii::GridGenerator::subdivided_hyper_rectangle(
       the_grid, repeats, point_1, point_2, true);
     std::vector<dealii::GridTools::PeriodicFacePair<
@@ -162,9 +162,9 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
         dim>::cell_iterator> >
       periodic_faces;
     dealii::GridTools::collect_periodic_faces(
-      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({100, 0.}));
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({40., 0.}));
     dealii::GridTools::collect_periodic_faces(
-      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 2.0}));
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 0.5}));
     the_grid.add_periodicity(periodic_faces);
   }
   // End of Dissertation example 2
@@ -447,7 +447,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
 
   if (false) // Explicit NSWE Jacobian test
   {
-    explicit_RKn<4, original_RK> rk4_0(1.e-2);
+    explicit_RKn<4, original_RK> rk4_0(1.e-3);
     explicit_hdg_model<dim, explicit_nswe> model0(this, &rk4_0);
     refine_grid(1, model0);
     model0.DoF_H_System.distribute_dofs(model0.DG_System);
@@ -456,6 +456,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
     model0.init_mesh_containers();
     model0.set_boundary_indicator();
     model0.count_globals();
+    write_grid();
 
     Vec rand_dqh, jacobian_by_dqh, rhs_qh0, rhs_qh1;
     VecCreateMPI(comm,
@@ -470,7 +471,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
     PetscRandomSetType(rctx, PETSCRAND48);
     VecSetRandom(rand_dqh, rctx);
 
-    double small_fac = 1e-8;
+    double small_fac = 1e-7;
     rk4_0.ready_for_next_step();
     model0.init_solver();
 
@@ -521,7 +522,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
   {
     double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
                                          global_ops_time = 0.;
-    explicit_RKn<4, original_RK> rk4_0(1.e-3);
+    explicit_RKn<4, original_RK> rk4_0(2.e-3);
     explicit_hdg_model<dim, explicit_nswe> model0(this, &rk4_0);
     for (unsigned h1 = h_1; h1 < h_2; ++h1)
     {
@@ -548,7 +549,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
-          unsigned max_iter = 10;
+          unsigned max_iter = 50;
           unsigned num_iter = 0;
           do
           {
@@ -740,7 +741,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       model1.init_mesh_containers();
       model1.set_boundary_indicator();
       model1.count_globals();
-      model1.assign_initial_data(rk4_1);
+      //      model1.assign_initial_data(rk4_1);
 
       std::vector<double> local_sol_vec0;
       local_sol_vec0.reserve(model0.n_local_DOFs_on_this_rank);
@@ -748,7 +749,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       std::vector<double> local_sol_vec1;
       local_sol_vec1.reserve(model1.n_local_DOFs_on_this_rank);
 
-      for (unsigned i_time = 0; i_time < 5000; ++i_time)
+      for (unsigned i_time = 0; i_time < 1000; ++i_time)
       {
         double dt_local_ops = 0.;
         double dt_global_ops = 0.;
@@ -756,10 +757,11 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         /*
          * First phase of time splitting
          */
+        /*
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
-          unsigned max_iter = 10;
+          unsigned max_iter = 20;
           unsigned num_iter = 0;
           do
           {
@@ -799,18 +801,18 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t32 = MPI_Wtime();
         //        if (i_time % 10 == 0)
         //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-        //          vtk_visualizer(model0, i_time * 3);
+        vtk_visualizer(model0, i_time * 3);
+        */
 
         //
         // Second phase of time splitting.
         //
-        if (i_time > 2000)
         {
           model1.get_results_from_another_model(model0);
           while (!rk4_1.ready_for_next_step())
           {
             bool iteration_required = false;
-            unsigned max_iter = 10;
+            unsigned max_iter = 1;
             unsigned num_iter = 0;
             do
             {
@@ -850,19 +852,20 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
           t31 = MPI_Wtime();
           model1.compute_internal_dofs(local_sol_vec1.data());
           t32 = MPI_Wtime();
-          if (i_time % 10 == 0)
-            //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-            vtk_visualizer(model1, i_time * 3 + 1);
+          //          if (i_time % 10 == 0)
+          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+          vtk_visualizer(model1, i_time * 3 + 1);
           model0.get_results_from_another_model(model1);
         }
 
+        /*
         //
         // Third phase of time splitting
         //
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
-          unsigned max_iter = 10;
+          unsigned max_iter = 20;
           unsigned num_iter = 0;
           do
           {
@@ -902,9 +905,10 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
-        if (i_time % 10 == 0)
-          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-          vtk_visualizer(model0, i_time * 3 + 2);
+        //        if (i_time % 10 == 0)
+        //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+        vtk_visualizer(model0, i_time * 3 + 2);
+        */
 
         //
         // Time splitting finished. Going for calculation of the results.

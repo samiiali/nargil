@@ -50,17 +50,23 @@ struct explicit_gn_dispersive_qis_class
     dealii::Tensor<1, in_point_dim + 1> qis;
     // Example zero !
     /*
-    qis[0] = 5 + sin(4 * x[0] - t);
-    qis[1] = cos(5 * x[1] - t);
-    qis[2] = sin(3 * x[1] + t);
+    qis[0] = 2 + exp(sin(x[0] + x[1] - t));
+    qis[1] = cos(x[0] - 4 * t);
+    qis[2] = sin(x[1] + 4 * t);
     */
+    qis[0] = 5. + sin(4 * x[0]);
+    qis[1] = sin(x[0] - t);
+    qis[2] = 0.;
     // End of example zero !
+    // Example 1
     /*
-    qis[0] = 5;
-    qis[1] = 0;
-    qis[2] = 0;
+    qis[0] = 5. + sin(4 * x[0] - t);
+    qis[1] = 3.;
+    qis[2] = 3.;
     */
+    // End of example 1
     // Dissertation example 2
+    /*
     if (t < 2)
     {
       qis[0] = 10. + sin(M_PI * 2 * t);
@@ -70,6 +76,7 @@ struct explicit_gn_dispersive_qis_class
       qis[0] = 10.;
     }
     qis[1] = qis[2] = 0;
+    */
     // End of Dissertation example 2
     return qis;
   }
@@ -89,14 +96,61 @@ struct explicit_gn_dispersive_hVinf_t_class
 
     dealii::Tensor<1, in_point_dim> hVinf_t;
     // Example zero !
-    hVinf_t[0] = sin(5 * x[1] - t);
-    hVinf_t[1] = cos(3 * x[1] + t);
+    /*
+    hVinf_t[0] = cos(x[0] - 4 * t);
+    hVinf_t[1] = sin(x[1] + 4 * t);
+    */
+    hVinf_t[0] = -cos(x[0] - t);
+    hVinf_t[1] = 0.;
     // End of example zero !
     // Dissertation example 2
+    /*
     hVinf_t[0] = 0.;
     hVinf_t[1] = 0.;
+    */
     // End of dissertation example 2
     return hVinf_t;
+  }
+};
+
+/**
+ * \ingroup input_data_group
+ */
+template <int in_point_dim, typename output_type>
+struct explicit_gn_dispersive_W1_class
+  : public TimeFunction<in_point_dim, output_type>
+{
+  virtual output_type value(const dealii::Point<in_point_dim> &x,
+                            const dealii::Point<in_point_dim> &,
+                            const double &t = 0) const final
+  {
+    double g = 9.81;
+    dealii::Tensor<1, in_point_dim, double> w1;
+    double x1 = x[0];
+    double y1 = x[1];
+    // Example zero
+    /*
+    w1[0] = ((2 + exp(-sin(t - x1 - y1))) * g * cos(t - x1 - y1)) /
+              (exp(sin(t - x1 - y1)) * alpha) +
+            4 * sin(4 * t - x1);
+    w1[1] = ((2 + exp(-sin(t - x1 - y1))) * g * cos(t - x1 - y1)) /
+              (exp(sin(t - x1 - y1)) * alpha) -
+            4 * cos(4 * t + y1);
+    */
+    /*
+    w1[0] = (4 * g * cos(4 * x1) * (5. + sin(4. * x1))) / alpha;
+    w1[1] = 0.;
+    */
+    w1[0] = cos(t - x1) + (4. * g * cos(4. * x1) * (5. + sin(4. * x1))) / alpha;
+    w1[1] = 0.;
+    // End of example zero
+    // Example 1
+    /*
+    w1[0] = (4 * g * cos(t - 4 * x1) * (5. - sin(t - 4. * x1))) / alpha;
+    w1[1] = 0;
+    */
+    // End of Example 1
+    return w1;
   }
 };
 
@@ -109,20 +163,54 @@ struct explicit_gn_dispersive_W2_class
 {
   virtual output_type value(const dealii::Point<in_point_dim> &x,
                             const dealii::Point<in_point_dim> &,
-                            const double & = 0) const final
+                            const double &t = 0) const final
   {
     double W2;
-    // Example zero !
-    W2 = 2. * (9. * cos(x[0]) + cos(x[0] + 2 * x[1]) - 9 * sin(x[1]) +
-               sin(2 * x[0] + x[1]));
-    // End of example zero !
-
-    // Example 1
+    double x1 = x[0];
+    double y1 = x[1];
+    double g = 9.81;
+    // Example zero
     /*
-    W2 = (5 + x[0]) *
-         ((5 + x[0]) * cos(x[0]) - sin(x[0]) - (5 + x[0]) * sin(x[1]));
+    W2 =
+      pow(2 + exp(-sin(t - x1 - y1)), 3) *
+      (-((cos(t - x1 - y1) *
+          (((2 + exp(-sin(t - x1 - y1))) * g * cos(t - x1 - y1)) /
+             (exp(sin(t - x1 - y1)) * alpha) -
+           4 * cos(4 * t + y1))) /
+         (exp(sin(t - x1 - y1)) * pow(2 + exp(-sin(t - x1 - y1)), 2))) -
+       (cos(t - x1 - y1) *
+        (((2 + exp(-sin(t - x1 - y1))) * g * cos(t - x1 - y1)) /
+           (exp(sin(t - x1 - y1)) * alpha) +
+         4 * sin(4 * t - x1))) /
+         (exp(sin(t - x1 - y1)) * pow(2 + exp(-sin(t - x1 - y1)), 2)) +
+       (-4 * cos(4 * t - x1) +
+        (g * pow(cos(t - x1 - y1), 2)) / (exp(2 * sin(t - x1 - y1)) * alpha) +
+        ((2 + exp(-sin(t - x1 - y1))) * g * pow(cos(t - x1 - y1), 2)) /
+          (exp(sin(t - x1 - y1)) * alpha) +
+        ((2 + exp(-sin(t - x1 - y1))) * g * sin(t - x1 - y1)) /
+          (exp(sin(t - x1 - y1)) * alpha)) /
+         (2 + exp(-sin(t - x1 - y1))) +
+       ((g * pow(cos(t - x1 - y1), 2)) / (exp(2 * sin(t - x1 - y1)) * alpha) +
+        ((2 + exp(-sin(t - x1 - y1))) * g * pow(cos(t - x1 - y1), 2)) /
+          (exp(sin(t - x1 - y1)) * alpha) +
+        ((2 + exp(-sin(t - x1 - y1))) * g * sin(t - x1 - y1)) /
+          (exp(sin(t - x1 - y1)) * alpha) +
+        4 * sin(4 * t + y1)) /
+         (2 + exp(-sin(t - x1 - y1))));
     */
-    // End of example 1.
+    W2 = pow(5 + sin(4 * x1), 3) *
+         ((-4 * cos(4 * x1) *
+           (cos(t - x1) + (4 * g * cos(4 * x1) * (5 + sin(4 * x1))) / alpha)) /
+            pow(5 + sin(4 * x1), 2) +
+          ((16 * g * pow(cos(4 * x1), 2)) / alpha + sin(t - x1) -
+           (16 * g * sin(4 * x1) * (5 + sin(4 * x1))) / alpha) /
+            (5 + sin(4 * x1)));
+    // End of example zero.
+    // Example 1
+    //    W2 = 16. * g * pow((5. - sin(t - 4 * x1)), 3) * sin(t - 4 * x1) /
+    //    alpha;
+    // End of example 1
+
     return W2;
   }
 };
@@ -143,190 +231,213 @@ struct explicit_gn_dispersive_L_class
     double x1 = x[0];
     double y1 = x[1];
     double g = 9.81;
+    // Example zero
     /*
     L[0] =
-      -(36 * alpha * cos(x1 - 3 * y1) -
-        2 * alpha * (-1673 + 6 * alpha) * cos(x1 - y1) +
-        105 * alpha * cos(2 * x1 - y1) + 48 * g * cos(y1) +
-        234 * alpha * cos(y1) - 96 * pow(alpha, 2) * cos(y1) +
-        777 * alpha * cos(3 * y1) + 3 * alpha * cos(5 * y1) +
-        480 * g * cos(x1 + y1) + 2450 * alpha * cos(x1 + y1) -
-        348 * pow(alpha, 2) * cos(x1 + y1) - 2010 * alpha * cos(3 * (x1 + y1)) +
-        36 * pow(alpha, 2) * cos(3 * (x1 + y1)) +
-        180 * alpha * cos(5 * (x1 + y1)) - 771 * alpha * cos(2 * x1 + y1) +
-        128 * pow(alpha, 2) * cos(2 * x1 + y1) +
-        3072 * alpha * cos(3 * x1 + y1) + 74 * alpha * cos(x1 + 3 * y1) -
-        156 * pow(alpha, 2) * cos(x1 + 3 * y1) - 48 * g * cos(2 * x1 + 3 * y1) -
-        324 * alpha * cos(2 * x1 + 3 * y1) +
-        48 * pow(alpha, 2) * cos(2 * x1 + 3 * y1) -
-        105 * alpha * cos(4 * x1 + 3 * y1) - 20 * alpha * cos(5 * x1 + 3 * y1) +
-        762 * alpha * cos(x1 + 5 * y1) - 72 * alpha * cos(2 * x1 + 5 * y1) +
-        48 * pow(alpha, 2) * cos(2 * x1 + 5 * y1) -
-        2742 * alpha * cos(3 * x1 + 5 * y1) +
-        129 * alpha * cos(4 * x1 + 5 * y1) -
-        135 * alpha * cos(2 * x1 + 7 * y1) -
-        378 * alpha * cos(3 * x1 + 7 * y1) +
-        150 * alpha * cos(4 * x1 + 7 * y1) + 30 * alpha * cos(5 * x1 + 7 * y1) -
-        3 * alpha * cos(6 * x1 + 7 * y1) + 12 * alpha * cos(4 * x1 + 9 * y1) -
-        258 * alpha * sin(x1) - 624 * pow(alpha, 2) * sin(x1) -
-        5180 * alpha * sin(2 * x1) + 6 * alpha * sin(3 * x1) -
-        372 * alpha * sin(x1 - 2 * y1) + 3 * alpha * sin(2 * (x1 - y1)) +
-        96 * pow(alpha, 2) * sin(2 * y1) + 48 * g * sin(2 * (x1 + y1)) +
-        535 * alpha * sin(2 * (x1 + y1)) -
-        192 * pow(alpha, 2) * sin(2 * (x1 + y1)) -
-        1100 * alpha * sin(4 * (x1 + y1)) + 9 * alpha * sin(6 * (x1 + y1)) +
-        452 * alpha * sin(2 * (2 * x1 + y1)) + 480 * g * sin(x1 + 2 * y1) +
-        3174 * alpha * sin(x1 + 2 * y1) -
-        64 * pow(alpha, 2) * sin(x1 + 2 * y1) +
-        3332 * alpha * sin(2 * (x1 + 2 * y1)) -
-        48 * pow(alpha, 2) * sin(2 * (x1 + 2 * y1)) -
-        318 * alpha * sin(3 * (x1 + 2 * y1)) -
-        24 * alpha * sin(4 * (x1 + 2 * y1)) +
-        372 * alpha * sin(3 * x1 + 2 * y1) +
-        1467 * alpha * sin(2 * (x1 + 3 * y1)) - 90 * alpha * sin(x1 + 4 * y1) -
-        24 * pow(alpha, 2) * sin(x1 + 4 * y1) -
-        72 * alpha * sin(3 * x1 + 4 * y1) +
-        24 * pow(alpha, 2) * sin(3 * x1 + 4 * y1) -
-        6 * alpha * sin(5 * x1 + 4 * y1) + 42 * alpha * sin(x1 + 6 * y1) -
-        540 * alpha * sin(4 * x1 + 6 * y1) + 42 * alpha * sin(5 * x1 + 6 * y1) -
-        132 * alpha * sin(3 * x1 + 8 * y1) +
-        12 * alpha * sin(5 * x1 + 8 * y1)) /
-      (96. * alpha);
-    L[1] =
-      -(-108 * alpha * cos(x1 - 3 * y1) +
-        2 * alpha * (-1673 + 6 * alpha) * cos(x1 - y1) +
-        210 * alpha * cos(2 * x1 - y1) + 96 * g * cos(y1) +
-        372 * alpha * cos(y1) - 768 * pow(alpha, 2) * cos(y1) +
-        1554 * alpha * cos(3 * y1) + 6 * alpha * cos(5 * y1) +
-        480 * g * cos(x1 + y1) + 2450 * alpha * cos(x1 + y1) -
-        444 * pow(alpha, 2) * cos(x1 + y1) - 2010 * alpha * cos(3 * (x1 + y1)) +
-        36 * pow(alpha, 2) * cos(3 * (x1 + y1)) +
-        180 * alpha * cos(5 * (x1 + y1)) - 1542 * alpha * cos(2 * x1 + y1) +
-        64 * pow(alpha, 2) * cos(2 * x1 + y1) +
-        1024 * alpha * cos(3 * x1 + y1) + 222 * alpha * cos(x1 + 3 * y1) -
-        564 * pow(alpha, 2) * cos(x1 + 3 * y1) - 96 * g * cos(2 * x1 + 3 * y1) -
-        648 * alpha * cos(2 * x1 + 3 * y1) +
-        96 * pow(alpha, 2) * cos(2 * x1 + 3 * y1) -
-        210 * alpha * cos(4 * x1 + 3 * y1) - 12 * alpha * cos(5 * x1 + 3 * y1) +
-        3810 * alpha * cos(x1 + 5 * y1) - 144 * alpha * cos(2 * x1 + 5 * y1) +
-        96 * pow(alpha, 2) * cos(2 * x1 + 5 * y1) -
-        4570 * alpha * cos(3 * x1 + 5 * y1) +
-        258 * alpha * cos(4 * x1 + 5 * y1) -
-        270 * alpha * cos(2 * x1 + 7 * y1) -
-        882 * alpha * cos(3 * x1 + 7 * y1) +
-        300 * alpha * cos(4 * x1 + 7 * y1) + 42 * alpha * cos(5 * x1 + 7 * y1) -
-        6 * alpha * cos(6 * x1 + 7 * y1) + 24 * alpha * cos(4 * x1 + 9 * y1) -
-        324 * alpha * sin(x1) - 96 * pow(alpha, 2) * sin(x1) +
-        12 * alpha * sin(3 * x1) - 744 * alpha * sin(x1 - 2 * y1) -
-        3 * alpha * sin(2 * (x1 - y1)) + 3092 * alpha * sin(2 * y1) +
-        480 * pow(alpha, 2) * sin(2 * y1) - 1116 * alpha * sin(4 * y1) +
-        48 * g * sin(2 * (x1 + y1)) + 535 * alpha * sin(2 * (x1 + y1)) -
-        96 * pow(alpha, 2) * sin(2 * (x1 + y1)) -
-        1100 * alpha * sin(4 * (x1 + y1)) + 9 * alpha * sin(6 * (x1 + y1)) +
-        226 * alpha * sin(2 * (2 * x1 + y1)) + 960 * g * sin(x1 + 2 * y1) +
-        6348 * alpha * sin(x1 + 2 * y1) -
-        128 * pow(alpha, 2) * sin(x1 + 2 * y1) +
-        6664 * alpha * sin(2 * (x1 + 2 * y1)) -
-        96 * pow(alpha, 2) * sin(2 * (x1 + 2 * y1)) -
-        636 * alpha * sin(3 * (x1 + 2 * y1)) -
-        48 * alpha * sin(4 * (x1 + 2 * y1)) +
-        744 * alpha * sin(3 * x1 + 2 * y1) +
-        4401 * alpha * sin(2 * (x1 + 3 * y1)) - 180 * alpha * sin(x1 + 4 * y1) -
-        48 * pow(alpha, 2) * sin(x1 + 4 * y1) -
-        144 * alpha * sin(3 * x1 + 4 * y1) +
-        48 * pow(alpha, 2) * sin(3 * x1 + 4 * y1) -
-        12 * alpha * sin(5 * x1 + 4 * y1) + 84 * alpha * sin(x1 + 6 * y1) -
-        810 * alpha * sin(4 * x1 + 6 * y1) + 84 * alpha * sin(5 * x1 + 6 * y1) -
-        264 * alpha * sin(3 * x1 + 8 * y1) +
-        24 * alpha * sin(5 * x1 + 8 * y1)) /
-      (96. * alpha);
-    */
+      (2 *
+       (-(pow(cos(t - x1 - y1), 3) *
+          (2 * (2 + exp(sin(t - x1 - y1))) *
+             pow(1 + 2 * exp(sin(t - x1 - y1)), 4) * g +
+           exp(3 * sin(t - x1 - y1)) * (1 + 4 * exp(sin(t - x1 - y1))) *
+             pow(cos(4 * t - x1), 2) +
+           2 * exp(3 * sin(t - x1 - y1)) * (1 + 4 * exp(sin(t - x1 - y1))) *
+             cos(4 * t - x1) * sin(4 * t + y1) +
+           exp(3 * sin(t - x1 - y1)) * (1 + 4 * exp(sin(t - x1 - y1))) *
+             pow(sin(4 * t + y1), 2))) +
+        pow(1 + 2 * exp(sin(t - x1 - y1)), 2) * cos(t - x1 - y1) *
+          (g + 6 * exp(sin(t - x1 - y1)) * g +
+           12 * exp(2 * sin(t - x1 - y1)) * g +
+           8 * exp(3 * sin(t - x1 - y1)) * g -
+           2 * exp(3 * sin(t - x1 - y1)) * pow(cos(4 * t - x1), 2) -
+           exp(3 * sin(t - x1 - y1)) * pow(cos(4 * t + y1), 2) +
+           exp(3 * sin(t - x1 - y1)) * pow(sin(4 * t - x1), 2) -
+           4 * exp(2 * sin(t - x1 - y1)) * alpha * sin(4 * t + y1) -
+           8 * exp(3 * sin(t - x1 - y1)) * alpha * sin(4 * t + y1) +
+           exp(2 * sin(t - x1 - y1)) * cos(4 * t - x1) *
+             (2 * alpha + 4 * exp(sin(t - x1 - y1)) * alpha -
+              exp(sin(t - x1 - y1)) * sin(4 * t + y1))) -
+        exp(2 * sin(t - x1 - y1)) * (1 + 2 * exp(sin(t - x1 - y1))) *
+          pow(cos(t - x1 - y1), 2) *
+          ((1 + 2 * exp(sin(t - x1 - y1))) *
+             (4 * (1 + exp(sin(t - x1 - y1))) * alpha -
+              exp(sin(t - x1 - y1)) * cos(4 * t - x1)) *
+             cos(4 * t + y1) -
+           2 * exp(2 * sin(t - x1 - y1)) * sin(8 * t - 2 * x1) -
+           4 * alpha * sin(4 * t - x1) -
+           12 * exp(sin(t - x1 - y1)) * alpha * sin(4 * t - x1) -
+           8 * exp(2 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) +
+           exp(sin(t - x1 - y1)) * sin(4 * t - x1) * sin(4 * t + y1) -
+           2 * exp(2 * sin(t - x1 - y1)) * sin(4 * t - x1) * sin(4 * t + y1) -
+           exp(sin(t - x1 - y1)) * sin(2 * (4 * t + y1)) -
+           2 * exp(2 * sin(t - x1 - y1)) * sin(2 * (4 * t + y1))) +
+        (1 + 2 * exp(sin(t - x1 - y1))) *
+          (6 * exp(4 * sin(t - x1 - y1)) * sin(4 * t - x1) +
+           12 * exp(5 * sin(t - x1 - y1)) * sin(4 * t - x1) +
+           2 * exp(2 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) +
+           12 * exp(3 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) +
+           24 * exp(4 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) +
+           16 * exp(5 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) -
+           2 * exp(2 * sin(t - x1 - y1)) * alpha * cos(4 * t + y1) *
+             sin(t - x1 - y1) -
+           8 * exp(3 * sin(t - x1 - y1)) * alpha * cos(4 * t + y1) *
+             sin(t - x1 - y1) -
+           8 * exp(4 * sin(t - x1 - y1)) * alpha * cos(4 * t + y1) *
+             sin(t - x1 - y1) +
+           2 * exp(2 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) *
+             sin(t - x1 - y1) +
+           8 * exp(3 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) *
+             sin(t - x1 - y1) +
+           8 * exp(4 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) *
+             sin(t - x1 - y1) +
+           exp(3 * sin(t - x1 - y1)) * (1 + 2 * exp(sin(t - x1 - y1))) *
+             sin(8 * t - 2 * x1) *
+             (1 + 2 * exp(sin(t - x1 - y1)) + sin(t - x1 - y1)) -
+           3 * g * sin(2 * (t - x1 - y1)) -
+           21 * exp(sin(t - x1 - y1)) * g * sin(2 * (t - x1 - y1)) -
+           54 * exp(2 * sin(t - x1 - y1)) * g * sin(2 * (t - x1 - y1)) -
+           60 * exp(3 * sin(t - x1 - y1)) * g * sin(2 * (t - x1 - y1)) -
+           24 * exp(4 * sin(t - x1 - y1)) * g * sin(2 * (t - x1 - y1)) -
+           exp(3 * sin(t - x1 - y1)) * pow(cos(4 * t - x1), 2) *
+             sin(2 * (t - x1 - y1)) +
+           exp(3 * sin(t - x1 - y1)) * sin(4 * t - x1) * sin(t - x1 - y1) *
+             sin(4 * t + y1) +
+           2 * exp(4 * sin(t - x1 - y1)) * sin(4 * t - x1) * sin(t - x1 - y1) *
+             sin(4 * t + y1) -
+           exp(3 * sin(t - x1 - y1)) * sin(2 * (t - x1 - y1)) *
+             pow(sin(4 * t + y1), 2) +
+           exp(3 * sin(t - x1 - y1)) * cos(4 * t - x1) *
+             ((1 + 2 * exp(sin(t - x1 - y1))) * cos(4 * t + y1) *
+                (1 + 2 * exp(sin(t - x1 - y1)) + sin(t - x1 - y1)) -
+              2 * sin(2 * (t - x1 - y1)) * sin(4 * t + y1)) +
+           exp(3 * sin(t - x1 - y1)) * sin(t - x1 - y1) *
+             sin(2 * (4 * t + y1)) +
+           2 * exp(4 * sin(t - x1 - y1)) * sin(t - x1 - y1) *
+             sin(2 * (4 * t + y1))))) /
+      (3. * exp(4 * sin(t - x1 - y1)) * pow(1 + 2 * exp(sin(t - x1 - y1)), 2));
 
+    L[1] =
+      (-2 *
+       (pow(cos(t - x1 - y1), 3) *
+          (2 * (2 + exp(sin(t - x1 - y1))) *
+             pow(1 + 2 * exp(sin(t - x1 - y1)), 4) * g +
+           exp(3 * sin(t - x1 - y1)) * (1 + 4 * exp(sin(t - x1 - y1))) *
+             pow(cos(4 * t - x1), 2) +
+           2 * exp(3 * sin(t - x1 - y1)) * (1 + 4 * exp(sin(t - x1 - y1))) *
+             cos(4 * t - x1) * sin(4 * t + y1) +
+           exp(3 * sin(t - x1 - y1)) * (1 + 4 * exp(sin(t - x1 - y1))) *
+             pow(sin(4 * t + y1), 2)) -
+        pow(1 + 2 * exp(sin(t - x1 - y1)), 2) * cos(t - x1 - y1) *
+          (g + 6 * exp(sin(t - x1 - y1)) * g +
+           12 * exp(2 * sin(t - x1 - y1)) * g +
+           8 * exp(3 * sin(t - x1 - y1)) * g +
+           exp(3 * sin(t - x1 - y1)) * pow(cos(4 * t + y1), 2) -
+           exp(3 * sin(t - x1 - y1)) * pow(sin(4 * t - x1), 2) -
+           2 * exp(2 * sin(t - x1 - y1)) * alpha * sin(4 * t + y1) -
+           4 * exp(3 * sin(t - x1 - y1)) * alpha * sin(4 * t + y1) -
+           2 * exp(3 * sin(t - x1 - y1)) * pow(sin(4 * t + y1), 2) +
+           exp(2 * sin(t - x1 - y1)) * cos(4 * t - x1) *
+             (4 * alpha + 8 * exp(sin(t - x1 - y1)) * alpha -
+              exp(sin(t - x1 - y1)) * sin(4 * t + y1))) +
+        exp(2 * sin(t - x1 - y1)) * (1 + 2 * exp(sin(t - x1 - y1))) *
+          pow(cos(t - x1 - y1), 2) *
+          ((4 *
+              (1 + 3 * exp(sin(t - x1 - y1)) + 2 * exp(2 * sin(t - x1 - y1))) *
+              alpha +
+            (exp(sin(t - x1 - y1)) - 2 * exp(2 * sin(t - x1 - y1))) *
+              cos(4 * t - x1)) *
+             cos(4 * t + y1) -
+           exp(sin(t - x1 - y1)) * (1 + 2 * exp(sin(t - x1 - y1))) *
+             sin(8 * t - 2 * x1) -
+           4 * alpha * sin(4 * t - x1) -
+           12 * exp(sin(t - x1 - y1)) * alpha * sin(4 * t - x1) -
+           8 * exp(2 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) -
+           exp(sin(t - x1 - y1)) * sin(4 * t - x1) * sin(4 * t + y1) -
+           2 * exp(2 * sin(t - x1 - y1)) * sin(4 * t - x1) * sin(4 * t + y1) -
+           2 * exp(2 * sin(t - x1 - y1)) * sin(2 * (4 * t + y1))) +
+        (1 + 2 * exp(sin(t - x1 - y1))) *
+          (-(exp(3 * sin(t - x1 - y1)) * (1 + 2 * exp(sin(t - x1 - y1))) *
+             sin(8 * t - 2 * x1) * sin(t - x1 - y1)) -
+           2 * exp(2 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) *
+             sin(t - x1 - y1) -
+           8 * exp(3 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) *
+             sin(t - x1 - y1) -
+           8 * exp(4 * sin(t - x1 - y1)) * alpha * sin(4 * t - x1) *
+             sin(t - x1 - y1) +
+           exp(2 * sin(t - x1 - y1)) * (1 + 2 * exp(sin(t - x1 - y1))) *
+             cos(4 * t + y1) *
+             (2 * (alpha + 4 * exp(sin(t - x1 - y1)) * alpha +
+                   exp(2 * sin(t - x1 - y1)) * (3 + 4 * alpha)) +
+              (2 * alpha + 4 * exp(sin(t - x1 - y1)) * alpha -
+               exp(sin(t - x1 - y1)) * cos(4 * t - x1)) *
+                sin(t - x1 - y1)) +
+           3 * g * sin(2 * (t - x1 - y1)) +
+           21 * exp(sin(t - x1 - y1)) * g * sin(2 * (t - x1 - y1)) +
+           54 * exp(2 * sin(t - x1 - y1)) * g * sin(2 * (t - x1 - y1)) +
+           60 * exp(3 * sin(t - x1 - y1)) * g * sin(2 * (t - x1 - y1)) +
+           24 * exp(4 * sin(t - x1 - y1)) * g * sin(2 * (t - x1 - y1)) +
+           exp(3 * sin(t - x1 - y1)) * pow(cos(4 * t - x1), 2) *
+             sin(2 * (t - x1 - y1)) -
+           exp(3 * sin(t - x1 - y1)) * sin(4 * t - x1) * sin(4 * t + y1) -
+           4 * exp(4 * sin(t - x1 - y1)) * sin(4 * t - x1) * sin(4 * t + y1) -
+           4 * exp(5 * sin(t - x1 - y1)) * sin(4 * t - x1) * sin(4 * t + y1) -
+           exp(3 * sin(t - x1 - y1)) * sin(4 * t - x1) * sin(t - x1 - y1) *
+             sin(4 * t + y1) -
+           2 * exp(4 * sin(t - x1 - y1)) * sin(4 * t - x1) * sin(t - x1 - y1) *
+             sin(4 * t + y1) +
+           2 * exp(3 * sin(t - x1 - y1)) * cos(4 * t - x1) *
+             sin(2 * (t - x1 - y1)) * sin(4 * t + y1) +
+           exp(3 * sin(t - x1 - y1)) * sin(2 * (t - x1 - y1)) *
+             pow(sin(4 * t + y1), 2) -
+           exp(3 * sin(t - x1 - y1)) * sin(2 * (4 * t + y1)) -
+           4 * exp(4 * sin(t - x1 - y1)) * sin(2 * (4 * t + y1)) -
+           4 * exp(5 * sin(t - x1 - y1)) * sin(2 * (4 * t + y1)) -
+           exp(3 * sin(t - x1 - y1)) * sin(t - x1 - y1) *
+             sin(2 * (4 * t + y1)) -
+           2 * exp(4 * sin(t - x1 - y1)) * sin(t - x1 - y1) *
+             sin(2 * (4 * t + y1))))) /
+      (3. * exp(4 * sin(t - x1 - y1)) * pow(1 + 2 * exp(sin(t - x1 - y1)), 2));
+    */
     /*
     L[0] =
-      (128 * pow(cos(t - 4 * x1), 3) * pow(cos(t - 5 * y1), 2) +
-       96 * cos(t - 5 * y1) * cos(t + 3 * y1) * pow(-5 + sin(t - 4 * x1), 2) *
-         sin(t - 4 * x1) -
-       160000 * g * sin(2 * (t - 4 * x1)) -
-       640 * pow(cos(t - 5 * y1), 2) * sin(2 * (t - 4 * x1)) +
-       360 * pow(cos(t + 3 * y1), 2) * sin(2 * (t - 4 * x1)) +
-       88000 * g * sin(t - 4 * x1) * sin(2 * (t - 4 * x1)) +
-       75 * sin(t - 5 * y1) +
-       80 * alpha * pow(cos(t - 4 * x1), 2) * (5 - 2 * sin(t - 4 * x1)) *
-         sin(t - 5 * y1) -
-       30 * sin(t - 4 * x1) * sin(t - 5 * y1) +
-       2000 * alpha * sin(t - 4 * x1) * sin(t - 5 * y1) +
-       3 * pow(sin(t - 4 * x1), 2) * sin(t - 5 * y1) -
-       1200 * alpha * pow(sin(t - 4 * x1), 2) * sin(t - 5 * y1) +
-       240 * alpha * pow(sin(t - 4 * x1), 3) * sin(t - 5 * y1) -
-       16 * alpha * pow(sin(t - 4 * x1), 4) * sin(t - 5 * y1) +
-       4 * alpha * pow(sin(2 * (t - 4 * x1)), 2) * sin(t - 5 * y1) +
-       900 * alpha * sin(2 * (t - 4 * x1)) * sin(t + 3 * y1) +
-       4000 * sin(t - 4 * x1) * sin(t - 5 * y1) * sin(t + 3 * y1) -
-       1600 * pow(sin(t - 4 * x1), 2) * sin(t - 5 * y1) * sin(t + 3 * y1) +
-       160 * pow(sin(t - 4 * x1), 3) * sin(t - 5 * y1) * sin(t + 3 * y1) -
-       8 * cos(t - 4 * x1) *
-         (-25000 * g - 32 * pow(cos(t - 5 * y1), 2) * pow(sin(t - 4 * x1), 2) +
-          5600 * g * pow(sin(t - 4 * x1), 3) -
-          680 * g * pow(sin(t - 4 * x1), 4) + 32 * g * pow(sin(t - 4 * x1), 5) +
-          9 * pow(cos(t + 3 * y1), 2) * (25 + pow(sin(t - 4 * x1), 2)) +
-          375 * alpha * sin(t + 3 * y1) +
-          45 * alpha * pow(sin(t - 4 * x1), 2) * sin(t + 3 * y1) -
-          3 * alpha * pow(sin(t - 4 * x1), 3) * sin(t + 3 * y1))) /
-      (3. * pow(-5 + sin(t - 4 * x1), 2));
-
-    L[1] =
-      (3 * cos(t + 3 * y1) * (-5 + sin(t - 4 * x1)) *
-         (-2 - 153 * alpha + 3 * alpha * cos(2 * (t - 4 * x1)) +
-          60 * alpha * sin(t - 4 * x1)) +
-       320 * pow(cos(t - 4 * x1), 2) * sin(2 * (t - 5 * y1)) -
-       10 * cos(t - 4 * x1) * (-102 * alpha * cos(t - 5 * y1) +
-                               alpha * cos(3 * t - 8 * x1 - 5 * y1) +
-                               alpha * cos(t - 8 * x1 + 5 * y1) -
-                               16 * sin(2 * (t - y1)) - 256 * sin(8 * y1)) -
-       4 * (50 * alpha * cos(t - 5 * y1) * sin(2 * (t - 4 * x1)) +
-            4 * sin(2 * (t - 4 * x1)) * (sin(2 * (t - y1)) + 16 * sin(8 * y1)) +
-            27 * pow(-5 + sin(t - 4 * x1), 2) * sin(2 * (t + 3 * y1)))) /
-      (6. * (-5 + sin(t - 4 * x1)));
+      (8 * cos(4 * x1) *
+       (216 + 36255 * g - 36 * (2 + 315 * g) * cos(8 * x1) +
+        85 * g * cos(16 * x1) + 1440 * sin(4 * x1) + 44220 * g * sin(4 * x1) -
+        1410 * g * sin(12 * x1) + 2 * g * sin(20 * x1))) /
+      (3. * pow(5 + sin(4 * x1), 2));
+    L[1] = 0.;
     */
-
+    // End of example zero
+    // Example 1
+    /*
+    L[0] = (8 * cos(t - 4 * x1) *
+            (216 + 36255 * g - 36 * (2 + 315 * g) * cos(2 * (t - 4 * x1)) +
+             85 * g * cos(4 * (t - 4 * x1)) - 1440 * sin(t - 4 * x1) -
+             44220 * g * sin(t - 4 * x1) + 1410 * g * sin(3 * (t - 4 * x1)) -
+             2 * g * sin(5 * (t - 4 * x1)))) /
+           (3. * pow(-5 + sin(t - 4 * x1), 2));
+    L[1] = 0.;
+    */
+    // End of example 1
     // Dissertation example 2
-    L[0] = 0;
+    L[0] = (-27 * alpha * cos(t - 17 * x1) +
+            4 * (-3 + 1163 * alpha) * cos(t - 9 * x1) +
+            108 * cos(2 * (t - 7 * x1)) + 7228 * cos(2 * (t - 3 * x1)) +
+            1224 * cos(t - x1) + 4742 * alpha * cos(t - x1) -
+            336 * cos(4 * x1) + 3914880 * g * cos(4 * x1) - 240 * cos(12 * x1) -
+            720320 * g * cos(12 * x1) + 5440 * g * cos(20 * x1) -
+            3660 * cos(2 * (t + x1)) + 100 * cos(2 * (t + 5 * x1)) -
+            12 * cos(t + 7 * x1) + 7068 * alpha * cos(t + 7 * x1) -
+            35 * alpha * cos(t + 15 * x1) - 640 * alpha * sin(t - 13 * x1) -
+            240 * sin(t - 5 * x1) + 8880 * alpha * sin(t - 5 * x1) +
+            1560 * sin(2 * (t - 5 * x1)) - 400 * sin(2 * (t - x1)) +
+            4800 * sin(8 * x1) + 2739840 * g * sin(8 * x1) -
+            90112 * g * sin(16 * x1) + 128 * g * sin(24 * x1) +
+            240 * sin(t + 3 * x1) - 17120 * alpha * sin(t + 3 * x1) -
+            2600 * sin(2 * (t + 3 * x1)) + 880 * alpha * sin(t + 11 * x1)) /
+           (48. * pow(5 + sin(4 * x1), 2));
     L[1] = 0;
     // End of dissertation example 2
     return L;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_W1_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    double g = 9.81;
-    dealii::Tensor<1, in_point_dim, double> w1;
-    double x1 = x[0];
-    double y1 = x[1];
-    // Example 1
-    w1[0] = sin(x[0]);
-    w1[1] = cos(x[1]);
-    // End of Example 1
-    // Example 2
-    w1[0] = 4. * g * cos(t - 4 * x1) * (5. - sin(t - 4. * x1)) / alpha +
-            sin(t - 5 * y1);
-    w1[1] = -cos(t + 3 * y1);
-    // End of example 2
-    /*
-    w1[0] = 0.;
-    w1[1] = 0.;
-    */
-    return w1;
   }
 };
 
@@ -686,6 +797,7 @@ struct explicit_gn_dispersive : public GenericCell<dim>
 
   eigen3mat last_step_q;
   eigen3mat last_stage_q;
+  eigen3mat stored_W1, stored_W2;
   /*
    * Last step qhat is only required for some of the boundary integrals.
    * Actually we only use last step h_hat, and hv1_hat and hv2_hat are

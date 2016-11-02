@@ -76,15 +76,35 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
 {
   // Example 1
   /*
-  if (at_boundary && face_center[0] < 1000)
+  if (at_boundary && face_center[0] < -0.99)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
   */
+  /*
+  if (at_boundary && face_center[0] > 0.99)
+  {
+    this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
+    this->dof_names_on_faces[i_face].resize(dim + 1, 1);
+  }
+  */
+  if (at_boundary && (face_center[0] < 0.01 || face_center[0] > 39.99))
+  {
+    this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
+    this->dof_names_on_faces[i_face].resize(dim + 1, 1);
+    this->dof_names_on_faces[i_face][2] = 0;
+  }
+  else if (at_boundary)
+  {
+    this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
+    this->dof_names_on_faces[i_face].resize(dim + 1, 1);
+    this->dof_names_on_faces[i_face][2] = 0;
+  }
   // End of example 1
   // Paper 3 - Example 2
-  if (at_boundary && face_center[0] < -50. + 1.e-6)
+  /*
+  if (at_boundary && face_center[0] < -5. + 1.e-6)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
@@ -94,6 +114,7 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
+  */
   // End of Paper 3 - example 2
   // Narrowing channel in paper 3
   /*
@@ -127,6 +148,7 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
   {
     this->BCs[i_face] = GenericCell<dim>::BC::not_set;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
+    this->dof_names_on_faces[i_face][2] = 0;
   }
 }
 
@@ -209,12 +231,13 @@ Eigen::Matrix<double, (dim + 1), dim>
 explicit_nswe<dim>::get_Fij(const std::vector<double> &qs)
 {
   assert(dim == 2);
+  double g = gravity;
   double q1 = qs[0];
   double q2 = qs[1];
   double q3 = qs[2];
   Eigen::Matrix<double, (dim + 1), dim> Fij;
-  Fij << q2, q3, q2 * q2 / q1 + q1 * q1 / 2., q2 * q3 / q1, q2 * q3 / q1,
-    q3 * q3 / q1 + q1 * q1 / 2.;
+  Fij << q2, q3, q2 * q2 / q1 + g * q1 * q1 / 2., q2 * q3 / q1, q2 * q3 / q1,
+    q3 * q3 / q1 + g * q1 * q1 / 2.;
   return Fij;
 }
 
@@ -224,15 +247,16 @@ explicit_nswe<dim>::get_d_Fij_dqk_nj(const std::vector<double> &qs,
                                      const dealii::Point<dim> &normal)
 {
   assert(dim == 2);
+  double g = gravity;
   double q1 = qs[0];
   double q2 = qs[1];
   double q3 = qs[2];
   nswe_jac result1;
   nswe_jac result2;
-  result1 << 0, 1, 0, -q2 * q2 / q1 / q1 + q1, 2 * q2 / q1, 0,
+  result1 << 0, 1, 0, -q2 * q2 / q1 / q1 + g * q1, 2 * q2 / q1, 0,
     -q2 * q3 / q1 / q1, q3 / q1, q2 / q1;
   result2 << 0, 0, 1, -q2 * q3 / q1 / q1, q3 / q1, q2 / q1,
-    -q3 * q3 / q1 / q1 + q1, 0, 2 * q3 / q1;
+    -q3 * q3 / q1 / q1 + g * q1, 0, 2 * q3 / q1;
   return result1 * normal[0] + result2 * normal[1];
 }
 
@@ -241,13 +265,14 @@ Eigen::Matrix<double, dim *(dim + 1), dim + 1>
 explicit_nswe<dim>::get_partial_Fik_qj(const std::vector<double> &qs)
 {
   assert(dim == 2);
+  double g = gravity;
   double q1 = qs[0];
   double q2 = qs[1];
   double q3 = qs[2];
   Eigen::Matrix<double, (dim + 1) * dim, dim + 1> partial_Fik_qj;
-  partial_Fik_qj << 0, 1, 0, -q2 * q2 / q1 / q1 + q1, 2 * q2 / q1, 0,
+  partial_Fik_qj << 0, 1, 0, -q2 * q2 / q1 / q1 + g * q1, 2 * q2 / q1, 0,
     -q2 * q3 / q1 / q1, q3 / q1, q2 / q1, 0, 0, 1, -q2 * q3 / q1 / q1, q3 / q1,
-    q2 / q1, -q3 * q3 / q1 / q1 + q1, 0, 2 * q3 / q1;
+    q2 / q1, -q3 * q3 / q1 / q1 + g * q1, 0, 2 * q3 / q1;
   return partial_Fik_qj;
 }
 
@@ -257,13 +282,14 @@ explicit_nswe<dim>::get_tauij_LF(const std::vector<double> &qhats,
                                  const dealii::Point<dim> normal)
 {
   assert(dim == 2);
+  double g = gravity;
   double q1 = qhats[0];
   double q2 = qhats[1];
   double q3 = qhats[2];
   double n1 = normal[0];
   double n2 = normal[1];
   double Vn = q2 / q1 * n1 + q3 / q1 * n2;
-  return (fabs(Vn) + sqrt(q1)) * nswe_jac::Identity();
+  return (fabs(Vn) + sqrt(g * q1)) * nswe_jac::Identity();
 }
 
 template <int dim>
@@ -282,22 +308,45 @@ explicit_nswe<dim>::get_partial_tauij_qhk_qj_LF(
   double qh3 = qhats[2];
   double n1 = normal[0];
   double n2 = normal[1];
+  double g = gravity;
   double Vn = qh2 / qh1 * n1 + qh3 / qh1 * n2;
-  if (Vn >= 0)
+  if (qh3 >= 0)
   {
-    double coeff1 = (sqrt(qh1) - 2. * Vn) / 2. / qh1;
     nswe_jac result;
+    /*
+    double coeff1 = (sqrt(g * qh1) - 2. * Vn) / 2. / qh1;
     result << coeff1 * q1, n1 * q1 / qh1, n2 * q1 / qh1, coeff1 * q2,
       n1 * q2 / qh1, n2 * q2 / qh1, coeff1 * q3, n1 * q3 / qh1, n2 * q3 / qh1;
+    */
+    result << (q1 * (qh1 * sqrt(g * qh1) - 2 * (n1 * qh2 + n2 * qh3))) /
+                (2. * pow(qh1, 2)),
+      (n1 * q1) / qh1, (n2 * q1) / qh1,
+      (q2 * (qh1 * sqrt(g * qh1) - 2 * (n1 * qh2 + n2 * qh3))) /
+        (2. * pow(qh1, 2)),
+      (n1 * q2) / qh1, (n2 * q2) / qh1,
+      (q3 * (qh1 * sqrt(g * qh1) - 2 * (n1 * qh2 + n2 * qh3))) /
+        (2. * pow(qh1, 2)),
+      (n1 * q3) / qh1, (n2 * q3) / qh1;
     return result;
   }
   else
   {
-    double coeff1 = (sqrt(qh1) + 2. * Vn) / 2. / qh1;
     nswe_jac result;
+    /*
+    double coeff1 = (sqrt(g * qh1) + 2. * Vn) / 2. / qh1;
     result << coeff1 * q1, -n1 * q1 / qh1, -n2 * q1 / qh1, coeff1 * q2,
       -n1 * q2 / qh1, -n2 * q2 / qh1, coeff1 * q3, -n1 * q3 / qh1,
       -n2 * q3 / qh1;
+    */
+    result << (q1 * (qh1 * sqrt(g * qh1) + 2 * n1 * qh2 + 2 * n2 * qh3)) /
+                (2. * pow(qh1, 2)),
+      -((n1 * q1) / qh1), -((n2 * q1) / qh1),
+      (q2 * (qh1 * sqrt(g * qh1) + 2 * n1 * qh2 + 2 * n2 * qh3)) /
+        (2. * pow(qh1, 2)),
+      -((n1 * q2) / qh1), -((n2 * q2) / qh1),
+      (q3 * (qh1 * sqrt(g * qh1) + 2 * n1 * qh2 + 2 * n2 * qh3)) /
+        (2. * pow(qh1, 2)),
+      -((n1 * q3) / qh1), -((n2 * q3) / qh1);
     return result;
   }
 }
@@ -312,9 +361,11 @@ explicit_nswe<dim>::get_XR(const std::vector<double> &qhats,
   double q3 = qhats[2];
   double n1 = normal[0];
   double n2 = normal[1];
+  double g = gravity;
   nswe_jac XR;
-  XR << 0, -q1, q1, -n2, n1 * pow(q1, 1.5) - q2, n1 * pow(q1, 1.5) + q2, n1,
-    n2 * pow(q1, 1.5) - q3, n2 * pow(q1, 1.5) + q3;
+  XR << 0, -q1, q1, -n2, sqrt(g) * n1 * pow(q1, 1.5) - q2,
+    sqrt(g) * n1 * pow(q1, 1.5) + q2, n1, sqrt(g) * n2 * pow(q1, 1.5) - q3,
+    sqrt(g) * n2 * pow(q1, 1.5) + q3;
   return std::move(XR);
 }
 
@@ -328,12 +379,15 @@ explicit_nswe<dim>::get_XL(const std::vector<double> &qhats,
   double q3 = qhats[2];
   double n1 = normal[0];
   double n2 = normal[1];
+  double g = gravity;
   nswe_jac XL;
   XL << (n2 * q2 - n1 * q3) / q1, -n2, n1,
-    (-pow(q1, 1.5) - n1 * q2 - n2 * q3) / (2. * pow(q1, 2.5)),
-    n1 / (2. * pow(q1, 1.5)), n2 / (2. * pow(q1, 1.5)),
-    (pow(q1, 1.5) - n1 * q2 - n2 * q3) / (2. * pow(q1, 2.5)),
-    n1 / (2. * pow(q1, 1.5)), n2 / (2. * pow(q1, 1.5));
+    (-sqrt(g) * pow(q1, 1.5) - n1 * q2 - n2 * q3) /
+      (2. * sqrt(g) * pow(q1, 2.5)),
+    n1 / (2. * sqrt(g) * pow(q1, 1.5)), n2 / (2. * sqrt(g) * pow(q1, 1.5)),
+    (sqrt(g) * pow(q1, 1.5) - n1 * q2 - n2 * q3) /
+      (2. * sqrt(g) * pow(q1, 2.5)),
+    n1 / (2. * sqrt(g) * pow(q1, 1.5)), n2 / (2. * sqrt(g) * pow(q1, 1.5));
   return std::move(XL);
 }
 
@@ -348,8 +402,10 @@ explicit_nswe<dim>::get_Dn(const std::vector<double> &qhats,
   double n1 = normal[0];
   double n2 = normal[1];
   double Vn = q2 / q1 * n1 + q3 / q1 * n2;
+  double g = gravity;
   nswe_jac Dn;
-  Dn << Vn, 0., 0., 0., Vn - sqrt(q1), 0., 0., 0., Vn + sqrt(q1);
+  Dn << Vn, 0., 0., 0., Vn - sqrt(g) * sqrt(q1), 0., 0., 0.,
+    Vn + sqrt(g) * sqrt(q1);
   return std::move(Dn);
 }
 
@@ -363,23 +419,28 @@ explicit_nswe<dim>::get_absDn(const std::vector<double> &qhats,
   double q3 = qhats[2];
   double n1 = normal[0];
   double n2 = normal[1];
+  double g = gravity;
   double Vn = q2 / q1 * n1 + q3 / q1 * n2;
   nswe_jac absDn;
-  if (sqrt(q1) <= Vn) // sqrt(h) <= Vn
+  if (sqrt(g) * sqrt(q1) <= Vn) // sqrt(h) <= Vn
   {
-    absDn << Vn, 0., 0., 0., Vn - sqrt(q1), 0., 0., 0., Vn + sqrt(q1);
+    absDn << Vn, 0., 0., 0., Vn - sqrt(g) * sqrt(q1), 0., 0., 0.,
+      Vn + sqrt(g) * sqrt(q1);
   }
-  else if (0 <= Vn && Vn < sqrt(q1)) // 0 <= Vn < sqrt(h)
+  else if (0 <= Vn && Vn < sqrt(g) * sqrt(q1)) // 0 <= Vn < sqrt(h)
   {
-    absDn << Vn, 0., 0., 0., -Vn + sqrt(q1), 0., 0., 0., Vn + sqrt(q1);
+    absDn << Vn, 0., 0., 0., -Vn + sqrt(g) * sqrt(q1), 0., 0., 0.,
+      Vn + sqrt(g) * sqrt(q1);
   }
-  else if (-sqrt(q1) <= Vn && Vn < 0) // -sqrt(h) <= Vn < 0
+  else if (-sqrt(g) * sqrt(q1) <= Vn && Vn < 0) // -sqrt(h) <= Vn < 0
   {
-    absDn << -Vn, 0., 0., 0., -Vn + sqrt(q1), 0., 0., 0., Vn + sqrt(q1);
+    absDn << -Vn, 0., 0., 0., -Vn + sqrt(g) * sqrt(q1), 0., 0., 0.,
+      Vn + sqrt(g) * sqrt(q1);
   }
-  else if (Vn < -sqrt(q1)) // Vn < -sqrt(h)
+  else if (Vn < -sqrt(g) * sqrt(q1)) // Vn < -sqrt(h)
   {
-    absDn << -Vn, 0., 0., 0., -Vn + sqrt(q1), 0., 0., 0., -Vn - sqrt(q1);
+    absDn << -Vn, 0., 0., 0., -Vn + sqrt(g) * sqrt(q1), 0., 0., 0.,
+      -Vn - sqrt(g) * sqrt(q1);
   }
   else
   {
@@ -457,10 +518,11 @@ explicit_nswe<dim>::get_dRik_dqhj(const T &qhats,
   double q1 = qhats[0];
   double n1 = normal[0];
   double n2 = normal[1];
+  double g = gravity;
   std::vector<nswe_jac> d_Rik_qhj(dim + 1);
-  d_Rik_qhj[0] << 0., -1., 1., 0., (3. * n1 * sqrt(q1)) / 2.,
-    (3. * n1 * sqrt(q1)) / 2., 0., (3. * n2 * sqrt(q1)) / 2.,
-    (3 * n2 * sqrt(q1)) / 2.;
+  d_Rik_qhj[0] << 0., -1., 1., 0., (3. * n1 * sqrt(g * q1)) / 2.,
+    (3. * n1 * sqrt(g * q1)) / 2., 0., (3. * n2 * sqrt(g * q1)) / 2.,
+    (3 * n2 * sqrt(g * q1)) / 2.;
   d_Rik_qhj[1] << 0., 0., 0., 0., -1., 1., 0., 0., 0.;
   d_Rik_qhj[2] << 0., 0., 0., 0., 0., 0., 0., -1., 1.;
   return d_Rik_qhj;
@@ -477,16 +539,21 @@ explicit_nswe<dim>::get_dLik_dqhj(const T &qhats,
   double q3 = qhats[2];
   double n1 = normal[0];
   double n2 = normal[1];
+  double g = gravity;
   std::vector<nswe_jac> d_Lik_qhj(dim + 1);
   d_Lik_qhj[0] << (-(n2 * q2) + n1 * q3) / pow(q1, 2), 0, 0,
-    (2 * pow(q1, 1.5) + 5 * n1 * q2 + 5 * n2 * q3) / (4. * pow(q1, 3.5)),
-    (-3 * n1) / (4. * pow(q1, 2.5)), (-3 * n2) / (4. * pow(q1, 2.5)),
-    (-2 * pow(q1, 1.5) + 5 * n1 * q2 + 5 * n2 * q3) / (4. * pow(q1, 3.5)),
-    (-3 * n1) / (4. * pow(q1, 2.5)), (-3 * n2) / (4. * pow(q1, 2.5));
-  d_Lik_qhj[1] << n2 / q1, 0, 0, -n1 / (2. * pow(q1, 2.5)), 0, 0,
-    -n1 / (2. * pow(q1, 2.5)), 0, 0;
-  d_Lik_qhj[2] << -(n1 / q1), 0, 0, -n2 / (2. * pow(q1, 2.5)), 0, 0,
-    -n2 / (2. * pow(q1, 2.5)), 0, 0;
+    (2 * sqrt(g) * pow(q1, 1.5) + 5 * n1 * q2 + 5 * n2 * q3) /
+      (4. * sqrt(g) * pow(q1, 3.5)),
+    (-3 * n1) / (4. * sqrt(g) * pow(q1, 2.5)),
+    (-3 * n2) / (4. * sqrt(g) * pow(q1, 2.5)),
+    (-2 * sqrt(g) * pow(q1, 1.5) + 5 * n1 * q2 + 5 * n2 * q3) /
+      (4. * sqrt(g) * pow(q1, 3.5)),
+    (-3 * n1) / (4. * sqrt(g) * pow(q1, 2.5)),
+    (-3 * n2) / (4. * sqrt(g) * pow(q1, 2.5));
+  d_Lik_qhj[1] << n2 / q1, 0, 0, -n1 / (2. * sqrt(g) * pow(q1, 2.5)), 0, 0,
+    -n1 / (2. * sqrt(g) * pow(q1, 2.5)), 0, 0;
+  d_Lik_qhj[2] << -(n1 / q1), 0, 0, -n2 / (2. * sqrt(g) * pow(q1, 2.5)), 0, 0,
+    -n2 / (2. * sqrt(g) * pow(q1, 2.5)), 0, 0;
   return d_Lik_qhj;
 }
 
@@ -501,10 +568,12 @@ explicit_nswe<dim>::get_dDik_dqhj(const T &qhats,
   double q3 = qhats[2];
   double n1 = normal[0];
   double n2 = normal[1];
+  double g = gravity;
   std::vector<nswe_jac> dDik_qhj(dim + 1);
   dDik_qhj[0] << -((n1 * q2 + n2 * q3) / pow(q1, 2)), 0, 0, 0,
-    -(pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)), 0, 0, 0,
-    (pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
+    -(sqrt(g) * pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)),
+    0, 0, 0,
+    (sqrt(g) * pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
   dDik_qhj[1] << n1 / q1, 0., 0., 0., n1 / q1, 0., 0., 0., n1 / q1;
   dDik_qhj[2] << n2 / q1, 0., 0., 0., n2 / q1, 0., 0., 0., n2 / q1;
   return dDik_qhj;
@@ -521,37 +590,42 @@ explicit_nswe<dim>::get_dAbsDik_dqhj(const T &qhats,
   double q3 = qhats[2];
   double n1 = normal[0];
   double n2 = normal[1];
+  double g = gravity;
   double Vn = q2 / q1 * n1 + q3 / q1 * n2;
   std::vector<nswe_jac> dAbsDik_qhj(dim + 1);
-  if (sqrt(q1) <= Vn) // sqrt(h) <= Vn
+  if (sqrt(g) * sqrt(q1) <= Vn) // sqrt(h) <= Vn
   {
     dAbsDik_qhj[0] << -((n1 * q2 + n2 * q3) / pow(q1, 2)), 0, 0, 0,
-      -(pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)), 0, 0, 0,
-      (pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
+      -(sqrt(g) * pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)),
+      0, 0, 0,
+      (sqrt(g) * pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
     dAbsDik_qhj[1] << n1 / q1, 0., 0., 0., n1 / q1, 0., 0., 0., n1 / q1;
     dAbsDik_qhj[2] << n2 / q1, 0., 0., 0., n2 / q1, 0., 0., 0., n2 / q1;
   }
-  else if (0 <= Vn && Vn < sqrt(q1)) // 0 <= Vn < sqrt(h)
+  else if (0 <= Vn && Vn < sqrt(g) * sqrt(q1)) // 0 <= Vn < sqrt(h)
   {
     dAbsDik_qhj[0] << -((n1 * q2 + n2 * q3) / pow(q1, 2)), 0, 0, 0,
-      (pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)), 0, 0, 0,
-      (pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
+      (sqrt(g) * pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)),
+      0, 0, 0,
+      (sqrt(g) * pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
     dAbsDik_qhj[1] << n1 / q1, 0., 0., 0., -n1 / q1, 0., 0., 0., n1 / q1;
     dAbsDik_qhj[2] << n2 / q1, 0., 0., 0., -n2 / q1, 0., 0., 0., n2 / q1;
   }
-  else if (-sqrt(q1) <= Vn && Vn < 0) // -sqrt(h) <= Vn < 0
+  else if (-sqrt(g) * sqrt(q1) <= Vn && Vn < 0) // -sqrt(h) <= Vn < 0
   {
     dAbsDik_qhj[0] << ((n1 * q2 + n2 * q3) / pow(q1, 2)), 0, 0, 0,
-      (pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)), 0, 0, 0,
-      (pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
+      (sqrt(g) * pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)),
+      0, 0, 0,
+      (sqrt(g) * pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
     dAbsDik_qhj[1] << -n1 / q1, 0., 0., 0., -n1 / q1, 0., 0., 0., n1 / q1;
     dAbsDik_qhj[2] << -n2 / q1, 0., 0., 0., -n2 / q1, 0., 0., 0., n2 / q1;
   }
-  else if (Vn < -sqrt(q1)) // Vn < -sqrt(h)
+  else if (Vn < -sqrt(g) * sqrt(q1)) // Vn < -sqrt(h)
   {
     dAbsDik_qhj[0] << ((n1 * q2 + n2 * q3) / pow(q1, 2)), 0, 0, 0,
-      (pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)), 0, 0, 0,
-      -(pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
+      (sqrt(g) * pow(q1, 1.5) + 2 * n1 * q2 + 2 * n2 * q3) / (2. * pow(q1, 2)),
+      0, 0, 0,
+      -(sqrt(g) * pow(q1, 1.5) - 2 * n1 * q2 - 2 * n2 * q3) / (2. * pow(q1, 2));
     dAbsDik_qhj[1] << -n1 / q1, 0., 0., 0., -n1 / q1, 0., 0., 0., -n1 / q1;
     dAbsDik_qhj[2] << -n2 / q1, 0., 0., 0., -n2 / q1, 0., 0., 0., -n2 / q1;
   }
@@ -784,7 +858,8 @@ void explicit_nswe<dim>::calculate_matrices()
     /* Also, we declare the followings for flux conservation equation
      *
      * d_Apik__d_qhj_qk: partial of A_{ik}^+ w.r.t. qhj multiplied by q_k
-     * d_Anik__d_qhj_qinfk: partial of A_{ik}^- w.r.t. qhj multiplied by qinf_k
+     * d_Anik__d_qhj_qinfk: partial of A_{ik}^- w.r.t. qhj multiplied by
+     * qinf_k
      * d_Aaij_d_qhj_qhk: partial |A_{ij}| w.r.t. qhj multiplied by qhat_k
      */
     nswe_jac dAik_dqhj_qhk, dAik_dqhj_qk_plus, dAik_dqhj_qinfk_mnus,
@@ -850,7 +925,8 @@ void explicit_nswe<dim>::calculate_matrices()
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
         qinf_vec[i_nswe_dim] = qinfs_at_iquad[i_nswe_dim];
       /*
-       * Now, based on the above q and qhat, we obtain the tensors required for
+       * Now, based on the above q and qhat, we obtain the tensors required
+       * for
        * calculating the matrices.
        */
       partial_Fij_qhk_nj =
@@ -908,6 +984,29 @@ void explicit_nswe<dim>::calculate_matrices()
         F05_on_face +=
           face_JxW[i_face_quad] * NT_face_nswe_vec.transpose() * BB;
       }
+      if (this->BCs[i_face] == GenericCell<dim>::outflow_BC)
+      {
+        Eigen::Matrix<double, dim + 1, 1> BB;
+        BB << q_vec[0] - qh_vec[0], q_vec[1] - qh_vec[1], q_vec[2] - qh_vec[2];
+        nswe_jac d_BB_dqh;
+        d_BB_dqh << -1., 0., 0., 0., -1., 0., 0., 0., -1.;
+        E01_on_face += face_JxW[i_face_quad] * NT_face_nswe_vec.transpose() *
+                       d_BB_dqh * NT_face_nswe_vec;
+        F05_on_face +=
+          face_JxW[i_face_quad] * NT_face_nswe_vec.transpose() * BB;
+      }
+      if (this->BCs[i_face] == GenericCell<dim>::inflow_BC)
+      {
+        Eigen::Matrix<double, dim + 1, 1> BB;
+        BB << qinf_vec[0] - qh_vec[0], qinf_vec[1] - qh_vec[1],
+          qinf_vec[2] - qh_vec[2];
+        nswe_jac d_BB_dqh;
+        d_BB_dqh << -1., 0., 0., 0., -1., 0., 0., 0., -1.;
+        E01_on_face += face_JxW[i_face_quad] * NT_face_nswe_vec.transpose() *
+                       d_BB_dqh * NT_face_nswe_vec;
+        F05_on_face +=
+          face_JxW[i_face_quad] * NT_face_nswe_vec.transpose() * BB;
+      }
       F01 += face_JxW[i_face_quad] * NT_nswe_vec.transpose() *
              (Fij_hat * normal + tauij * q_vec - tauij * qh_vec);
     }
@@ -944,6 +1043,7 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
 
   std::vector<int> row_nums((dim + 1) * this->n_faces * this->n_face_bases, -1);
   std::vector<int> col_nums((dim + 1) * this->n_faces * this->n_face_bases, -1);
+  /*
   for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
     for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
@@ -951,19 +1051,47 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
         unsigned i_num =
           ((dim + 1) * i_face + i_nswe_dim) * this->n_face_bases + i_poly;
         int global_dof_number;
-        /* BEWARE! This is a bug ! If we just want to remove one of the dofs
-         * and keep the others open, this next check fails. To fix this, we
-         * have to store -1 for closed dofs.
-         */
+        // BEWARE! This is a bug ! If we just want to remove one of the dofs
+        // and keep the others open, this next check fails. To fix this, we
+        // have to store -1 for closed dofs.
+        //
         if (this->dofs_ID_in_all_ranks[i_face].size() > 0)
         {
-          global_dof_number = this->dofs_ID_in_all_ranks[i_face][i_nswe_dim] *
-                                this->n_face_bases +
-                              i_poly;
-          row_nums[i_num] = global_dof_number;
-          col_nums[i_num] = global_dof_number;
+          unsigned counter = 0;
+          if (this->dof_names_on_faces[i_face][i_nswe_dim] == 1)
+          {
+            global_dof_number = this->dofs_ID_in_all_ranks[i_face][i_nswe_dim] *
+                                  this->n_face_bases +
+                                i_poly;
+            row_nums[i_num] = global_dof_number;
+            col_nums[i_num] = global_dof_number;
+          }
         }
       }
+  */
+  for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
+  {
+    unsigned dof_count = 0;
+    for (unsigned i_dof = 0; i_dof < this->dof_names_on_faces[i_face].size();
+         ++i_dof)
+    {
+      if (this->dof_names_on_faces[i_face][i_dof])
+      {
+        for (unsigned i_polyface = 0; i_polyface < this->n_face_bases;
+             ++i_polyface)
+        {
+          unsigned global_dof_number =
+            this->dofs_ID_in_all_ranks[i_face][dof_count] * this->n_face_bases +
+            i_polyface;
+          unsigned i_num = i_face * (dim + 1) * this->n_face_bases +
+                           dof_count * this->n_face_bases + i_polyface;
+          col_nums[i_num] = global_dof_number;
+          row_nums[i_num] = global_dof_number;
+        }
+        ++dof_count;
+      }
+    }
+  }
 
   eigen3mat q_inf((dim + 1) * this->n_faces * this->n_face_bases, 1);
   for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
@@ -983,6 +1111,13 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
         q_inf(row0 + i_poly) = qhat_mtl[i_poly][i_nswe_dim];
       }
   }
+  // Here, we set dqhat_BC to the exact value of dqhat - last_iter_qhat.
+  // Later, we set those values, which no BC should be applied on them
+  // equal to zero.
+  //
+  //     THIS FUNCTIONALITY IS DEPRECATED, AND SHOULD BE REMOVED.
+  //
+
   eigen3mat dqhat_BC = q_inf - last_iter_qhat;
 
   if (keys_ & update_mat)
@@ -995,17 +1130,33 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
         this->n_face_bases * (dim + 1) * this->n_face_bases * (dim + 1);
       std::vector<int> face_row_nums((dim + 1) * this->n_face_bases, -1);
       std::vector<int> face_col_nums((dim + 1) * this->n_face_bases, -1);
+      unsigned dof_count = 0;
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
-        for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
+      {
+        int global_dof_number;
+        /* BEWARE! This is a bug ! If we just want to remove one of the dofs
+         * and keep the others open, this next check fails. To fix this, we
+         * have to store -1 for closed dofs.
+         */
+        if (this->dof_names_on_faces[i_face][i_nswe_dim])
         {
-          unsigned i_num = i_nswe_dim * this->n_face_bases + i_poly;
-          int global_dof_number;
-          /* BEWARE! This is a bug ! If we just want to remove one of the dofs
-           * and keep the others open, this next check fails. To fix this, we
-           * have to store -1 for closed dofs.
-           */
-          if (this->dofs_ID_in_all_ranks[i_face].size() > 0)
+          for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
           {
+            unsigned i_num = dof_count * this->n_face_bases + i_poly;
+            global_dof_number = this->dofs_ID_in_all_ranks[i_face][dof_count] *
+                                  this->n_face_bases +
+                                i_poly;
+            face_row_nums[i_num] = global_dof_number;
+            face_col_nums[i_num] = global_dof_number;
+          }
+          dof_count++;
+        }
+        /*
+        if (this->dofs_ID_in_all_ranks[i_face].size() > 0)
+        {
+          for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
+          {
+            unsigned i_num = i_nswe_dim * this->n_face_bases + i_poly;
             global_dof_number = this->dofs_ID_in_all_ranks[i_face][i_nswe_dim] *
                                   this->n_face_bases +
                                 i_poly;
@@ -1013,6 +1164,8 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
             face_col_nums[i_num] = global_dof_number;
           }
         }
+        */
+      }
       eigen3mat cell_mat_on_face_ =
         cell_mat.block(i_face * (dim + 1) * this->n_face_bases,
                        i_face * (dim + 1) * this->n_face_bases,
@@ -1314,7 +1467,8 @@ void explicit_nswe<dim>::calculate_stage_matrices()
     /* Also, we declare the followings for flux conservation equation
      *
      * d_Apik__d_qhj_qk: partial of A_{ik}^+ w.r.t. qhj multiplied by q_k
-     * d_Anik__d_qhj_qinfk: partial of A_{ik}^- w.r.t. qhj multiplied by qinf_k
+     * d_Anik__d_qhj_qinfk: partial of A_{ik}^- w.r.t. qhj multiplied by
+     * qinf_k
      * d_Aaij_d_qhj_qhk: partial |A_{ij}| w.r.t. qhj multiplied by qhat_k
      */
     for (unsigned i_face_quad = 0; i_face_quad < this->face_quad_bundle->size();
@@ -1377,7 +1531,8 @@ void explicit_nswe<dim>::calculate_stage_matrices()
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
         qinf_vec[i_nswe_dim] = qinfs_at_iquad[i_nswe_dim];
       /*
-       * Now, based on the above q and qhat, we obtain the tensors required for
+       * Now, based on the above q and qhat, we obtain the tensors required
+       * for
        * calculating the matrices.
        */
       tauij = get_tauij_LF(qhats_at_iquad, normals[i_face_quad]);
