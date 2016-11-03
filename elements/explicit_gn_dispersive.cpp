@@ -979,7 +979,6 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
   }
 
   eigen3mat solved_W1_hat = exact_W1_hat;
-  /*
   for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
   {
     for (unsigned i_dof = 0; i_dof < this->dofs_ID_in_this_rank[i_face].size();
@@ -995,7 +994,6 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
       }
     }
   }
-  */
 
   eigen3mat W1 = stored_W1 =
     mat1_lu.solve(L01 + L10 + L11 + L12 + L21 + mat2 * solved_W1_hat);
