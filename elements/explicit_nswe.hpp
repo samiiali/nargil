@@ -160,11 +160,15 @@ struct explicit_nswe_qis_func_class
     */
     // G-N example zero
     // G-N example 1
+    double g = 9.81;
+    double alpha = 1.;
     double x0 = x[0];
     double y0 = x[1];
     double t0 = t;
-    qs[0] = 5. + sin(4. * x0);
-    qs[1] = sin(x0 - t0);
+    qs[0] = 5. + sin(4. * x[0]);
+    qs[1] = sin(x0 - t);
+    //    qs[1] = 1. / alpha * g * (-pow(sin(x0 - t), 2) / 2. - 5. * sin(x0 -
+    //    t));
     qs[2] = 0.;
     // G-N example 1
     // G-N example 2
@@ -375,9 +379,11 @@ struct explicit_nswe_L_func_class
     L[2] = (-36 * cos(t - 4 * x0)) / pow(-5 + sin(t - 4 * x0), 2);
     // End of example zero of Green-Naghdi
     // Dissertation example 2
+    /*
     L[0] = 0;
     L[1] = 0;
     L[2] = 0;
+    */
     // End of Dissertaton example 2
     return L;
   }

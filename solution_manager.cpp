@@ -51,7 +51,28 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     execution_time.open("Execution_Time.txt",
                         std::ofstream::out | std::fstream::app);
   }
-  if (true) // Example 1
+  if (true) // Long Strip Example 1
+  {
+    std::vector<unsigned> repeats(dim, 1);
+    repeats[0] = 90;
+    dealii::Point<dim> point_1, point_2;
+    point_1 = {-10., -0.1};
+    point_2 = {10, 0.1};
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      the_grid, repeats, point_1, point_2, true);
+    std::vector<dealii::GridTools::PeriodicFacePair<
+      typename dealii::parallel::distributed::Triangulation<
+        dim>::cell_iterator> >
+      periodic_faces;
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({20., 0.}));
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 0.2}));
+    the_grid.add_periodicity(periodic_faces);
+  }
+  // End of Long Strip Example 1
+
+  if (false) // Example 1
   {
     std::vector<unsigned> repeats(dim, 1);
     repeats[0] = 1;
@@ -69,7 +90,8 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     dealii::GridTools::collect_periodic_faces(
       the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 2.}));
     the_grid.add_periodicity(periodic_faces);
-  } // End of Example 1
+  }
+  // End of Example 1
 
   if (false) // The narrowing channel example
   {
@@ -711,8 +733,8 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
   {
     double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
                                          global_ops_time = 0.;
-    explicit_RKn<4, original_RK> rk4_0(1.e-3);
-    explicit_RKn<4, original_RK> rk4_1(2.e-3);
+    explicit_RKn<4, original_RK> rk4_0(2.e-3);
+    explicit_RKn<4, original_RK> rk4_1(4.e-3);
     explicit_hdg_model<dim, explicit_nswe> model0(this, &rk4_0);
     hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> model1(this,
                                                                    &rk4_1);
@@ -749,7 +771,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       std::vector<double> local_sol_vec1;
       local_sol_vec1.reserve(model1.n_local_DOFs_on_this_rank);
 
-      for (unsigned i_time = 0; i_time < 1000; ++i_time)
+      for (unsigned i_time = 0; i_time < 500; ++i_time)
       {
         double dt_local_ops = 0.;
         double dt_global_ops = 0.;
@@ -852,9 +874,9 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
           t31 = MPI_Wtime();
           model1.compute_internal_dofs(local_sol_vec1.data());
           t32 = MPI_Wtime();
-          //          if (i_time % 10 == 0)
-          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-          vtk_visualizer(model1, i_time * 3 + 1);
+          if (i_time % 10 == 0)
+            //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+            vtk_visualizer(model1, i_time * 3 + 1);
           model0.get_results_from_another_model(model1);
         }
 

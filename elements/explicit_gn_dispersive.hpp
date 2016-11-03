@@ -40,6 +40,54 @@ struct explicit_gn_dispersive_grad_grad_b_class
  * \ingroup input_data_group
  */
 template <int in_point_dim, typename output_type>
+struct explicit_gn_dispersive_g_h_grad_zeta_class
+  : public TimeFunction<in_point_dim, output_type>
+{
+  virtual output_type value(const dealii::Point<in_point_dim> &x,
+                            const dealii::Point<in_point_dim> &,
+                            const double &t = 0) const final
+  {
+    dealii::Tensor<1, in_point_dim> g_h_grad_zeta;
+    // Example zero !
+    /*
+    qis[0] = 2 + exp(sin(x[0] + x[1] - t));
+    qis[1] = cos(x[0] - 4 * t);
+    qis[2] = sin(x[1] + 4 * t);
+    */
+    double g = 9.81;
+    //    g_h_grad_zeta[0] = 0.;
+    g_h_grad_zeta[0] = 4. / alpha * g * (5. + sin(4. * x[0])) * cos(4. * x[0]);
+    //    g_h_grad_zeta[0] = 4 / alpha * g * (5. + sin(4 * x[0])) * cos(x[0]);
+    g_h_grad_zeta[1] = 0.;
+    // End of example zero !
+    // Example 1
+    /*
+    qis[0] = 5. + sin(4 * x[0] - t);
+    qis[1] = 3.;
+    qis[2] = 3.;
+    */
+    // End of example 1
+    // Dissertation example 2
+    /*
+    if (t < 2)
+    {
+      qis[0] = 10. + sin(M_PI * 2 * t);
+    }
+    else
+    {
+      qis[0] = 10.;
+    }
+    qis[1] = qis[2] = 0;
+    */
+    // End of Dissertation example 2
+    return g_h_grad_zeta;
+  }
+};
+
+/**
+ * \ingroup input_data_group
+ */
+template <int in_point_dim, typename output_type>
 struct explicit_gn_dispersive_qis_class
   : public TimeFunction<in_point_dim, output_type>
 {
@@ -54,8 +102,11 @@ struct explicit_gn_dispersive_qis_class
     qis[1] = cos(x[0] - 4 * t);
     qis[2] = sin(x[1] + 4 * t);
     */
+    double g = 9.81;
     qis[0] = 5. + sin(4 * x[0]);
     qis[1] = sin(x[0] - t);
+    //    qis[1] =
+    //      1. / alpha * g * (-pow(sin(x[0] - t), 2) / 2. - 5. * sin(x[0] - t));
     qis[2] = 0.;
     // End of example zero !
     // Example 1
@@ -141,7 +192,10 @@ struct explicit_gn_dispersive_W1_class
     w1[0] = (4 * g * cos(4 * x1) * (5. + sin(4. * x1))) / alpha;
     w1[1] = 0.;
     */
-    w1[0] = cos(t - x1) + (4. * g * cos(4. * x1) * (5. + sin(4. * x1))) / alpha;
+    //    w1[0] = cos(t - x1) + (4. * g * cos(4. * x1) * (5. + sin(4. * x1))) /
+    //    alpha;
+    w1[0] =
+      4. / alpha * g * (5. + sin(4. * x[0])) * cos(4. * x[0]) + cos(x[0] - t);
     w1[1] = 0.;
     // End of example zero
     // Example 1
@@ -418,7 +472,17 @@ struct explicit_gn_dispersive_L_class
     L[1] = 0.;
     */
     // End of example 1
-    // Dissertation example 2
+    // Example for second equation alone
+    /*
+    L[0] = (9 * alpha * cos(t - 9 * x1)) / 4. +
+           (1 + (17 * alpha) / 2.) * cos(t - x1) +
+           (34880 * g * cos(4 * x1) - 2880 * g * cos(12 * x1) +
+            35 * alpha * cos(t + 7 * x1) + 100 * alpha * sin(t - 5 * x1) +
+            19456 * g * sin(8 * x1) - 128 * g * sin(16 * x1) -
+            180 * alpha * sin(t + 3 * x1)) /
+             12.;
+    L[1] = 0.;
+    */
     L[0] = (-27 * alpha * cos(t - 17 * x1) +
             4 * (-3 + 1163 * alpha) * cos(t - 9 * x1) +
             108 * cos(2 * (t - 7 * x1)) + 7228 * cos(2 * (t - 3 * x1)) +
@@ -436,7 +500,8 @@ struct explicit_gn_dispersive_L_class
             2600 * sin(2 * (t + 3 * x1)) + 880 * alpha * sin(t + 11 * x1)) /
            (48. * pow(5 + sin(4 * x1), 2));
     L[1] = 0;
-    // End of dissertation example 2
+
+    // End of example for second equation alone
     return L;
   }
 };
@@ -781,6 +846,9 @@ struct explicit_gn_dispersive : public GenericCell<dim>
   hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model;
   explicit_RKn<4, original_RK> *time_integrator;
 
+  static explicit_gn_dispersive_g_h_grad_zeta_class<dim,
+                                                    dealii::Tensor<1, dim> >
+    g_h_grad_zeta_func;
   static explicit_gn_dispersive_qis_class<dim, nswe_vec>
     explicit_gn_dispersive_qs;
   static explicit_gn_dispersive_hVinf_t_class<dim, dealii::Tensor<1, dim> >
