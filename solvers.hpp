@@ -36,10 +36,52 @@ enum struct implicit_petsc_factor_type
   pardiso = 4
 };
 
+template <int dim>
+struct explicit_gn_dispersive;
+
+template <int dim>
+struct explicit_nswe;
+
+template <int dim>
+struct GN_dispersive_flux_generator
+{
+  static std::unique_ptr<GN_dispersive_flux_generator<dim> >
+  make_flux_generator(
+    const MPI_Comm *const mpi_comm_,
+    const explicit_hdg_model<dim, explicit_nswe> *const model_);
+
+  GN_dispersive_flux_generator(
+    const MPI_Comm *const mpi_comm_,
+    const explicit_hdg_model<dim, explicit_nswe> *const model_);
+
+  ~GN_dispersive_flux_generator();
+
+  void init_components();
+
+  void free_components();
+
+  void push_to_global_vec(Vec &the_vec,
+                          const std::vector<int> &rows,
+                          const std::vector<double> &vals,
+                          const InsertMode &mode);
+
+  void finish_assembly(Vec &the_vec);
+
+  std::vector<double>
+  get_local_part_of_global_vec(Vec &petsc_vec,
+                               const bool &destroy_petsc_vec = false);
+
+  Vec face_count, prim_vars_flux, V_x_sum, V_y_sum;
+  const explicit_hdg_model<dim, explicit_nswe> *const model;
+  const MPI_Comm *const comm;
+};
+
 /**
  *
  */
 template <int dim, template <int> class ModelType>
+// We need ModelType, because we take solver options automatically from the
+// corresponding CellType
 struct generic_solver
 {
   generic_solver(const MPI_Comm *const mpi_comm_,

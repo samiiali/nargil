@@ -1019,7 +1019,133 @@ void hdg_model_with_explicit_rk<dim, CellType>::free_containers()
 }
 
 template <int dim, template <int> class CellType>
+void hdg_model_with_explicit_rk<dim, CellType>::assemble_trace_of_prim_vars(
+  const explicit_hdg_model<dim, explicit_nswe> *const src_model)
+{
+  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
+  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
+#ifdef _OPENMP
+#pragma omp parallel
+  {
+    unsigned thread_id = omp_get_thread_num();
+#else
+  unsigned thread_id = 0;
+  {
+#endif
+    const dealii::UpdateFlags &p1_flags =
+      dealii::update_JxW_values | dealii::update_quadrature_points |
+      dealii::update_inverse_jacobians | dealii::update_jacobians;
+    const dealii::UpdateFlags &p2_flags =
+      dealii::update_values | dealii::update_JxW_values |
+      dealii::update_quadrature_points | dealii::update_face_normal_vectors |
+      dealii::update_inverse_jacobians;
+    const dealii::UpdateFlags &p3_flags = dealii::update_quadrature_points;
+    const dealii::UpdateFlags &p4_flags =
+      dealii::update_quadrature_points | dealii::update_face_normal_vectors;
+
+    FE_val_ptr p1(new dealii::FEValues<dim>(this->manager->elem_mapping,
+                                            DG_Elem,
+                                            this->manager->elem_quad_bundle,
+                                            p1_flags));
+    FEFace_val_ptr p2(
+      new dealii::FEFaceValues<dim>(this->manager->elem_mapping,
+                                    DG_Elem,
+                                    this->manager->face_quad_bundle,
+                                    p2_flags));
+    FE_val_ptr p3(new dealii::FEValues<dim>(
+      this->manager->elem_mapping, DG_Elem, LGL_elem_support_points, p3_flags));
+    FEFace_val_ptr p4(new dealii::FEFaceValues<dim>(
+      this->manager->elem_mapping, DG_Elem, LGL_face_support_points, p4_flags));
+    for (unsigned i_cell = thread_id; i_cell < all_owned_cells.size();
+         i_cell = i_cell + this->manager->n_threads)
+    {
+      std::unique_ptr<GenericCell<dim> > cell(
+        std::move(all_owned_cells[i_cell]));
+      cell->attach_FEValues(p1, p2, p3, p4);
+      cell->the_elem_basis = &(this->manager->the_elem_basis);
+      cell->the_face_basis = &(this->manager->the_face_basis);
+      cell->elem_quad_bundle = &(this->manager->elem_quad_bundle);
+      cell->face_quad_bundle = &(this->manager->face_quad_bundle);
+      static_cast<CellType<dim> *>(cell.get())
+        ->produce_trace_of_prim_vars(static_cast<explicit_nswe<dim> *>(
+          src_model->all_owned_cells[i_cell].get()));
+      cell->detach_FEValues(p1, p2, p3, p4);
+      all_owned_cells[i_cell] = std::move(cell);
+    }
+  }
+}
+
+template <int dim, template <int> class CellType>
+void hdg_model_with_explicit_rk<dim, CellType>::compute_and_sum_grad_prim_vars(
+  const explicit_hdg_model<dim, explicit_nswe> *const src_model,
+  const double *const local_h_sums,
+  const double *const local_face_count)
+{
+  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
+  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
+#ifdef _OPENMP
+#pragma omp parallel
+  {
+    unsigned thread_id = omp_get_thread_num();
+#else
+  unsigned thread_id = 0;
+  {
+#endif
+    const dealii::UpdateFlags &p1_flags =
+      dealii::update_JxW_values | dealii::update_quadrature_points |
+      dealii::update_inverse_jacobians | dealii::update_jacobians;
+    const dealii::UpdateFlags &p2_flags =
+      dealii::update_values | dealii::update_JxW_values |
+      dealii::update_quadrature_points | dealii::update_face_normal_vectors |
+      dealii::update_inverse_jacobians;
+    const dealii::UpdateFlags &p3_flags = dealii::update_quadrature_points;
+    const dealii::UpdateFlags &p4_flags =
+      dealii::update_quadrature_points | dealii::update_face_normal_vectors;
+
+    FE_val_ptr p1(new dealii::FEValues<dim>(this->manager->elem_mapping,
+                                            DG_Elem,
+                                            this->manager->elem_quad_bundle,
+                                            p1_flags));
+    FEFace_val_ptr p2(
+      new dealii::FEFaceValues<dim>(this->manager->elem_mapping,
+                                    DG_Elem,
+                                    this->manager->face_quad_bundle,
+                                    p2_flags));
+    FE_val_ptr p3(new dealii::FEValues<dim>(
+      this->manager->elem_mapping, DG_Elem, LGL_elem_support_points, p3_flags));
+    FEFace_val_ptr p4(new dealii::FEFaceValues<dim>(
+      this->manager->elem_mapping, DG_Elem, LGL_face_support_points, p4_flags));
+    for (unsigned i_cell = thread_id; i_cell < all_owned_cells.size();
+         i_cell = i_cell + this->manager->n_threads)
+    {
+      std::unique_ptr<GenericCell<dim> > cell(
+        std::move(all_owned_cells[i_cell]));
+      cell->attach_FEValues(p1, p2, p3, p4);
+      cell->the_elem_basis = &(this->manager->the_elem_basis);
+      cell->the_face_basis = &(this->manager->the_face_basis);
+      cell->elem_quad_bundle = &(this->manager->elem_quad_bundle);
+      cell->face_quad_bundle = &(this->manager->face_quad_bundle);
+      static_cast<CellType<dim> *>(cell.get())
+        ->compute_avg_prim_vars_flux(
+          static_cast<explicit_nswe<dim> *>(
+            src_model->all_owned_cells[i_cell].get()),
+          local_h_sums,
+          local_face_count);
+      static_cast<CellType<dim> *>(cell.get())->compute_prim_vars_derivatives();
+      static_cast<CellType<dim> *>(cell.get())
+        ->produce_trace_of_grad_prim_vars(static_cast<explicit_nswe<dim> *>(
+          src_model->all_owned_cells[i_cell].get()));
+      cell->detach_FEValues(p1, p2, p3, p4);
+      all_owned_cells[i_cell] = std::move(cell);
+    }
+  }
+}
+
+template <int dim, template <int> class CellType>
 void hdg_model_with_explicit_rk<dim, CellType>::assemble_globals(
+  const explicit_hdg_model<dim, explicit_nswe> *const src_model,
+  const double *const local_V_x_sums,
+  const double *const local_V_y_sums,
   const solver_update_keys &keys)
 {
   dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
@@ -1066,6 +1192,11 @@ void hdg_model_with_explicit_rk<dim, CellType>::assemble_globals(
       cell->the_face_basis = &(this->manager->the_face_basis);
       cell->elem_quad_bundle = &(this->manager->elem_quad_bundle);
       cell->face_quad_bundle = &(this->manager->face_quad_bundle);
+      static_cast<CellType<dim> *>(cell.get())
+        ->compute_avg_grad_V_flux(static_cast<explicit_nswe<dim> *>(
+                                    src_model->all_owned_cells[i_cell].get()),
+                                  local_V_x_sums,
+                                  local_V_y_sums);
       static_cast<CellType<dim> *>(cell.get())->assemble_globals(keys);
       cell->detach_FEValues(p1, p2, p3, p4);
       all_owned_cells[i_cell] = std::move(cell);
@@ -1353,13 +1484,17 @@ bool hdg_model_with_explicit_rk<dim, CellType>::compute_internal_dofs(
 }
 
 template <int dim, template <int> class CellType>
-void hdg_model_with_explicit_rk<dim, CellType>::init_solver()
+void hdg_model_with_explicit_rk<dim, CellType>::init_solver(
+  const explicit_hdg_model<dim, explicit_nswe> *const src_model)
 {
   solver_options options_ = CellType<dim>::required_solver_options();
   solver_type type_ = CellType<dim>::required_solver_type();
 
   solver = std::move(generic_solver<dim, CellType>::make_solver(
     type_, &(this->manager->comm), this, options_));
+
+  flux_gen = std::move(GN_dispersive_flux_generator<dim>::make_flux_generator(
+    &(this->manager->comm), src_model));
 }
 
 template <int dim, template <int> class CellType>
@@ -1368,6 +1503,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::reinit_solver(
 {
   solver_options options_ = CellType<dim>::required_solver_options();
   solver->reinit_components(this, options_, update_keys_);
+  flux_gen->free_components();
+  flux_gen->init_components();
 }
 
 template <int dim, template <int> class CellType>
@@ -1393,8 +1530,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::get_results_from_another_model(
         std::move(all_owned_cells[i_cell]));
       static_cast<CellType<dim> *>(cell.get())
         ->set_previous_step_results(
-          static_cast<srcCellType<dim> *>(src_cell.get())
-            ->get_previous_step_results());
+          static_cast<srcCellType<dim> *>(src_cell.get()));
       all_owned_cells[i_cell] = std::move(cell);
       src_model.all_owned_cells[i_cell] = std::move(src_cell);
     }

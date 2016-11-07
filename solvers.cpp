@@ -1,5 +1,137 @@
 #include "solvers.hpp"
 
+template <int dim>
+std::unique_ptr<GN_dispersive_flux_generator<dim> >
+GN_dispersive_flux_generator<dim>::make_flux_generator(
+  const MPI_Comm *const mpi_comm_,
+  const explicit_hdg_model<dim, explicit_nswe> *const model_)
+{
+  std::unique_ptr<GN_dispersive_flux_generator<dim> > output;
+  output.reset(new GN_dispersive_flux_generator<dim>(mpi_comm_, model_));
+  return std::move(output);
+}
+
+template <int dim>
+GN_dispersive_flux_generator<dim>::GN_dispersive_flux_generator(
+  const MPI_Comm *const mpi_comm_,
+  const explicit_hdg_model<dim, explicit_nswe> *const model_)
+  : comm(mpi_comm_), model(model_)
+{
+  init_components();
+}
+
+template <int dim>
+GN_dispersive_flux_generator<dim>::~GN_dispersive_flux_generator()
+{
+  free_components();
+}
+
+template <int dim>
+void GN_dispersive_flux_generator<dim>::init_components()
+{
+  VecCreateMPI(*(this->comm),
+               this->model->n_global_DOFs_rank_owns,
+               this->model->n_global_DOFs_on_all_ranks,
+               &face_count);
+  VecSetOption(face_count, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+  VecSet(face_count, 0);
+
+  VecCreateMPI(*(this->comm),
+               this->model->n_global_DOFs_rank_owns,
+               this->model->n_global_DOFs_on_all_ranks,
+               &prim_vars_flux);
+  VecSetOption(prim_vars_flux, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+
+  VecCreateMPI(*(this->comm),
+               this->model->n_global_DOFs_rank_owns,
+               this->model->n_global_DOFs_on_all_ranks,
+               &V_x_sum);
+  VecSetOption(V_x_sum, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+
+  VecCreateMPI(*(this->comm),
+               this->model->n_global_DOFs_rank_owns,
+               this->model->n_global_DOFs_on_all_ranks,
+               &V_y_sum);
+  VecSetOption(V_y_sum, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+}
+
+template <int dim>
+void GN_dispersive_flux_generator<dim>::free_components()
+{
+  VecDestroy(&face_count);
+  VecDestroy(&prim_vars_flux);
+  VecDestroy(&V_x_sum);
+  VecDestroy(&V_y_sum);
+}
+
+template <int dim>
+void GN_dispersive_flux_generator<dim>::push_to_global_vec(
+  Vec &the_vec,
+  const std::vector<int> &rows,
+  const std::vector<double> &vals,
+  const InsertMode &mode)
+{
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+  VecSetValues(the_vec, rows.size(), rows.data(), vals.data(), mode);
+}
+
+template <int dim>
+void GN_dispersive_flux_generator<dim>::finish_assembly(Vec &the_vec)
+{
+  VecAssemblyBegin(the_vec);
+  VecAssemblyEnd(the_vec);
+}
+
+template <int dim>
+std::vector<double>
+GN_dispersive_flux_generator<dim>::get_local_part_of_global_vec(
+  Vec &petsc_vec, const bool &destroy_petsc_vec)
+{
+  IS from, to;
+  Vec local_petsc_vec;
+  VecScatter scatter;
+  VecCreateSeq(
+    PETSC_COMM_SELF, this->model->n_local_DOFs_on_this_rank, &local_petsc_vec);
+  ISCreateGeneral(PETSC_COMM_SELF,
+                  this->model->n_local_DOFs_on_this_rank,
+                  this->model->scatter_from.data(),
+                  PETSC_COPY_VALUES,
+                  &from);
+  ISCreateGeneral(PETSC_COMM_SELF,
+                  this->model->n_local_DOFs_on_this_rank,
+                  this->model->scatter_to.data(),
+                  PETSC_COPY_VALUES,
+                  &to);
+  VecScatterCreate(petsc_vec, from, local_petsc_vec, to, &scatter);
+  VecScatterBegin(
+    scatter, petsc_vec, local_petsc_vec, INSERT_VALUES, SCATTER_FORWARD);
+  VecScatterEnd(
+    scatter, petsc_vec, local_petsc_vec, INSERT_VALUES, SCATTER_FORWARD);
+  double *local_exact_pointer;
+  VecGetArray(local_petsc_vec, &local_exact_pointer);
+  std::vector<double> local_vec(local_exact_pointer,
+                                local_exact_pointer +
+                                  this->model->n_local_DOFs_on_this_rank);
+  {
+    VecRestoreArray(local_petsc_vec, &local_exact_pointer);
+    VecDestroy(&local_petsc_vec);
+    ISDestroy(&from);
+    ISDestroy(&to);
+    VecScatterDestroy(&scatter);
+    if (destroy_petsc_vec)
+      VecDestroy(&petsc_vec);
+  }
+  return local_vec;
+}
+
+//
+//
+//
+//
+//
+
 template <int dim, template <int> class ModelType>
 generic_solver<dim, ModelType>::generic_solver(
   const MPI_Comm *const mpi_comm_,

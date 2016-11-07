@@ -754,7 +754,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       model0.init_mesh_containers();
       model0.set_boundary_indicator();
       model0.count_globals();
-      //      write_grid();
+      write_grid();
       model0.assign_initial_data(rk4_0);
 
       model1.DoF_H_System.distribute_dofs(model1.DG_System);
@@ -841,12 +841,46 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
               solver_update_keys keys_0 =
                 static_cast<solver_update_keys>(update_mat | update_rhs);
               if (i_time == 0 && num_iter == 0)
-                model1.init_solver();
+                model1.init_solver(
+                  &model0); // Flux generator is also initiated here.
               else
-                model1.reinit_solver(keys_0);
+                model1.reinit_solver(
+                  keys_0); // Flux generator is also reinitiated here.
 
               t11 = MPI_Wtime();
-              model1.assemble_globals(keys_0);
+
+              //
+              // The place that we compute average fluxes !
+              //
+              model1.assemble_trace_of_prim_vars(&model0);
+              std::vector<double> local_prim_vars_sum, local_face_count;
+              local_prim_vars_sum.reserve(model0.n_local_DOFs_on_this_rank);
+              local_face_count.reserve(model0.n_local_DOFs_on_this_rank);
+              local_prim_vars_sum =
+                model1.flux_gen->get_local_part_of_global_vec(
+                  (model1.flux_gen->prim_vars_flux));
+              local_face_count = model1.flux_gen->get_local_part_of_global_vec(
+                (model1.flux_gen->face_count));
+              // In the following method, we also compute the derivatives of
+              // primitive variables in elements and assemble the
+              // V_x_flux, V_y_flux.
+              model1.compute_and_sum_grad_prim_vars(
+                &model0, local_prim_vars_sum.data(), local_face_count.data());
+              std::vector<double> local_V_x_flux, local_V_y_flux;
+              local_V_x_flux.reserve(model0.n_local_DOFs_on_this_rank);
+              local_V_y_flux.reserve(model0.n_local_DOFs_on_this_rank);
+              local_V_x_flux = model1.flux_gen->get_local_part_of_global_vec(
+                (model1.flux_gen->V_x_sum));
+              local_V_y_flux = model1.flux_gen->get_local_part_of_global_vec(
+                (model1.flux_gen->V_y_sum));
+              //
+              // We also compute the grad_grad_V in the assemble_globals.
+              // Hence, we need to send model0 and the local_V_x_flux and
+              // local_V_y_flux to this function for computation of the
+              // average flux of grad_V.
+              //
+              model1.assemble_globals(
+                &model0, local_V_x_flux.data(), local_V_y_flux.data(), keys_0);
               model1.solver->finish_assembly(keys_0);
               t12 = MPI_Wtime();
 

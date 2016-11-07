@@ -48,7 +48,8 @@ explicit_nswe<dim>::explicit_nswe(explicit_nswe &&inp_cell) noexcept
     last_step_q(std::move(inp_cell.last_step_q)),
     last_iter_qhat(std::move(inp_cell.last_iter_qhat)),
     last_stage_q(std::move(inp_cell.last_stage_q)),
-    ki_s(std::move(inp_cell.ki_s))
+    ki_s(std::move(inp_cell.ki_s)),
+    ki_hats(std::move(inp_cell.ki_hats))
 {
 }
 
@@ -65,7 +66,9 @@ explicit_nswe<dim>::explicit_nswe(
     last_iter_qhat((dim + 1) * this->n_faces * this->n_face_bases, 1),
     last_stage_q((dim + 1) * this->n_cell_bases, 1),
     ki_s(time_integrator->order,
-         eigen3mat::Zero((dim + 1) * this->n_cell_bases, 1))
+         eigen3mat::Zero((dim + 1) * this->n_cell_bases, 1)),
+    ki_hats(time_integrator->order,
+            eigen3mat::Zero((dim + 1) * this->n_faces * this->n_face_bases, 1))
 {
 }
 
@@ -89,17 +92,15 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
   */
-  if (at_boundary && (face_center[0] < 0.01 || face_center[0] > 39.99))
+  if (at_boundary && (face_center[0] < -9.99 || face_center[0] > 9.99))
   {
     this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
-    this->dof_names_on_faces[i_face][2] = 0;
   }
   else if (at_boundary)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
-    this->dof_names_on_faces[i_face][2] = 0;
   }
   // End of example 1
   // Paper 3 - Example 2
@@ -148,7 +149,6 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
   {
     this->BCs[i_face] = GenericCell<dim>::BC::not_set;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
-    this->dof_names_on_faces[i_face][2] = 0;
   }
 }
 
@@ -198,33 +198,12 @@ void explicit_nswe<dim>::assign_initial_data()
 }
 
 template <int dim>
-void explicit_nswe<dim>::set_previous_step_results(eigen3mat *last_step_q_)
+void explicit_nswe<dim>::set_previous_step_results(
+  const explicit_gn_dispersive<dim> *const src_cell)
 {
-  last_step_q = std::move(*last_step_q_);
+  //  last_step_q = std::move(*last_step_q_);
+  last_step_q = src_cell->last_step_q;
 }
-
-template <int dim>
-eigen3mat *explicit_nswe<dim>::get_previous_step_results()
-{
-  return &last_step_q;
-}
-
-/*
-template <int dim>
-void explicit_nswe<dim>::set_previous_step_results1(ResultPacket result_)
-{
-  last_step_q = std::move(*result_.last_q);
-  last_stage_q = last_step_q;
-  last_iter_qhat = std::move(*result_.last_qhat);
-}
-
-template <int dim>
-ResultPacket explicit_nswe<dim>::get_previous_step_results1()
-{
-  ResultPacket result(&last_step_q, &last_iter_qhat);
-  return result;
-}
-*/
 
 template <int dim>
 Eigen::Matrix<double, (dim + 1), dim>

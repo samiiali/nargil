@@ -3,6 +3,9 @@
 #ifndef EXPLICIT_NL_SWE_HPP
 #define EXPLICIT_NL_SWE_HPP
 
+template <int dim>
+struct explicit_gn_dispersive;
+
 /**
  * \ingroup input_data_group
  */
@@ -165,8 +168,8 @@ struct explicit_nswe_qis_func_class
     double x0 = x[0];
     double y0 = x[1];
     double t0 = t;
-    qs[0] = 5. + sin(4. * x[0]);
-    qs[1] = sin(x0 - t);
+    qs[0] = 1. + 0.2 * sin(4 * x0 + t);
+    qs[1] = cos(x[0] - t);
     //    qs[1] = 1. / alpha * g * (-pow(sin(x0 - t), 2) / 2. - 5. * sin(x0 -
     //    t));
     qs[2] = 0.;
@@ -373,10 +376,12 @@ struct explicit_nswe_L_func_class
     // End of Green-Naghdi example
     // Example zero of Green-Naghdi
     double g = 9.81;
-    L[0] = -cos(t - 4 * x0);
-    L[1] = (4 * cos(t - 4 * x0) * (-9 + g * pow(5 - sin(t - 4 * x0), 3))) /
-           pow(-5 + sin(t - 4 * x0), 2);
-    L[2] = (-36 * cos(t - 4 * x0)) / pow(-5 + sin(t - 4 * x0), 2);
+    L[0] = cos(t + 4 * x0) / 5. + sin(t - x0);
+    L[1] = -sin(t - x0) + (5 * sin(2 * (t - x0))) / (5 + sin(t + 4 * x0)) +
+           cos(t + 4 * x0) *
+             ((4 * g) / 5. + (4 * g * sin(t + 4 * x0)) / 25. -
+              (20 * pow(cos(t - x0), 2)) / pow(5 + sin(t + 4 * x0), 2));
+    L[2] = 0.;
     // End of example zero of Green-Naghdi
     // Dissertation example 2
     /*
@@ -712,18 +717,8 @@ struct explicit_nswe : public GenericCell<dim>
   /**
    *
    */
-  void set_previous_step_results(eigen3mat *last_step_q);
-
-  /**
-   *
-   */
-  eigen3mat *get_previous_step_results();
-
-  /*
-  void set_previous_step_results1(ResultPacket result_);
-
-  ResultPacket get_previous_step_results1();
-  */
+  void
+  set_previous_step_results(const explicit_gn_dispersive<dim> *const src_cell);
 
   /**
    *
@@ -857,6 +852,7 @@ struct explicit_nswe : public GenericCell<dim>
   eigen3mat last_stage_q;
 
   std::vector<eigen3mat> ki_s;
+  std::vector<eigen3mat> ki_hats;
 };
 
 #include "explicit_nswe.cpp"

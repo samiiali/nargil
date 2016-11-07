@@ -51,12 +51,24 @@ struct hdg_model_with_explicit_rk : public generic_model<dim, CellType>
   void count_globals();
   void assign_initial_data(const explicit_RKn<4, original_RK> &);
 
-  void assemble_globals(const solver_update_keys &keys_);
+  void assemble_trace_of_prim_vars(
+    const explicit_hdg_model<dim, explicit_nswe> *const src_model);
+  void compute_and_sum_grad_prim_vars(
+    const explicit_hdg_model<dim, explicit_nswe> *const src_model,
+    const double *const local_h_sums,
+    const double *const local_face_count);
+
+  void assemble_globals(
+    const explicit_hdg_model<dim, explicit_nswe> *const src_model,
+    const double *const local_V_x_sums,
+    const double *const local_V_y_sums,
+    const solver_update_keys &keys_);
   bool check_for_next_iter(double *const local_uhat);
   bool compute_internal_dofs(double *const local_uhat);
   void push_cell_unknown_to_local_vector(const double &val,
                                          const unsigned &idx);
-  void init_solver();
+  void
+  init_solver(const explicit_hdg_model<dim, explicit_nswe> *const src_model);
   void reinit_solver(const solver_update_keys &update_keys_);
 
   template <template <int> class srcCellType,
@@ -66,6 +78,7 @@ struct hdg_model_with_explicit_rk : public generic_model<dim, CellType>
 
   explicit_RKn<4, original_RK> *time_integrator;
   std::unique_ptr<generic_solver<dim, CellType> > solver;
+  std::unique_ptr<GN_dispersive_flux_generator<dim> > flux_gen;
 };
 
 #include "hdg_model_with_explicit_rk.cpp"
