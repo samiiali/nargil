@@ -22,6 +22,10 @@ explicit_gn_dispersive_grad_grad_b_class<dim, dealii::Tensor<2, dim> >
   explicit_gn_dispersive<dim>::grad_grad_b_func{};
 
 template <int dim>
+explicit_gn_dispersive_grad_grad_grad_b_class<dim, dealii::Tensor<3, dim> >
+  explicit_gn_dispersive<dim>::grad_grad_grad_b_func{};
+
+template <int dim>
 explicit_gn_dispersive_qis_class<dim, dealii::Tensor<1, dim + 1> >
   explicit_gn_dispersive<dim>::explicit_gn_dispersive_qs{};
 
@@ -240,6 +244,8 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
   }
   */
 
+  // Here, we have projected the argument of the gradients corresponding to
+  // the R1 and R2 to the element bases.
   eigen3mat L11_arg = eigen3mat::Zero(n_cell_bases, 1);
   {
     const std::vector<double> &cell_quad_weights =
@@ -320,29 +326,44 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
         }
       }
 
+      dealii::Tensor<2, dim> grad_grad_b =
+        grad_grad_b_func.value(quad_pt_locs[i_quad], quad_pt_locs[i_quad]);
+      dealii::Tensor<3, dim> grad_grad_grad_b =
+        grad_grad_grad_b_func.value(quad_pt_locs[i_quad], quad_pt_locs[i_quad]);
+
       double h_h = (NT * last_stage_q.block(0, 0, n_cell_bases, 1))(0, 0);
       double hv1_h =
         (NT * last_stage_q.block(n_cell_bases, 0, n_cell_bases, 1))(0, 0);
       double hv2_h =
         (NT * last_stage_q.block(2 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
-      Eigen::Matrix<double, 2, 1> grad_h_h =
-        grad_NT * last_stage_q.block(0, 0, n_cell_bases, 1);
-      Eigen::Matrix<double, 2, 1> grad_hv1_h =
-        grad_NT * last_stage_q.block(n_cell_bases, 0, n_cell_bases, 1);
-      Eigen::Matrix<double, 2, 1> grad_hv2_h =
-        grad_NT * last_stage_q.block(2 * n_cell_bases, 0, n_cell_bases, 1);
       double v1 = hv1_h / h_h;
       double v2 = hv2_h / h_h;
-      double v1_x = (grad_hv1_h(0, 0) - v1 * grad_h_h(0, 0)) / h_h;
-      double v1_y = (grad_hv1_h(1, 0) - v1 * grad_h_h(1, 0)) / h_h;
-      double v2_x = (grad_hv2_h(0, 0) - v2 * grad_h_h(0, 0)) / h_h;
-      double v2_y = (grad_hv2_h(1, 0) - v2 * grad_h_h(1, 0)) / h_h;
 
+      //
+      // This is a stupid way of computing the derivatives h, v1, v2
+      //
+      // Eigen::Matrix<double, 2, 1> grad_h_h =
+      //   grad_NT * last_stage_q.block(0, 0, n_cell_bases, 1);
+      // Eigen::Matrix<double, 2, 1> grad_hv1_h =
+      //   grad_NT * last_stage_q.block(n_cell_bases, 0, n_cell_bases, 1);
+      // Eigen::Matrix<double, 2, 1> grad_hv2_h =
+      //   grad_NT * last_stage_q.block(2 * n_cell_bases, 0, n_cell_bases,
+      //   1);
+      // double v1_x = (grad_hv1_h(0, 0) - v1 * grad_h_h(0, 0)) / h_h;
+      // double v1_y = (grad_hv1_h(1, 0) - v1 * grad_h_h(1, 0)) / h_h;
+      // double v2_x = (grad_hv2_h(0, 0) - v2 * grad_h_h(0, 0)) / h_h;
+      // double v2_y = (grad_hv2_h(1, 0) - v2 * grad_h_h(1, 0)) / h_h;
+
+      //
+      // This is the smarter way of computing the derivatives of h, V
       // Here, we get the values of V_x, V_y, V_xx, V_yy, V_xy for later
       // computations.
+      //
       double h = (NT * last_stage_q.block(0, 0, n_cell_bases, 1))(0, 0);
       double hx = (NT * grad_h.block(0, 0, n_cell_bases, 1))(0, 0);
       double hy = (NT * grad_h.block(n_cell_bases, 0, n_cell_bases, 1))(0, 0);
+      Eigen::Matrix<double, 2, 1> grad_h_at_quad;
+      grad_h_at_quad << hx, hy;
       double v1x = (NT * grad_V.block(0, 0, n_cell_bases, 1))(0, 0);
       double v1y = (NT * grad_V.block(n_cell_bases, 0, n_cell_bases, 1))(0, 0);
       double v2x =
@@ -354,23 +375,75 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
         (NT * grad_grad_V.block(n_cell_bases, 0, n_cell_bases, 1))(0, 0);
       double v1yx =
         (NT * grad_grad_V.block(2 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
-      double v1yy = (NT * grad_grad_V(n_cell_bases, 0, n_cell_bases, 1))(0, 0);
+      double v1yy =
+        (NT * grad_grad_V.block(3 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
+      double v2xx =
+        (NT * grad_grad_V.block(4 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
+      double v2xy =
+        (NT * grad_grad_V.block(5 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
+      double v2yx =
+        (NT * grad_grad_V.block(6 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
+      double v2yy =
+        (NT * grad_grad_V.block(7 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
+      double bxx = grad_grad_b[0][0];
+      double bxy = grad_grad_b[1][0];
+      double byx = grad_grad_b[0][1];
+      double byy = grad_grad_b[1][1];
+      double bxxx = grad_grad_grad_b[0][0][0];
+      double bxxy = grad_grad_grad_b[0][0][1];
+      double bxyx = grad_grad_grad_b[0][1][0];
+      double bxyy = grad_grad_grad_b[0][1][1];
+      double byxx = grad_grad_grad_b[1][0][0];
+      double byxy = grad_grad_grad_b[1][0][1];
+      double byyx = grad_grad_grad_b[1][1][0];
+      double byyy = grad_grad_grad_b[1][1][1];
+      // Now we compute the first term in the R1(W), which is
+      // grad(h^3 W). It will have two components.
+      double grad_W_in_R1_1 =
+        3. * h * h * hx * (-v1x * v2y + v2x * v1y + (v1x + v2y) * (v1x + v2y)) +
+        h * h * h * (-v1xx * v2y + v2xx * v1y +
+                     2 * (v1x + v2y) * (v1xx + v2yx) - v1x * v2yx + v2x * v1yx);
+      double grad_W_in_R1_2 =
+        3. * h * h * hy * (-v1x * v2y + v2x * v1y + (v1x + v2y) * (v1x + v2y)) +
+        h * h * h * (-v1xy * v2y + v2xy * v1y +
+                     2 * (v1x + v2y) * (v1xy + v2yy) - v1x * v2yy + v2x * v1yy);
+      // Next, we obtain the first term in R2(W), which is
+      // grad(h^2 W). It will have two components as well.
+      double grad_W_in_R2_1 =
+        2 * h * hx * (v1 * v1 * bxx + 2 * v1 * v2 * bxy + v2 * v2 * byy) +
+        h * h * (2 * v1 * v1x * bxx + v1 * v1 * bxxx + 2 * v1x * v2 * bxy +
+                 2 * v1 * v2x * bxy + 2 * v1 * v2 * bxyx + 2 * v2 * v2x * byy +
+                 v2 * v2 * byyx);
+      double grad_W_in_R2_2 =
+        2 * h * hy * (v1 * v1 * bxx + 2 * v1 * v2 * bxy + v2 * v2 * byy) +
+        h * h * (2 * v1 * v1y * bxx + v1 * v1 * bxxy + 2 * v1y * v2 * bxy +
+                 2 * v1 * v2y * bxy + 2 * v1 * v2 * bxyy + 2 * v2 * v2y * byy +
+                 v2 * v2 * byyy);
+
+      Eigen::Matrix<double, 2, 1> L11_arg_new;
+      L11_arg_new << 2. / 3. * grad_W_in_R1_1 + 1. / 2. * grad_W_in_R2_1,
+        2. / 3. * grad_W_in_R1_2 + 1. / 2. * grad_W_in_R2_2;
+      // Now we compare this with the analytical solution and the results
+      // from L11_arg.
+
+      // Eigen::Matrix<double, 2, 1> grad_L11_arg = grad_NT * L11_arg;
+      // std::cout << L11_arg2(0, 0) << " " << grad_L11_arg(0, 0) <<
+      // std::endl;
+      // std::cout << grad_h_h << " " << grad_h << std::endl;
 
       Eigen::Matrix<double, dim, 1> L01_at_quad, grad_b_at_quad, L10_at_quad;
       dealii::Tensor<1, dim> L01_at_quad_tensor =
-        explicit_gn_dispersive_L.value(quad_pt_locs[i_quad],
-                                       quad_pt_locs[i_quad],
-                                       time_integrator->get_current_time() +
-                                         time_integrator->get_cih());
+        explicit_gn_dispersive_L.value(
+          quad_pt_locs[i_quad],
+          quad_pt_locs[i_quad],
+          time_integrator->get_current_stage_time());
       dealii::Tensor<1, dim> grad_b_at_quad_tensor =
         explicit_nswe_grad_b_func.value(quad_pt_locs[i_quad],
                                         quad_pt_locs[i_quad]);
-      dealii::Tensor<1, dim> L10_at_quad_tensor = g_h_grad_zeta_func.value(
-        quad_pt_locs[i_quad],
-        quad_pt_locs[i_quad],
-        time_integrator->get_current_time() + time_integrator->get_cih());
-      dealii::Tensor<2, dim> grad_grad_b =
-        grad_grad_b_func.value(quad_pt_locs[i_quad], quad_pt_locs[i_quad]);
+      dealii::Tensor<1, dim> L10_at_quad_tensor =
+        g_h_grad_zeta_func.value(quad_pt_locs[i_quad],
+                                 quad_pt_locs[i_quad],
+                                 time_integrator->get_current_stage_time());
 
       for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
       {
@@ -380,17 +453,22 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       }
 
       /*
+      double x1 = quad_pt_locs[i_quad][0];
+      double t1 = time_integrator->get_current_stage_time();
+      std::cout << ((3 * cos(5 * x1) +
+                     5 * (cos(2 * t1 + 3 * x1) - 2 * sin(t1 - x1))) *
+                    (54 * cos(t1 - x1) + 5 * cos(3 * t1 + 7 * x1) +
+                     9 * cos(t1 + 9 * x1) -
+                     40 * (4 * sin(5 * x1) + 3 * sin(2 * t1 + 3 * x1)))) /
+                     (30. * pow(5 + sin(t1 + 4 * x1), 2))
+                << std::endl;
+      */
+
+      /*
       std::cout << 4 * cos(4. * quad_pt_locs[i_quad][0]) << grad_h_h[0]
                 << std::endl;
       std::cout << 5. + sin(4. * quad_pt_locs[i_quad][0]) - h_h << std::endl;
       */
-
-      double b_11 = grad_grad_b[0][0];
-      double b_12 = grad_grad_b[1][0];
-      double b_21 = grad_grad_b[0][1];
-      double b_22 = grad_grad_b[1][1];
-      Eigen::Matrix<double, 2, 2> grad_grad_b_at_quad;
-      grad_grad_b_at_quad << b_11, b_12, b_21, b_22;
 
       A001 += cell_JxW[i_quad] * N_vec * N_vec.transpose();
       A01 += cell_JxW[i_quad] * N_vec * N_vec.transpose() +
@@ -404,22 +482,35 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
               N_vec.transpose();
       L01 += cell_JxW[i_quad] * N_vec * L01_at_quad;
 
-      L10 += cell_JxW[i_quad] / alpha * gravity * h_h * N_vec *
-             (grad_h_h + grad_b_at_quad);
-      //      L10 += cell_JxW[i_quad] * N_vec * L10_at_quad;
+      // L10 += cell_JxW[i_quad] / alpha * gravity * h_h * N_vec *
+      //        (grad_h_h + grad_b_at_quad);
+      // L10 += cell_JxW[i_quad] * N_vec * L10_at_quad;
+      // L11 += cell_JxW[i_quad] * N_vec * grad_NT * L11_arg;
 
-      //      L11 += cell_JxW[i_quad] * N_vec * grad_NT * L11_arg;
+      L10 += cell_JxW[i_quad] / alpha * gravity * h_h * N_vec *
+             (grad_h_at_quad + grad_b_at_quad);
+
+      //      L11 += cell_JxW[i_quad] * N_vec * L11_arg_new;
+      //      L12 += cell_JxW[i_quad] *
+      //             (h_h * h_h * (-v1x * v2y + v2x * v1y + (v1x + v2y) * (v1x +
+      //             v2y)) +
+      //              h_h * (v1 * v1 * bxx + v1 * v2 * bxy + v2 * v1 * byx +
+      //                     v2 * v2 * byy)) *
+      //             N_vec * grad_b_at_quad;
+
+      /*
       L11 += cell_JxW[i_quad] *
              (-2. / 3. * h_h * h_h * h_h *
                 (-v1_x * v2_y + v2_x * v1_y + (v1_x + v2_y) * (v1_x + v2_y)) -
-              1. / 2. * h_h * h_h * (v1 * v1 * b_11 + v1 * v2 * b_12 +
-                                     v2 * v1 * b_21 + v2 * v2 * b_22)) *
+              1. / 2. * h_h * h_h * (v1 * v1 * bxx + v1 * v2 * bxy +
+                                     v2 * v1 * byx + v2 * v2 * byy)) *
              div_N;
       L12 += cell_JxW[i_quad] * (h_h * h_h * (-v1_x * v2_y + v2_x * v1_y +
                                               (v1_x + v2_y) * (v1_x + v2_y)) +
-                                 h_h * (v1 * v1 * b_11 + v1 * v2 * b_12 +
-                                        v2 * v1 * b_21 + v2 * v2 * b_22)) *
+                                 h_h * (v1 * v1 * bxx + v1 * v2 * bxy +
+                                        v2 * v1 * byx + v2 * v2 * byy)) *
              N_vec * grad_b_at_quad;
+      */
     }
   }
 
@@ -497,49 +588,86 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
             N_at_projected_quad_point[i_poly];
         }
       }
+      //
       // Now, we get the value of h, hv1, hv2 at the current quad point.
-      std::vector<double> qs_at_iquad(dim + 1);
+      //
+      // std::vector<double> qs_at_iquad(dim + 1);
+      // for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
+      //   qs_at_iquad[i_nswe_dim] =
+      //     (Nj.transpose() *
+      //      last_stage_q.block(i_nswe_dim * n_cell_bases, 0, n_cell_bases,
+      //      1))(
+      //       0, 0);
+      // double h_h = qs_at_iquad[0];
+      // double hv1_h = qs_at_iquad[1];
+      // double hv2_h = qs_at_iquad[2];
+      // double v1 = hv1_h / h_h;
+      // double v2 = hv2_h / h_h;
+
+      std::vector<double> avg_prim_flux_at_iquad(dim + 1);
       for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
-        qs_at_iquad[i_nswe_dim] =
-          (Nj.transpose() *
-           last_stage_q.block(i_nswe_dim * n_cell_bases, 0, n_cell_bases, 1))(
-            0, 0);
-      double h_h = qs_at_iquad[0];
-      double hv1_h = qs_at_iquad[1];
-      double hv2_h = qs_at_iquad[2];
-      Eigen::Matrix<double, 2, 1> grad_h_h =
-        grad_NxT_at_face_quads * last_stage_q.block(0, 0, n_cell_bases, 1);
-      Eigen::Matrix<double, 2, 1> grad_hv1_h =
-        grad_NxT_at_face_quads *
-        last_stage_q.block(n_cell_bases, 0, n_cell_bases, 1);
-      Eigen::Matrix<double, 2, 1> grad_hv2_h =
-        grad_NxT_at_face_quads *
-        last_stage_q.block(2 * n_cell_bases, 0, n_cell_bases, 1);
-      double v1 = hv1_h / h_h;
-      double v2 = hv2_h / h_h;
-      double v1_x = (grad_hv1_h(0, 0) - v1 * grad_h_h(0, 0)) / h_h;
-      double v1_y = (grad_hv1_h(1, 0) - v1 * grad_h_h(1, 0)) / h_h;
-      double v2_x = (grad_hv2_h(0, 0) - v2 * grad_h_h(0, 0)) / h_h;
-      double v2_y = (grad_hv2_h(1, 0) - v2 * grad_h_h(1, 0)) / h_h;
+      {
+        int row1 = (i_face * (dim + 1) + i_nswe_dim) * n_face_bases;
+        avg_prim_flux_at_iquad[i_nswe_dim] =
+          (NT_face * avg_prim_vars_flux.block(row1, 0, n_face_bases, 1))(0, 0);
+      }
+      double h_hat = avg_prim_flux_at_iquad[0];
+      double hv1_hat = avg_prim_flux_at_iquad[1];
+      double hv2_hat = avg_prim_flux_at_iquad[2];
+      double v1_hat = hv1_hat / h_hat;
+      double v2_hat = hv2_hat / h_hat;
+
+      //
+      // Next, we get the gradient of h_h by a stupid method.
+      //
+      // Eigen::Matrix<double, 2, 1> grad_h_h =
+      //   grad_NxT_at_face_quads * last_stage_q.block(0, 0, n_cell_bases,
+      //   1);
+      // Eigen::Matrix<double, 2, 1> grad_hv1_h =
+      //   grad_NxT_at_face_quads *
+      //   last_stage_q.block(n_cell_bases, 0, n_cell_bases, 1);
+      // Eigen::Matrix<double, 2, 1> grad_hv2_h =
+      //   grad_NxT_at_face_quads *
+      //   last_stage_q.block(2 * n_cell_bases, 0, n_cell_bases, 1);
+      // double v1_x = (grad_hv1_h(0, 0) - v1 * grad_h_h(0, 0)) / h_h;
+      // double v1_y = (grad_hv1_h(1, 0) - v1 * grad_h_h(1, 0)) / h_h;
+      // double v2_x = (grad_hv2_h(0, 0) - v2 * grad_h_h(0, 0)) / h_h;
+      // double v2_y = (grad_hv2_h(1, 0) - v2 * grad_h_h(1, 0)) / h_h;
+
+      double hx = (Nj.transpose() * grad_h.block(0, 0, n_cell_bases, 1))(0, 0);
+      double hy =
+        (Nj.transpose() * grad_h.block(n_cell_bases, 0, n_cell_bases, 1))(0, 0);
+      Eigen::Matrix<double, 2, 1> grad_h_at_quad;
+      grad_h_at_quad << hx, hy;
 
       Eigen::Matrix<double, dim, 1> grad_b_at_quad;
       dealii::Tensor<1, dim> grad_b_at_quad_tensor =
         explicit_nswe_grad_b_func.value(face_quad_pt_locs[i_face_quad],
                                         face_quad_pt_locs[i_face_quad]);
-      dealii::Tensor<2, dim> grad_grad_b = grad_grad_b_func.value(
-        face_quad_pt_locs[i_face_quad], face_quad_pt_locs[i_face_quad]);
       for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
         grad_b_at_quad(i_dim, 0) = grad_b_at_quad_tensor[i_dim];
-      double b_11 = grad_grad_b[0][0];
-      double b_12 = grad_grad_b[1][0];
-      double b_21 = grad_grad_b[0][1];
-      double b_22 = grad_grad_b[1][1];
+
+      Eigen::Matrix<double, dim, 1> w1_at_quad;
+      dealii::Tensor<1, dim> w1_at_quad_tensor =
+        explicit_gn_dispersive_W1.value(
+          face_quad_pt_locs[i_face_quad],
+          face_quad_pt_locs[i_face_quad],
+          time_integrator->get_current_stage_time());
+      for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
+        w1_at_quad(i_dim, 0) = w1_at_quad_tensor[i_dim];
+
+      // dealii::Tensor<2, dim> grad_grad_b = grad_grad_b_func.value(
+      //   face_quad_pt_locs[i_face_quad], face_quad_pt_locs[i_face_quad]);
+      // double b_11 = grad_grad_b[0][0];
+      // double b_12 = grad_grad_b[1][0];
+      // double b_21 = grad_grad_b[0][1];
+      // double b_22 = grad_grad_b[1][1];
       for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
         normal(i_dim, 0) = normals[i_face_quad](i_dim);
-      dealii::Tensor<1, dim> hVinf_t_tensor = hVinf_t_func.value(
-        face_quad_pt_locs[i_face_quad],
-        face_quad_pt_locs[i_face_quad],
-        time_integrator->get_current_time() + time_integrator->get_cih());
+      dealii::Tensor<1, dim> hVinf_t_tensor =
+        hVinf_t_func.value(face_quad_pt_locs[i_face_quad],
+                           face_quad_pt_locs[i_face_quad],
+                           time_integrator->get_current_stage_time());
       Eigen::Matrix<double, dim, 1> hVinf_t_at_quad;
       hVinf_t_at_quad(0, 0) = hVinf_t_tensor[0];
       hVinf_t_at_quad(1, 0) = hVinf_t_tensor[1];
@@ -548,24 +676,26 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       dealii::Tensor<1, dim> W1_vec_tensor = explicit_gn_dispersive_W1.value(
         face_quad_pt_locs[i_face_quad],
         face_quad_pt_locs[i_face_quad],
-        time_integrator->get_current_time() + time_integrator->get_cih());
+        time_integrator->get_current_stage_time());
       W1_val_vec(0, 0) = W1_vec_tensor[0];
       W1_val_vec(1, 0) = W1_vec_tensor[1];
 
-      double tau_on_face = -2.E4;
+      double tau_on_face = -200.;
 
       D01 += tau_on_face * face_JxW[i_face_quad] * N_vec * N_vec.transpose();
       C01_on_face +=
-        face_JxW[i_face_quad] / h_h * Nj * normal.transpose() * NT_face_vec;
+        face_JxW[i_face_quad] / h_hat * Nj * normal.transpose() * NT_face_vec;
       C02_on_face += tau_on_face * face_JxW[i_face_quad] * N_vec * NT_face_vec +
-                     3. / 2. * face_JxW[i_face_quad] * h_h * N_vec * normal *
+                     3. / 2. * face_JxW[i_face_quad] * h_hat * N_vec * normal *
                        grad_b_at_quad.transpose() * NT_face_vec;
+      /*
       L21 += face_JxW[i_face_quad] *
              (2. / 3. * h_h * h_h * h_h *
                 (-v1_x * v2_y + v2_x * v1_y + (v1_x + v2_y) * (v1_x + v2_y)) +
               1. / 2. * h_h * h_h * (v1 * v1 * b_11 + v1 * v2 * b_12 +
                                      v2 * v1 * b_21 + v2 * v2 * b_22)) *
              N_vec * normal;
+      */
 
       if (this->BCs[i_face] == GenericCell<dim>::BC::not_set)
       {
@@ -580,9 +710,14 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       {
         E31_on_face -=
           face_JxW[i_face_quad] * NT_face_vec.transpose() * NT_face_vec;
+
+        //        L31_on_face +=
+        //          face_JxW[i_face_quad] * NT_face_vec.transpose() *
+        //          w1_at_quad;
+
         L31_on_face +=
           face_JxW[i_face_quad] * NT_face_vec.transpose() *
-          (1. / alpha * gravity * h_h * (grad_h_h + grad_b_at_quad) -
+          (1. / alpha * gravity * h_hat * (grad_h_at_quad + grad_b_at_quad) -
            hVinf_t_at_quad);
       }
       if (this->BCs[i_face] == GenericCell<dim>::BC::solid_wall)
@@ -593,13 +728,13 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
             normal.transpose() * N_vec.transpose();
         E31_on_face +=
           face_JxW[i_face_quad] * NT_face_vec.transpose() * NT_face_vec;
-        L31_on_face += face_JxW[i_face_quad] / alpha * gravity * h_h *
+        L31_on_face += face_JxW[i_face_quad] / alpha * gravity * h_hat *
                        NT_face_vec.transpose() * normal * normal.transpose() *
-                       (grad_h_h + grad_b_at_quad);
+                       (grad_h_at_quad + grad_b_at_quad);
       }
       if (this->BCs[i_face] == GenericCell<dim>::BC::in_out_BC)
       {
-        double vn = v1 * normal(0, 0) + v2 * normal(1, 0);
+        double vn = v1_hat * normal(0, 0) + v2_hat * normal(1, 0);
         double vn_pls = (vn > 0) ? vn : 0.;
         double vn_neg = (vn < 0) ? vn : 0.;
         double vn_abs = std::abs(vn);
@@ -620,10 +755,10 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
                        NT_face_vec.transpose() * NT_face_vec;
         L31_on_face +=
           vn_neg * face_JxW[i_face_quad] * NT_face_vec.transpose() *
-            (1. / alpha * gravity * h_h * (grad_h_h + grad_b_at_quad) -
+            (1. / alpha * gravity * h_hat * (grad_h_at_quad + grad_b_at_quad) -
              hVinf_t_at_quad) -
           vn_pls * face_JxW[i_face_quad] * NT_face_vec.transpose() * 1. /
-            alpha * gravity * h_h * (grad_h_h + grad_b_at_quad);
+            alpha * gravity * h_hat * (grad_h_at_quad + grad_b_at_quad);
       }
     }
     C02.block(
@@ -740,12 +875,12 @@ void explicit_gn_dispersive<dim>::assemble_globals(
       {
         mtl::vec::dense_vector<dealii::Tensor<1, dim> > w1_hat_mtl;
         this->reinit_face_fe_vals(i_face);
-        this->project_essential_BC_to_face(explicit_gn_dispersive_W1,
-                                           *(this->the_face_basis),
-                                           face_quad_weights,
-                                           w1_hat_mtl,
-                                           time_integrator->get_current_time() +
-                                             time_integrator->get_cih());
+        this->project_essential_BC_to_face(
+          explicit_gn_dispersive_W1,
+          *(this->the_face_basis),
+          face_quad_weights,
+          w1_hat_mtl,
+          time_integrator->get_current_stage_time());
         for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
           for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
             w1_hat((i_face * dim + i_dim) * this->n_face_bases + i_poly) =
@@ -808,7 +943,7 @@ double explicit_gn_dispersive<dim>::compute_internal_dofs(
 
   W2 = last_step_q.block(0, 0, this->n_cell_bases, 1);
   W1 = last_step_q.block(this->n_cell_bases, 0, dim * this->n_cell_bases, 1);
-  //  W1 = stored_W1;
+  W1 = stored_W1;
 
   eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(W2);
   eigen3mat nodal_q(dim * this->n_cell_bases, 1);
@@ -868,15 +1003,16 @@ void explicit_gn_dispersive<dim>::internal_vars_errors(const eigen3mat &u_vec,
     time_integrator->get_current_time() + time_integrator->get_h() / 2.);
   */
 
+  /*
   double error_u2 =
     this->get_error_in_cell(explicit_gn_dispersive_qs,
                             last_step_q,
                             time_integrator->get_current_time());
+  */
 
-  /*
   double error_u2 = this->get_error_in_cell(
     explicit_gn_dispersive_W1, stored_W1, time_integrator->get_current_time());
-  */
+
   //  double error_q2 = this->get_error_in_cell(
   //    explicit_gn_dispersive_W2, u_vec, time_integrator->get_current_time());
   u_error += error_u2;
@@ -921,8 +1057,7 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
                               *(this->the_elem_basis),
                               quad_weights,
                               exact_h_t_mtl,
-                              time_integrator->get_current_time() +
-                                time_integrator->get_cih());
+                              time_integrator->get_current_stage_time());
   for (unsigned i_poly = 0; i_poly < this->n_cell_bases; ++i_poly)
     exact_h_t(i_poly) = exact_h_t_mtl[i_poly];
 
@@ -931,12 +1066,12 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
   {
     mtl::vec::dense_vector<dealii::Tensor<1, dim> > W1_hat_mtl;
     this->reinit_face_fe_vals(i_face);
-    this->project_essential_BC_to_face(explicit_gn_dispersive_W1,
-                                       *(this->the_face_basis),
-                                       face_quad_weights,
-                                       W1_hat_mtl,
-                                       time_integrator->get_current_time() +
-                                         time_integrator->get_cih());
+    this->project_essential_BC_to_face(
+      explicit_gn_dispersive_W1,
+      *(this->the_face_basis),
+      face_quad_weights,
+      W1_hat_mtl,
+      time_integrator->get_current_stage_time());
     for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
       for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
         exact_W1_hat((i_face * dim + i_dim) * this->n_face_bases + i_poly) =
@@ -960,7 +1095,7 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
     }
   }
 
-  eigen3mat W1 =
+  eigen3mat W1 = stored_W1 =
     mat1_lu.solve(L01 + L10 + L11 + L12 + L21 + mat2 * solved_W1_hat);
   //  eigen3mat W1 = stored_W1 = mat1_lu.solve(L01 + L10 + mat2 *
   //  solved_W1_hat);
@@ -971,12 +1106,14 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
   eigen3mat ki = eigen3mat::Zero((dim + 1) * this->n_cell_bases, 1);
 
   ki.block(0, 0, this->n_cell_bases, 1) = exact_h_t;
-  /*
+
   ki.block(this->n_cell_bases, 0, 2 * this->n_cell_bases, 1) =
     A001_lu.solve(L10) - W1;
-  */
+
+  /*
   ki.block(this->n_cell_bases, 0, this->n_cell_bases, 1) =
     (A001_lu.solve(L10) - W1).block(0, 0, this->n_cell_bases, 1);
+  */
   ki_s[time_integrator->get_current_stage() - 1] = ki;
 
   wreck_it_Ralph(A001);
@@ -1013,34 +1150,51 @@ void explicit_gn_dispersive<dim>::ready_for_next_iteration()
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::produce_trace_of_prim_vars(
+void explicit_gn_dispersive<dim>::produce_trace_of_conserved_vars(
   const explicit_nswe<dim> *const src_cell)
 {
   this->reinit_cell_fe_vals();
   last_stage_q = last_step_q + time_integrator->get_sum_h_aij_kj(ki_s);
+
+  std::ios_base::openmode mode1;
+  mode1 = (model->sorry_for_this_boolshit)
+            ? std::ofstream::out | std::ofstream::trunc
+            : std::ofstream::out | std::ofstream::app;
+  model->sorry_for_this_boolshit = false;
+
+  //  std::ofstream prim_vars_test;
+  //  prim_vars_test.open("prim_vars_test.txt", mode1);
 
   std::vector<dealii::Point<dim - 1> > face_quad_points =
     this->face_quad_bundle->get_points();
   const unsigned n_faces = this->n_faces;
   const unsigned n_face_bases = this->n_face_bases;
   const unsigned n_cell_bases = this->n_cell_bases;
-  eigen3mat prim_vars_trace =
+  eigen3mat conserved_vars_trace =
     eigen3mat::Zero((dim + 1) * n_faces * n_face_bases, 1); // <h,\mu>
   std::vector<double> face_count((dim + 1) * n_faces * n_face_bases, 1.);
+
   for (unsigned i_face = 0; i_face < n_faces; ++i_face)
   {
     this->reinit_face_fe_vals(i_face);
     std::vector<double> face_JxW = this->face_quad_fe_vals->get_JxW_values();
     eigen3mat Mat1_face = eigen3mat::Zero(n_face_bases, n_face_bases);
     eigen3mat RHS_h = eigen3mat::Zero(n_face_bases, 1);
-    eigen3mat RHS_v1 = eigen3mat::Zero(n_face_bases, 1);
-    eigen3mat RHS_v2 = eigen3mat::Zero(n_face_bases, 1);
+    eigen3mat RHS_hv1 = eigen3mat::Zero(n_face_bases, 1);
+    eigen3mat RHS_hv2 = eigen3mat::Zero(n_face_bases, 1);
     eigen3mat Nj = eigen3mat::Zero(n_cell_bases, 1);
     eigen3mat N_face = eigen3mat::Zero(n_face_bases, 1);
     std::vector<dealii::Point<dim> > projected_quad_points(
       this->face_quad_bundle->size());
     dealii::QProjector<dim>::project_to_face(
       *(this->face_quad_bundle), i_face, projected_quad_points);
+
+    std::vector<dealii::Point<dim> > face_quad_pt_locs =
+      this->face_quad_fe_vals->get_quadrature_points();
+    std::vector<double> h_h_at_quads(face_quad_pt_locs.size());
+
+    //    prim_vars_test << " face:" << i_face;
+
     for (unsigned i_face_quad = 0; i_face_quad < this->face_quad_bundle->size();
          ++i_face_quad)
     {
@@ -1054,35 +1208,66 @@ void explicit_gn_dispersive<dim>::produce_trace_of_prim_vars(
         Nj(i_poly, 0) = N_at_projected_quad_point[i_poly];
       double h_h =
         (Nj.transpose() * last_stage_q.block(0, 0, n_cell_bases, 1))(0, 0);
+
+      h_h_at_quads[i_face_quad] = h_h;
+
       double hv1_h =
         (Nj.transpose() *
          last_stage_q.block(n_cell_bases, 0, n_cell_bases, 1))(0, 0);
       double hv2_h =
         (Nj.transpose() *
          last_stage_q.block(2 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
-      double v1_h = hv1_h / h_h;
-      double v2_h = hv2_h / h_h;
+
+      //      if (i_face_quad == 0)
+      //        prim_vars_test << " " << h_h << " " << hv1_h << " " << hv2_h;
+
+      //      double v1_h = hv1_h / h_h;
+      //      double v2_h = hv2_h / h_h;
+
       RHS_h += face_JxW[i_face_quad] * h_h * N_face;
-      RHS_v1 += face_JxW[i_face_quad] * v1_h * N_face;
-      RHS_v2 += face_JxW[i_face_quad] * v2_h * N_face;
+      RHS_hv1 += face_JxW[i_face_quad] * hv1_h * N_face;
+      RHS_hv2 += face_JxW[i_face_quad] * hv2_h * N_face;
       Mat1_face += face_JxW[i_face_quad] * N_face * N_face.transpose();
     }
     eigen3ldlt Mat1_face_ldlt = Mat1_face.ldlt();
     eigen3mat h_trace_on_face = std::move(Mat1_face_ldlt.solve(RHS_h));
-    eigen3mat v1_trace_on_face = std::move(Mat1_face_ldlt.solve(RHS_v1));
-    eigen3mat v2_trace_on_face = std::move(Mat1_face_ldlt.solve(RHS_v2));
-    prim_vars_trace.block(
+    eigen3mat hv1_trace_on_face = std::move(Mat1_face_ldlt.solve(RHS_hv1));
+    eigen3mat hv2_trace_on_face = std::move(Mat1_face_ldlt.solve(RHS_hv2));
+
+    //    prim_vars_test << std::endl;
+    //    const Eigen::IOFormat fmt1(
+    //      2, Eigen::DontAlignCols, " ", " ", "", "", "", "");
+    //    prim_vars_test << "Cell: " << this->id_num << " Face: " << i_face << "
+    //    "
+    //                   << h_trace_on_face.format(fmt1) << " | "
+    //                   << hv1_trace_on_face.format(fmt1) << " | "
+    //                   << hv2_trace_on_face.format(fmt1) << std::endl;
+
+    //
+    // Printing some results in the quadrature points //
+    //
+    //    for (auto &&point : face_quad_pt_locs)
+    //      prim_vars_test << point << " ";
+    //    for (auto &&h1 : h_h_at_quads)
+    //      prim_vars_test << h1 << " ";
+    //    prim_vars_test << std::endl;
+
+    conserved_vars_trace.block(
       i_face * (dim + 1) * n_face_bases, 0, n_face_bases, 1) = h_trace_on_face;
-    prim_vars_trace.block(
+    conserved_vars_trace.block(
       i_face * (dim + 1) * n_face_bases + n_face_bases, 0, n_face_bases, 1) =
-      v1_trace_on_face;
-    prim_vars_trace.block(i_face * (dim + 1) * n_face_bases + 2 * n_face_bases,
-                          0,
-                          n_face_bases,
-                          1) = v2_trace_on_face;
+      hv1_trace_on_face;
+    conserved_vars_trace.block(i_face * (dim + 1) * n_face_bases +
+                                 2 * n_face_bases,
+                               0,
+                               n_face_bases,
+                               1) = hv2_trace_on_face;
   }
-  std::vector<double> prim_vars_trace_vec(
-    prim_vars_trace.data(), prim_vars_trace.data() + prim_vars_trace.rows());
+  //  prim_vars_test.close();
+
+  std::vector<double> conserved_vars_trace_vec(conserved_vars_trace.data(),
+                                               conserved_vars_trace.data() +
+                                                 conserved_vars_trace.rows());
 
   std::vector<int> row_nums((dim + 1) * n_faces * n_face_bases, -1);
   for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
@@ -1106,8 +1291,10 @@ void explicit_gn_dispersive<dim>::produce_trace_of_prim_vars(
       }
   }
 
-  model->flux_gen->push_to_global_vec(
-    model->flux_gen->prim_vars_flux, row_nums, prim_vars_trace_vec, ADD_VALUES);
+  model->flux_gen->push_to_global_vec(model->flux_gen->conserved_vars_flux,
+                                      row_nums,
+                                      conserved_vars_trace_vec,
+                                      ADD_VALUES);
   model->flux_gen->push_to_global_vec(
     model->flux_gen->face_count, row_nums, face_count, ADD_VALUES);
 }
@@ -1115,7 +1302,7 @@ void explicit_gn_dispersive<dim>::produce_trace_of_prim_vars(
 template <int dim>
 void explicit_gn_dispersive<dim>::compute_avg_prim_vars_flux(
   const explicit_nswe<dim> *const src_cell,
-  double const *const local_prim_vars_sums,
+  double const *const local_conserved_vars_sums,
   double const *const local_face_count)
 {
   // First, we get trace of h from the local_prim_vars_sums
@@ -1125,7 +1312,7 @@ void explicit_gn_dispersive<dim>::compute_avg_prim_vars_flux(
   for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
   {
     unsigned dof_count = 0;
-    for (unsigned i_dof = 0; i_dof < 1; ++i_dof)
+    for (unsigned i_dof = 0; i_dof < dim + 1; ++i_dof)
       if (src_cell->dof_names_on_faces[i_face][i_dof])
       {
         for (unsigned i_polyface = 0; i_polyface < src_cell->n_face_bases;
@@ -1140,12 +1327,41 @@ void explicit_gn_dispersive<dim>::compute_avg_prim_vars_flux(
           connected_face_count[i_num] = local_face_count[local_dof_number];
           assert(connected_face_count[i_num] > 0);
           avg_prim_vars_flux(i_num, 0) =
-            local_prim_vars_sums[local_dof_number] /
+            local_conserved_vars_sums[local_dof_number] /
             local_face_count[local_dof_number];
         }
         ++dof_count;
       }
   }
+
+  /*
+  for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
+  {
+    unsigned dof_count = 1;
+    for (unsigned i_dof = 1; i_dof < dim + 1; ++i_dof)
+    {
+      if (src_cell->dof_names_on_faces[i_face][i_dof])
+      {
+        for (unsigned i_polyface = 0; i_polyface < src_cell->n_face_bases;
+             ++i_polyface)
+        {
+          unsigned local_dof_number =
+            src_cell->dofs_ID_in_this_rank[i_face][dof_count] *
+              src_cell->n_face_bases +
+            i_polyface;
+          unsigned i_num = i_face * (dim + 1) * src_cell->n_face_bases +
+                           i_dof * src_cell->n_face_bases + i_polyface;
+          connected_face_count[i_num] = local_face_count[local_dof_number];
+          assert(connected_face_count[i_num] > 0);
+          avg_prim_vars_flux(i_num, 0) =
+            local_conserved_vars_sums[local_dof_number] /
+            local_face_count[local_dof_number];
+        }
+        ++dof_count;
+      }
+    }
+  }
+  */
 
   /*
   const std::vector<double> &face_quad_weights =
@@ -1166,13 +1382,12 @@ void explicit_gn_dispersive<dim>::compute_avg_prim_vars_flux(
         exact_q_hat((i_face * (dim + 1) + i_nswe_dim) * this->n_face_bases +
                     i_poly) = qhat_mtl[i_poly][i_nswe_dim];
   }
+  */
 
   std::vector<dealii::Point<dim - 1> > face_quad_points =
     this->face_quad_bundle->get_points();
   const unsigned n_faces = this->n_faces;
   const unsigned n_face_bases = this->n_face_bases;
-  eigen3mat semi_exact_V_trace =
-    eigen3mat::Zero(dim * n_faces * n_face_bases, 1); // <V,\mu>
   for (unsigned i_face = 0; i_face < n_faces; ++i_face)
   {
     this->reinit_face_fe_vals(i_face);
@@ -1192,31 +1407,32 @@ void explicit_gn_dispersive<dim>::compute_avg_prim_vars_flux(
         (N_face.transpose() *
          avg_prim_vars_flux.block(
            i_face * (dim + 1) * n_face_bases, 0, n_face_bases, 1))(0, 0);
-      double exact_hv1_hat =
+      double avg_hv1_hat =
         (N_face.transpose() *
-         exact_q_hat.block(
+         avg_prim_vars_flux.block(
            (i_face * (dim + 1) + 1) * n_face_bases, 0, n_face_bases, 1))(0, 0);
-      double exact_hv2_hat =
+      double avg_hv2_hat =
         (N_face.transpose() *
-         exact_q_hat.block(
+         avg_prim_vars_flux.block(
            (i_face * (dim + 1) + 2) * n_face_bases, 0, n_face_bases, 1))(0, 0);
-      double exact_v1_hat = exact_hv1_hat / avg_h_flux;
-      double exact_v2_hat = exact_hv2_hat / avg_h_flux;
-      RHS_v1 += face_JxW[i_face_quad] * exact_v1_hat * N_face;
-      RHS_v2 += face_JxW[i_face_quad] * exact_v2_hat * N_face;
+      double avg_v1_hat = avg_hv1_hat / avg_h_flux;
+      double avg_v2_hat = avg_hv2_hat / avg_h_flux;
+      RHS_v1 += face_JxW[i_face_quad] * avg_v1_hat * N_face;
+      RHS_v2 += face_JxW[i_face_quad] * avg_v2_hat * N_face;
       Mat1_face += face_JxW[i_face_quad] * N_face * N_face.transpose();
     }
     eigen3ldlt Mat1_face_ldlt = Mat1_face.ldlt();
     eigen3mat v1_trace_on_face = std::move(Mat1_face_ldlt.solve(RHS_v1));
     eigen3mat v2_trace_on_face = std::move(Mat1_face_ldlt.solve(RHS_v2));
-    semi_exact_V_trace.block(i_face * dim * n_face_bases, 0, n_face_bases, 1) =
+    avg_prim_vars_flux.block(
+      (i_face * (dim + 1) + 1) * n_face_bases, 0, n_face_bases, 1) =
       v1_trace_on_face;
-    semi_exact_V_trace.block(
-      i_face * dim * n_face_bases + n_face_bases, 0, n_face_bases, 1) =
+    avg_prim_vars_flux.block(
+      (i_face * (dim + 1) + 2) * n_face_bases, 0, n_face_bases, 1) =
       v2_trace_on_face;
   }
-  */
 
+  /*
   for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
   {
     unsigned dof_count = 1;
@@ -1236,27 +1452,36 @@ void explicit_gn_dispersive<dim>::compute_avg_prim_vars_flux(
           connected_face_count[i_num] = local_face_count[local_dof_number];
           assert(connected_face_count[i_num] > 0);
           avg_prim_vars_flux(i_num, 0) =
-            local_prim_vars_sums[local_dof_number] /
+            local_conserved_vars_sums[local_dof_number] /
             local_face_count[local_dof_number];
         }
         ++dof_count;
       }
-      /*
-      else
-      {
-        for (unsigned i_polyface = 0; i_polyface < src_cell->n_face_bases;
-             ++i_polyface)
-        {
-          unsigned i_num = i_face * (dim + 1) * src_cell->n_face_bases +
-                           i_dof * src_cell->n_face_bases + i_polyface;
-          unsigned j_num = i_face * dim * src_cell->n_face_bases +
-                           (i_dof - 1) * src_cell->n_face_bases + i_polyface;
-          avg_prim_vars_flux(i_num, 0) = semi_exact_V_trace(j_num, 0);
-        }
-      }
-      */
+      //      else
+      //      {
+      //        for (unsigned i_polyface = 0; i_polyface <
+      //        src_cell->n_face_bases;
+      //             ++i_polyface)
+      //        {
+      //          unsigned i_num = i_face * (dim + 1) * src_cell->n_face_bases +
+      //                           i_dof * src_cell->n_face_bases + i_polyface;
+      //          unsigned j_num = i_face * dim * src_cell->n_face_bases +
+      //                           (i_dof - 1) * src_cell->n_face_bases +
+      //                           i_polyface;
+      //          avg_prim_vars_flux(i_num, 0) = semi_exact_V_trace(j_num, 0);
+      //        }
+      //      }
     }
   }
+  */
+  //  std::ofstream prim_vars_test;
+  //  prim_vars_test.open("prim_vars_test.txt",
+  //                      std::ofstream::out | std::ofstream::app);
+  //  const Eigen::IOFormat fmt1(2, Eigen::DontAlignCols, " ", " ", "", "", "",
+  //  "");
+  //  prim_vars_test << "Cell: " << this->id_num << " "
+  //                 << avg_prim_vars_flux.format(fmt1) << std::endl;
+  //  prim_vars_test.close();
 }
 
 template <int dim>
@@ -1268,6 +1493,10 @@ void explicit_gn_dispersive<dim>::compute_prim_vars_derivatives()
   const unsigned n_cell_bases = this->n_cell_bases;
   const unsigned n_face_bases = this->n_face_bases;
   const unsigned elem_quad_size = this->elem_quad_bundle->size();
+
+  //  std::ofstream prim_vars_test;
+  //  prim_vars_test.open("prim_vars_test.txt",
+  //                      std::ofstream::out | std::ofstream::app);
 
   std::vector<dealii::DerivativeForm<1, dim, dim> > d_forms =
     this->cell_quad_fe_vals->get_inverse_jacobians();
@@ -1340,6 +1569,9 @@ void explicit_gn_dispersive<dim>::compute_prim_vars_derivatives()
      * So that we can integrate a function which is defined on the element
      * domain, on face.
      */
+
+    //    prim_vars_test << " face:" << i_face << ":";
+
     std::vector<dealii::Point<dim> > projected_quad_points(
       this->face_quad_bundle->size());
     dealii::QProjector<dim>::project_to_face(
@@ -1397,6 +1629,10 @@ void explicit_gn_dispersive<dim>::compute_prim_vars_derivatives()
           normals[i_face_quad](i_dim);
       }
 
+      //      if (i_face_quad == 0)
+      //        for (auto &&val1 : avg_prim_flux_at_iquad)
+      //          prim_vars_test << val1 << " ";
+
       RHS_grad_h +=
         face_JxW[i_face_quad] * N_vec * normal * avg_prim_flux_at_iquad[0];
       RHS_div_V +=
@@ -1405,6 +1641,10 @@ void explicit_gn_dispersive<dim>::compute_prim_vars_derivatives()
         face_JxW[i_face_quad] * N_ten * normal2 * avg_V_flux_at_iquad;
     } // End of face_i integration loop.
   }   // End of iteration over faces loop.
+
+  //  prim_vars_test << std::endl;
+  //  prim_vars_test.close();
+
   grad_h = eigen3mat::Zero(dim * n_cell_bases, 1);
   div_V = eigen3mat::Zero(n_cell_bases, 1);
   grad_V = eigen3mat::Zero(dim * dim * n_cell_bases, 1);
@@ -1540,6 +1780,19 @@ void explicit_gn_dispersive<dim>::produce_trace_of_grad_prim_vars(
     }
   }
 
+  //  std::ofstream prim_vars_test;
+  //  prim_vars_test.open("prim_vars_test.txt",
+  //                      std::ofstream::out | std::ofstream::app);
+  //  prim_vars_test << "V_x at Cell:" << this->id_num << " ";
+  //  for (auto &&e1 : V_x_trace_vec)
+  //    prim_vars_test << e1 << " ";
+  //  prim_vars_test << std::endl;
+  //  prim_vars_test << "V_y at Cell:" << this->id_num << " ";
+  //  for (auto &&e1 : V_y_trace_vec)
+  //    prim_vars_test << e1 << " ";
+  //  prim_vars_test << std::endl;
+  //  prim_vars_test.close();
+
   model->flux_gen->push_to_global_vec(
     model->flux_gen->V_x_sum, row_nums, V_x_trace_vec, ADD_VALUES);
   model->flux_gen->push_to_global_vec(
@@ -1587,6 +1840,14 @@ void explicit_gn_dispersive<dim>::compute_avg_grad_V_flux(
       }
     }
   }
+  //  std::ofstream prim_vars_test;
+  //  prim_vars_test.open("prim_vars_test.txt",
+  //                      std::ofstream::out | std::ofstream::app);
+  //  const Eigen::IOFormat fmt1(2, Eigen::DontAlignCols, " ", " ", "", "", "",
+  //  "");
+  //  prim_vars_test << "grad_V Trace:" << this->id_num << " "
+  //                 << avg_grad_V_flux.format(fmt1) << std::endl;
+  //  prim_vars_test.close();
 }
 
 template <int dim>

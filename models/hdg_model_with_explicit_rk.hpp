@@ -51,7 +51,7 @@ struct hdg_model_with_explicit_rk : public generic_model<dim, CellType>
   void count_globals();
   void assign_initial_data(const explicit_RKn<4, original_RK> &);
 
-  void assemble_trace_of_prim_vars(
+  void assemble_trace_of_conserved_vars(
     const explicit_hdg_model<dim, explicit_nswe> *const src_model);
   void compute_and_sum_grad_prim_vars(
     const explicit_hdg_model<dim, explicit_nswe> *const src_model,
@@ -79,6 +79,8 @@ struct hdg_model_with_explicit_rk : public generic_model<dim, CellType>
   explicit_RKn<4, original_RK> *time_integrator;
   std::unique_ptr<generic_solver<dim, CellType> > solver;
   std::unique_ptr<GN_dispersive_flux_generator<dim> > flux_gen;
+
+  bool sorry_for_this_boolshit;
 };
 
 #include "hdg_model_with_explicit_rk.cpp"

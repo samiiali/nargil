@@ -39,8 +39,8 @@ void GN_dispersive_flux_generator<dim>::init_components()
   VecCreateMPI(*(this->comm),
                this->model->n_global_DOFs_rank_owns,
                this->model->n_global_DOFs_on_all_ranks,
-               &prim_vars_flux);
-  VecSetOption(prim_vars_flux, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+               &conserved_vars_flux);
+  VecSetOption(conserved_vars_flux, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
 
   VecCreateMPI(*(this->comm),
                this->model->n_global_DOFs_rank_owns,
@@ -59,7 +59,7 @@ template <int dim>
 void GN_dispersive_flux_generator<dim>::free_components()
 {
   VecDestroy(&face_count);
-  VecDestroy(&prim_vars_flux);
+  VecDestroy(&conserved_vars_flux);
   VecDestroy(&V_x_sum);
   VecDestroy(&V_y_sum);
 }

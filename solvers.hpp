@@ -71,7 +71,7 @@ struct GN_dispersive_flux_generator
   get_local_part_of_global_vec(Vec &petsc_vec,
                                const bool &destroy_petsc_vec = false);
 
-  Vec face_count, prim_vars_flux, V_x_sum, V_y_sum;
+  Vec face_count, conserved_vars_flux, V_x_sum, V_y_sum;
   const explicit_hdg_model<dim, explicit_nswe> *const model;
   const MPI_Comm *const comm;
 };

@@ -1019,8 +1019,9 @@ void hdg_model_with_explicit_rk<dim, CellType>::free_containers()
 }
 
 template <int dim, template <int> class CellType>
-void hdg_model_with_explicit_rk<dim, CellType>::assemble_trace_of_prim_vars(
-  const explicit_hdg_model<dim, explicit_nswe> *const src_model)
+void hdg_model_with_explicit_rk<dim, CellType>::
+  assemble_trace_of_conserved_vars(
+    const explicit_hdg_model<dim, explicit_nswe> *const src_model)
 {
   dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
   dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
@@ -1067,7 +1068,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::assemble_trace_of_prim_vars(
       cell->elem_quad_bundle = &(this->manager->elem_quad_bundle);
       cell->face_quad_bundle = &(this->manager->face_quad_bundle);
       static_cast<CellType<dim> *>(cell.get())
-        ->produce_trace_of_prim_vars(static_cast<explicit_nswe<dim> *>(
+        ->produce_trace_of_conserved_vars(static_cast<explicit_nswe<dim> *>(
           src_model->all_owned_cells[i_cell].get()));
       cell->detach_FEValues(p1, p2, p3, p4);
       all_owned_cells[i_cell] = std::move(cell);
@@ -1078,7 +1079,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::assemble_trace_of_prim_vars(
 template <int dim, template <int> class CellType>
 void hdg_model_with_explicit_rk<dim, CellType>::compute_and_sum_grad_prim_vars(
   const explicit_hdg_model<dim, explicit_nswe> *const src_model,
-  const double *const local_h_sums,
+  const double *const local_conserved_vars_sums,
   const double *const local_face_count)
 {
   dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
@@ -1129,7 +1130,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::compute_and_sum_grad_prim_vars(
         ->compute_avg_prim_vars_flux(
           static_cast<explicit_nswe<dim> *>(
             src_model->all_owned_cells[i_cell].get()),
-          local_h_sums,
+          local_conserved_vars_sums,
           local_face_count);
       static_cast<CellType<dim> *>(cell.get())->compute_prim_vars_derivatives();
       static_cast<CellType<dim> *>(cell.get())

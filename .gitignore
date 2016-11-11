@@ -27,3 +27,6 @@
 *.exe
 *.out
 *.app
+
+# The Clion stuff
+.idea

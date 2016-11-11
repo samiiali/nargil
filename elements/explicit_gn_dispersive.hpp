@@ -62,6 +62,40 @@ struct explicit_gn_dispersive_grad_grad_b_class
  * \ingroup input_data_group
  */
 template <int in_point_dim, typename output_type>
+struct explicit_gn_dispersive_grad_grad_grad_b_class
+  : public TimeFunction<in_point_dim, output_type>
+{
+  virtual output_type value(const dealii::Point<in_point_dim> &x,
+                            const dealii::Point<in_point_dim> &,
+                            const double & = 0) const final
+  {
+    dealii::Tensor<3, 2> grad_grad_grad_b;
+    // Example 1 !
+    /*
+    grad_grad_b[0][0] = sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
+    grad_grad_b[0][1] = 2 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
+    grad_grad_b[1][0] = 2 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
+    grad_grad_b[1][1] = 4 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
+    */
+    // End of example 1 !
+    // Example 2
+    grad_grad_grad_b[0][0][0] = 0.;
+    grad_grad_grad_b[0][0][1] = 0.;
+    grad_grad_grad_b[0][1][0] = 0.;
+    grad_grad_grad_b[0][1][1] = 0.;
+    grad_grad_grad_b[1][0][0] = 0.;
+    grad_grad_grad_b[1][0][1] = 0.;
+    grad_grad_grad_b[1][1][0] = 0.;
+    grad_grad_grad_b[1][1][1] = 0.;
+    // End of example 2
+    return grad_grad_grad_b;
+  }
+};
+
+/**
+ * \ingroup input_data_group
+ */
+template <int in_point_dim, typename output_type>
 struct explicit_gn_dispersive_g_h_grad_zeta_class
   : public TimeFunction<in_point_dim, output_type>
 {
@@ -285,6 +319,7 @@ struct explicit_gn_dispersive_L_class
     double g = 9.81;
 
     // Including everything
+    /*
     L[0] =
       (-903500 * cos(t - 6 * x1) - 6000 * (-25 + 37 * alpha) * cos(5 * x1) -
        12500 * cos(5 * (t + 2 * x1)) + 457500 * cos(3 * t + 2 * x1) -
@@ -303,7 +338,7 @@ struct explicit_gn_dispersive_L_class
        675 * alpha * sin(3 * t + 17 * x1)) /
       (30000. * pow(5 + sin(t + 4 * x1), 2));
     // Including only 1/alpha g h grad zeta
-    /*
+    */
     L[0] =
       (-2500 * alpha * cos(5 * x1) + 4500 * alpha * cos(2 * t + 3 * x1) +
        34880 * g * cos(t + 4 * x1) - 2880 * g * cos(3 * (t + 4 * x1)) +
@@ -311,7 +346,6 @@ struct explicit_gn_dispersive_L_class
        19456 * g * sin(2 * (t + 4 * x1)) - 128 * g * sin(4 * (t + 4 * x1)) +
        875 * alpha * sin(3 * t + 7 * x1) - 675 * alpha * sin(t + 9 * x1)) /
       7500.;
-    */
     L[1] = 0;
 
     // End of example for second equation alone
@@ -657,7 +691,8 @@ struct explicit_gn_dispersive
 
   void ready_for_next_iteration();
 
-  void produce_trace_of_prim_vars(const explicit_nswe<dim> *const src_cell);
+  void
+  produce_trace_of_conserved_vars(const explicit_nswe<dim> *const src_cell);
 
   void compute_avg_prim_vars_flux(const explicit_nswe<dim> *const src_cell,
                                   double const *const local_prim_vars_sums,
@@ -665,7 +700,8 @@ struct explicit_gn_dispersive
 
   void compute_prim_vars_derivatives();
 
-  void produce_trace_of_grad_prim_vars(const explicit_nswe<dim> *const src_cell);
+  void
+  produce_trace_of_grad_prim_vars(const explicit_nswe<dim> *const src_cell);
 
   void compute_avg_grad_V_flux(const explicit_nswe<dim> *const src_cell,
                                double const *const local_V_x_sums,
@@ -689,6 +725,9 @@ struct explicit_gn_dispersive
     explicit_nswe_grad_b_func;
   static explicit_gn_dispersive_grad_grad_b_class<dim, dealii::Tensor<2, dim> >
     grad_grad_b_func;
+  static explicit_gn_dispersive_grad_grad_grad_b_class<dim,
+                                                       dealii::Tensor<3, dim> >
+    grad_grad_grad_b_func;
   static explicit_gn_dispersive_L_class<dim, dealii::Tensor<1, dim> >
     explicit_gn_dispersive_L;
   static explicit_gn_dispersive_W1_class<dim, dealii::Tensor<1, dim> >
@@ -700,6 +739,7 @@ struct explicit_gn_dispersive
   eigen3mat last_stage_q;
 
   std::vector<double> connected_face_count;
+  eigen3mat stored_W1;
   eigen3mat avg_prim_vars_flux;
   eigen3mat grad_h;
   eigen3mat div_V;
