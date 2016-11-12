@@ -54,7 +54,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
   if (true) // Long Strip Example 1
   {
     std::vector<unsigned> repeats(dim, 1);
-    repeats[0] = 200;
+    repeats[0] = 100;
     dealii::Point<dim> point_1, point_2;
     point_1 = {-10., -0.1};
     point_2 = {10, 0.1};
@@ -771,15 +771,15 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       std::vector<double> local_sol_vec1;
       local_sol_vec1.reserve(model1.n_local_DOFs_on_this_rank);
 
-      for (unsigned i_time = 0; i_time < 500; ++i_time)
+      for (unsigned i_time = 0; i_time < 1000; ++i_time)
       {
         double dt_local_ops = 0.;
         double dt_global_ops = 0.;
 
-        /*
         //
         //  First phase of time splitting
         //
+        /*
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
@@ -853,23 +853,34 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
               // The place that we compute average fluxes !
               //
               model1.sorry_for_this_boolshit = true;
+
               model1.assemble_trace_of_conserved_vars(&model0);
-              std::vector<double> local_conserved_vars_sum, local_face_count;
+              model1.flux_gen->finish_assembly(model1.flux_gen->face_count);
+              model1.flux_gen->finish_assembly(
+                model1.flux_gen->conserved_vars_flux);
+              model1.flux_gen->finish_assembly(model1.flux_gen->V_dot_n_sum);
+
+              std::vector<double> local_conserved_vars_sum, local_face_count,
+                local_V_jumps;
               local_conserved_vars_sum.reserve(
                 model0.n_local_DOFs_on_this_rank);
               local_face_count.reserve(model0.n_local_DOFs_on_this_rank);
+              local_V_jumps.reserve(model0.n_local_DOFs_on_this_rank);
               local_conserved_vars_sum =
                 model1.flux_gen->get_local_part_of_global_vec(
                   (model1.flux_gen->conserved_vars_flux));
               local_face_count = model1.flux_gen->get_local_part_of_global_vec(
                 (model1.flux_gen->face_count));
+              local_V_jumps = model1.flux_gen->get_local_part_of_global_vec(
+                (model1.flux_gen->V_dot_n_sum));
               // In the following method, we also compute the derivatives of
               // primitive variables in elements and assemble the
               // V_x_flux, V_y_flux.
               model1.compute_and_sum_grad_prim_vars(
                 &model0,
                 local_conserved_vars_sum.data(),
-                local_face_count.data());
+                local_face_count.data(),
+                local_V_jumps.data());
               std::vector<double> local_V_x_flux, local_V_y_flux;
               local_V_x_flux.reserve(model0.n_local_DOFs_on_this_rank);
               local_V_y_flux.reserve(model0.n_local_DOFs_on_this_rank);
@@ -914,14 +925,14 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
           t32 = MPI_Wtime();
           //          if (i_time % 10 == 0)
           //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-          vtk_visualizer(model1, i_time * 3 + 1);
+          //            vtk_visualizer(model1, i_time * 3 + 1);
           model0.get_results_from_another_model(model1);
         }
 
-        /*
         //
         // Third phase of time splitting
         //
+        /*
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
@@ -965,9 +976,9 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
-        //        if (i_time % 10 == 0)
-        //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-        vtk_visualizer(model0, i_time * 3 + 2);
+        if (i_time % 10 == 0)
+          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+          vtk_visualizer(model0, i_time * 3 + 2);
         */
 
         //

@@ -1080,7 +1080,8 @@ template <int dim, template <int> class CellType>
 void hdg_model_with_explicit_rk<dim, CellType>::compute_and_sum_grad_prim_vars(
   const explicit_hdg_model<dim, explicit_nswe> *const src_model,
   const double *const local_conserved_vars_sums,
-  const double *const local_face_count)
+  const double *const local_face_count,
+  const double *const local_V_jumps)
 {
   dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
   dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
@@ -1131,7 +1132,8 @@ void hdg_model_with_explicit_rk<dim, CellType>::compute_and_sum_grad_prim_vars(
           static_cast<explicit_nswe<dim> *>(
             src_model->all_owned_cells[i_cell].get()),
           local_conserved_vars_sums,
-          local_face_count);
+          local_face_count,
+          local_V_jumps);
       static_cast<CellType<dim> *>(cell.get())->compute_prim_vars_derivatives();
       static_cast<CellType<dim> *>(cell.get())
         ->produce_trace_of_grad_prim_vars(static_cast<explicit_nswe<dim> *>(

@@ -56,7 +56,8 @@ struct hdg_model_with_explicit_rk : public generic_model<dim, CellType>
   void compute_and_sum_grad_prim_vars(
     const explicit_hdg_model<dim, explicit_nswe> *const src_model,
     const double *const local_h_sums,
-    const double *const local_face_count);
+    const double *const local_face_count,
+    const double *const local_V_jumps);
 
   void assemble_globals(
     const explicit_hdg_model<dim, explicit_nswe> *const src_model,

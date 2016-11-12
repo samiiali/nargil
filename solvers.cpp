@@ -53,6 +53,12 @@ void GN_dispersive_flux_generator<dim>::init_components()
                this->model->n_global_DOFs_on_all_ranks,
                &V_y_sum);
   VecSetOption(V_y_sum, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
+
+  VecCreateMPI(*(this->comm),
+               this->model->n_global_DOFs_rank_owns,
+               this->model->n_global_DOFs_on_all_ranks,
+               &V_dot_n_sum);
+  VecSetOption(V_dot_n_sum, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
 }
 
 template <int dim>

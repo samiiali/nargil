@@ -337,8 +337,9 @@ struct explicit_gn_dispersive_L_class
        7500 * sin(t + 9 * x1) - 116300 * alpha * sin(t + 9 * x1) +
        675 * alpha * sin(3 * t + 17 * x1)) /
       (30000. * pow(5 + sin(t + 4 * x1), 2));
-    // Including only 1/alpha g h grad zeta
     */
+    // Including only 1/alpha g h grad zeta
+    /*
     L[0] =
       (-2500 * alpha * cos(5 * x1) + 4500 * alpha * cos(2 * t + 3 * x1) +
        34880 * g * cos(t + 4 * x1) - 2880 * g * cos(3 * (t + 4 * x1)) +
@@ -346,6 +347,38 @@ struct explicit_gn_dispersive_L_class
        19456 * g * sin(2 * (t + 4 * x1)) - 128 * g * sin(4 * (t + 4 * x1)) +
        875 * alpha * sin(3 * t + 7 * x1) - 675 * alpha * sin(t + 9 * x1)) /
       7500.;
+    */
+    // Including only 1/alpha g h grad zeta plus (v1_x)
+    /*
+    L[0] =
+      (-3000 * (-125 + 74 * alpha) * cos(5 * x1) +
+       1000 * (225 + 428 * alpha) * cos(2 * t + 3 * x1) +
+       3914880 * g * cos(t + 4 * x1) - 720320 * g * cos(3 * (t + 4 * x1)) +
+       5440 * g * cos(5 * (t + 4 * x1)) - 22000 * alpha * cos(4 * t + 11 * x1) +
+       16000 * alpha * cos(2 * t + 13 * x1) + 15000 * sin(t - x1) +
+       118550 * alpha * sin(t - x1) - 875 * alpha * sin(5 * (t + 3 * x1)) +
+       2739840 * g * sin(2 * (t + 4 * x1)) - 90112 * g * sin(4 * (t + 4 * x1)) +
+       128 * g * sin(6 * (t + 4 * x1)) - 7500 * sin(3 * t + 7 * x1) +
+       176700 * alpha * sin(3 * t + 7 * x1) + 7500 * sin(t + 9 * x1) -
+       116300 * alpha * sin(t + 9 * x1) + 675 * alpha * sin(3 * t + 17 * x1)) /
+      (30000. * pow(5 + sin(t + 4 * x1), 2));
+    */
+    // Including only 1/alpha g h grad zeta plus (v1_x)^2
+    L[0] =
+      (5 *
+       ((-15 *
+         pow(3 * cos(5 * x1) + 5 * (cos(2 * t + 3 * x1) - 2 * sin(t - x1)),
+             2)) /
+          4. +
+        (3 * sin(t - x1) * pow(5 + sin(t + 4 * x1), 4)) / 5. -
+        (pow(5 + sin(t + 4 * x1), 4) *
+         (2500 * alpha * cos(5 * x1) - 4500 * alpha * cos(2 * t + 3 * x1) -
+          34880 * g * cos(t + 4 * x1) + 2880 * g * cos(3 * (t + 4 * x1)) -
+          2550 * alpha * sin(t - x1) - 19456 * g * sin(2 * (t + 4 * x1)) +
+          128 * g * sin(4 * (t + 4 * x1)) - 875 * alpha * sin(3 * t + 7 * x1) +
+          675 * alpha * sin(t + 9 * x1))) /
+          12500.)) /
+      (3. * pow(5 + sin(t + 4 * x1), 4));
     L[1] = 0;
 
     // End of example for second equation alone
@@ -696,7 +729,8 @@ struct explicit_gn_dispersive
 
   void compute_avg_prim_vars_flux(const explicit_nswe<dim> *const src_cell,
                                   double const *const local_prim_vars_sums,
-                                  double const *const local_face_count);
+                                  double const *const local_face_count,
+                                  double const *const local_V_jump);
 
   void compute_prim_vars_derivatives();
 
@@ -741,6 +775,7 @@ struct explicit_gn_dispersive
   std::vector<double> connected_face_count;
   eigen3mat stored_W1;
   eigen3mat avg_prim_vars_flux;
+  eigen3mat jump_V_dot_n;
   eigen3mat grad_h;
   eigen3mat div_V;
   eigen3mat grad_V;          // This contains (v1_x | v1_y | v2_x | v2_y)^T
