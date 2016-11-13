@@ -22,7 +22,13 @@ struct explicit_gn_dispersive_h_t_class
     double y1 = x[1];
     double g = 9.81;
 
-    h_t = 0.2 * cos(4. * x1 + t);
+    // Example 1 of GN
+    // h_t = 0.2 * cos(4. * x1 + t);
+    // End of example 1 of GN
+
+    // Example 2 of GN
+    h_t = 0;
+    // End of example 2 of GN
 
     return h_t;
   }
@@ -110,32 +116,20 @@ struct explicit_gn_dispersive_g_h_grad_zeta_class
     qis[1] = cos(x[0] - 4 * t);
     qis[2] = sin(x[1] + 4 * t);
     */
-    double g = 9.81;
-    //    g_h_grad_zeta[0] = 0.;
-    g_h_grad_zeta[0] = 4. / alpha * g * (5. + sin(4. * x[0])) * cos(4. * x[0]);
-    //    g_h_grad_zeta[0] = 4 / alpha * g * (5. + sin(4 * x[0])) * cos(x[0]);
-    g_h_grad_zeta[1] = 0.;
     // End of example zero !
     // Example 1
     /*
-    qis[0] = 5. + sin(4 * x[0] - t);
-    qis[1] = 3.;
-    qis[2] = 3.;
+    double g = 9.81;
+    g_h_grad_zeta[0] = 4. / alpha * g * (5. + sin(4. * x[0])) * cos(4. * x[0]);
+    g_h_grad_zeta[1] = 0.;
     */
     // End of example 1
-    // Dissertation example 2
-    /*
-    if (t < 2)
-    {
-      qis[0] = 10. + sin(M_PI * 2 * t);
-    }
-    else
-    {
-      qis[0] = 10.;
-    }
-    qis[1] = qis[2] = 0;
-    */
-    // End of Dissertation example 2
+
+    // Example 2
+    g_h_grad_zeta[0] = 0.;
+    g_h_grad_zeta[1] = 0.;
+    // End of example 2
+
     return g_h_grad_zeta;
   }
 };
@@ -158,33 +152,34 @@ struct explicit_gn_dispersive_qis_class
     qis[1] = cos(x[0] - 4 * t);
     qis[2] = sin(x[1] + 4 * t);
     */
-    double g = 9.81;
-    qis[0] = 1. + 0.2 * sin(4 * x[0] + t);
-    qis[1] = cos(x[0] - t);
-    //    qis[1] =
-    //      1. / alpha * g * (-pow(sin(x[0] - t), 2) / 2. - 5. * sin(x[0] - t));
-    qis[2] = 0.;
     // End of example zero !
     // Example 1
     /*
-    qis[0] = 5. + sin(4 * x[0] - t);
-    qis[1] = 3.;
-    qis[2] = 3.;
+    double g = 9.81;
+    qis[0] = 1. + 0.2 * sin(4 * x[0] + t);
+    qis[1] = cos(x[0] - t);
+    qis[2] = 0.;
     */
     // End of example 1
-    // Dissertation example 2
-    /*
-    if (t < 2)
+    // G-N example 2
+    double x0 = x[0];
+    double y0 = x[1];
+    double t0 = t;
+    if (t0 < 1.E-6)
     {
-      qis[0] = 10. + sin(M_PI * 2 * t);
+      if (-1.0 <= x0 && x0 <= 1.0)
+        qis[0] = 1. + 0.2 * cos(M_PI * x0);
+      else
+        qis[0] = 0.8;
+      qis[1] = 0.5;
     }
     else
     {
-      qis[0] = 10.;
+      qis[0] = 0.8;
+      qis[1] = 0.;
     }
-    qis[1] = qis[2] = 0;
-    */
-    // End of Dissertation example 2
+    qis[2] = 0.;
+    // End of G-N example 2
     return qis;
   }
 };
@@ -207,15 +202,17 @@ struct explicit_gn_dispersive_hVinf_t_class
     hVinf_t[0] = cos(x[0] - 4 * t);
     hVinf_t[1] = sin(x[1] + 4 * t);
     */
+    // End of example zero !
+    // Example one
+    /*
     hVinf_t[0] = sin(x[0] - t);
     hVinf_t[1] = 0.;
-    // End of example zero !
-    // Dissertation example 2
-    /*
+    */
+    // End of example one !
+    // Example two
     hVinf_t[0] = 0.;
     hVinf_t[1] = 0.;
-    */
-    // End of dissertation example 2
+    // End of example two
     return hVinf_t;
   }
 };
@@ -244,23 +241,13 @@ struct explicit_gn_dispersive_W1_class
               (exp(sin(t - x1 - y1)) * alpha) -
             4 * cos(4 * t + y1);
     */
-    /*
-    w1[0] = (4 * g * cos(4 * x1) * (5. + sin(4. * x1))) / alpha;
-    w1[1] = 0.;
-    */
-    //    w1[0] = cos(t - x1) + (4. * g * cos(4. * x1) * (5. + sin(4. * x1))) /
-    //    alpha;
+    // End of example zero
+    // Example one
     w1[0] =
       sin(t - x1) +
       (4. * g * cos(t + 4 * x1) * (1 + sin(t + 4 * x1) / 5.)) / (5. * alpha);
     w1[1] = 0.;
-    // End of example zero
-    // Example 1
-    /*
-    w1[0] = (4 * g * cos(t - 4 * x1) * (5. - sin(t - 4. * x1))) / alpha;
-    w1[1] = 0;
-    */
-    // End of Example 1
+    // End of example one
     return w1;
   }
 };
@@ -280,7 +267,8 @@ struct explicit_gn_dispersive_W2_class
     double x1 = x[0];
     double y1 = x[1];
     double g = 9.81;
-    // Example zero
+    // Example one
+    /*
     W2 = pow(1 + sin(t + 4 * x1) / 5., 3) *
          ((-4 * cos(t + 4 * x1) *
            (sin(t - x1) +
@@ -291,11 +279,11 @@ struct explicit_gn_dispersive_W2_class
            (16 * g * (1 + sin(t + 4 * x1) / 5.) * sin(t + 4 * x1)) /
              (5. * alpha)) /
             (1 + sin(t + 4 * x1) / 5.));
-    // End of example zero.
-    // Example 1
-    //    W2 = 16. * g * pow((5. - sin(t - 4 * x1)), 3) * sin(t - 4 * x1) /
-    //    alpha;
-    // End of example 1
+    */
+    // End of example one
+    // Example 2
+    W2 = 0.;
+    // End of example 2
 
     return W2;
   }
@@ -364,6 +352,7 @@ struct explicit_gn_dispersive_L_class
       (30000. * pow(5 + sin(t + 4 * x1), 2));
     */
     // Including only 1/alpha g h grad zeta plus (v1_x)^2
+    /*
     L[0] =
       (5 *
        ((-15 *
@@ -380,6 +369,9 @@ struct explicit_gn_dispersive_L_class
           12500.)) /
       (3. * pow(5 + sin(t + 4 * x1), 4));
     L[1] = 0;
+    */
+    L[0] = 0.;
+    L[1] = 0.;
 
     // End of example for second equation alone
     return L;
@@ -720,6 +712,8 @@ struct explicit_gn_dispersive
 
   void ready_for_next_time_step();
 
+  void get_RHS_of_momentum_eq(double *const local_uhat);
+
   void ready_for_next_stage(double *const local_uhat);
 
   void ready_for_next_iteration();
@@ -771,6 +765,7 @@ struct explicit_gn_dispersive
   eigen3mat last_step_q;
   eigen3mat last_step_qhat;
   eigen3mat last_stage_q;
+  eigen3mat rhs_of_momentum_eq;
 
   std::vector<double> connected_face_count;
   eigen3mat stored_W1;

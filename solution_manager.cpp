@@ -733,8 +733,8 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
   {
     double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
                                          global_ops_time = 0.;
-    explicit_RKn<4, original_RK> rk4_0(2.e-3);
-    explicit_RKn<4, original_RK> rk4_1(4.e-3);
+    explicit_RKn<4, original_RK> rk4_0(2.5e-3);
+    explicit_RKn<4, original_RK> rk4_1(5.0e-3);
     explicit_hdg_model<dim, explicit_nswe> model0(this, &rk4_0);
     hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> model1(this,
                                                                    &rk4_1);
@@ -779,7 +779,6 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         //
         //  First phase of time splitting
         //
-        /*
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
@@ -824,11 +823,11 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         //        if (i_time % 10 == 0)
         //        vtk_visualizer(model0, max_iter * i_time + num_iter);
         //        vtk_visualizer(model0, i_time * 3);
-        */
 
         //
         // Second phase of time splitting.
         //
+        /*
         {
           model1.get_results_from_another_model(model0);
           while (!rk4_1.ready_for_next_step())
@@ -923,16 +922,16 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
           t31 = MPI_Wtime();
           model1.compute_internal_dofs(local_sol_vec1.data());
           t32 = MPI_Wtime();
-          //          if (i_time % 10 == 0)
-          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-          //            vtk_visualizer(model1, i_time * 3 + 1);
+          if (i_time % 10 == 0)
+            //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+            vtk_visualizer(model1, i_time * 3 + 1);
           model0.get_results_from_another_model(model1);
         }
+        */
 
         //
         // Third phase of time splitting
         //
-        /*
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
@@ -976,10 +975,9 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
-        if (i_time % 10 == 0)
+        if (i_time % 5 == 0)
           //        vtk_visualizer(model0, max_iter * i_time + num_iter);
           vtk_visualizer(model0, i_time * 3 + 2);
-        */
 
         //
         // Time splitting finished. Going for calculation of the results.

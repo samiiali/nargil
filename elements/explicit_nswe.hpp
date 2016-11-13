@@ -163,6 +163,7 @@ struct explicit_nswe_qis_func_class
     */
     // G-N example zero
     // G-N example 1
+    /*
     double g = 9.81;
     double alpha = 1.;
     double x0 = x[0];
@@ -170,20 +171,27 @@ struct explicit_nswe_qis_func_class
     double t0 = t;
     qs[0] = 1. + 0.2 * sin(4 * x0 + t);
     qs[1] = cos(x[0] - t);
-    //    qs[1] = 1. / alpha * g * (-pow(sin(x0 - t), 2) / 2. - 5. * sin(x0 -
-    //    t));
     qs[2] = 0.;
+    */
     // G-N example 1
     // G-N example 2
-    /*
     double x0 = x[0];
     double y0 = x[1];
     double t0 = t;
-    qs[0] = 5 + sin(4 * x0 - t0);
-    qs[1] = cos(5 * y0 - t0);
-    qs[2] = sin(3 * y0 + t);
-    */
-    // Checking inflow and outflow BC
+    if (t0 < 1.E-6)
+    {
+      if (-1.0 <= x0 && x0 <= 1.0)
+        qs[0] = 1. + 0.2 * cos(M_PI * x0);
+      else
+        qs[0] = 0.8;
+    }
+    else
+    {
+      qs[0] = 0.8;
+    }
+    qs[1] = 0.;
+    qs[2] = 0.;
+    // End of G-N example 2
     /*
     double t0 = t;
     if (t0 < 1.E-6)
@@ -374,7 +382,8 @@ struct explicit_nswe_L_func_class
            (3. * pow(2 + exp(sin(t + x0 + y0)), 2));
     */
     // End of Green-Naghdi example
-    // Example zero of Green-Naghdi
+    // Example one of Green-Naghdi
+    /*
     double g = 9.81;
     L[0] = cos(t + 4 * x0) / 5. + sin(t - x0);
     L[1] = -sin(t - x0) + (5 * sin(2 * (t - x0))) / (5 + sin(t + 4 * x0)) +
@@ -382,14 +391,13 @@ struct explicit_nswe_L_func_class
              ((4 * g) / 5. + (4 * g * sin(t + 4 * x0)) / 25. -
               (20 * pow(cos(t - x0), 2)) / pow(5 + sin(t + 4 * x0), 2));
     L[2] = 0.;
-    // End of example zero of Green-Naghdi
-    // Dissertation example 2
-    /*
+    */
+    // End of example one of Green-Naghdi
+    // GN example 2
     L[0] = 0;
     L[1] = 0;
     L[2] = 0;
-    */
-    // End of Dissertaton example 2
+    // End of GN example 2
     return L;
   }
 };

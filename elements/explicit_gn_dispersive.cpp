@@ -74,6 +74,7 @@ explicit_gn_dispersive<dim>::explicit_gn_dispersive(
     last_step_q(std::move(inp_cell.last_step_q)),
     last_step_qhat(std::move(inp_cell.last_step_qhat)),
     last_stage_q(std::move(inp_cell.last_stage_q)),
+    rhs_of_momentum_eq(std::move(inp_cell.rhs_of_momentum_eq)),
     connected_face_count(std::move(inp_cell.connected_face_count)),
     avg_prim_vars_flux(std::move(inp_cell.avg_prim_vars_flux)),
     jump_V_dot_n(std::move(inp_cell.jump_V_dot_n)),
@@ -1028,6 +1029,103 @@ void explicit_gn_dispersive<dim>::calculate_stage_matrices()
 }
 
 template <int dim>
+void explicit_gn_dispersive<dim>::get_RHS_of_momentum_eq(
+  double *const local_hat_vec)
+{
+  const std::vector<double> &quad_weights =
+    this->elem_quad_bundle->get_weights();
+  const std::vector<double> &face_quad_weights =
+    this->face_quad_bundle->get_weights();
+
+  this->reinit_cell_fe_vals();
+  calculate_matrices();
+  eigen3mat A2_inv = std::move(A02.inverse());
+  eigen3mat mat1 = std::move(
+    A01 - alpha / 2. * B03T +
+    (alpha / 2. * A03 + alpha / 3. * B02) * A2_inv * B01T - alpha / 3. * D01);
+  eigen3mat mat2 = std::move(
+    (alpha / 2. * A03 + alpha / 3. * B02) * A2_inv * C01 - alpha / 3. * C02);
+  Eigen::PartialPivLU<eigen3mat> mat1_lu = std::move(mat1.partialPivLu());
+
+  eigen3mat exact_h_t(this->n_cell_bases, 1);
+  mtl::vec::dense_vector<double> exact_h_t_mtl;
+  this->project_to_elem_basis(h_t_func,
+                              *(this->the_elem_basis),
+                              quad_weights,
+                              exact_h_t_mtl,
+                              time_integrator->get_current_stage_time());
+  for (unsigned i_poly = 0; i_poly < this->n_cell_bases; ++i_poly)
+    exact_h_t(i_poly) = exact_h_t_mtl[i_poly];
+
+  eigen3mat exact_W1_hat(dim * this->n_faces * this->n_face_bases, 1);
+  for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
+  {
+    mtl::vec::dense_vector<dealii::Tensor<1, dim> > W1_hat_mtl;
+    this->reinit_face_fe_vals(i_face);
+    this->project_essential_BC_to_face(
+      explicit_gn_dispersive_W1,
+      *(this->the_face_basis),
+      face_quad_weights,
+      W1_hat_mtl,
+      time_integrator->get_current_stage_time());
+    for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
+      for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
+        exact_W1_hat((i_face * dim + i_dim) * this->n_face_bases + i_poly) =
+          W1_hat_mtl[i_poly][i_dim];
+  }
+
+  eigen3mat solved_W1_hat = exact_W1_hat;
+  for (unsigned i_face = 0; i_face < this->n_faces; ++i_face)
+  {
+    for (unsigned i_dof = 0; i_dof < this->dofs_ID_in_this_rank[i_face].size();
+         ++i_dof)
+    {
+      for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
+      {
+        int global_dof_number =
+          this->dofs_ID_in_this_rank[i_face][i_dof] * this->n_face_bases +
+          i_poly;
+        solved_W1_hat((i_face * dim + i_dof) * this->n_face_bases + i_poly, 0) =
+          local_hat_vec[global_dof_number];
+      }
+    }
+  }
+
+  rhs_of_momentum_eq = eigen3mat::Zero(dim * this->n_cell_bases, 1);
+  stored_W1 = mat1_lu.solve(L01 + L10 + L11 + L12 + L21 + mat2 * solved_W1_hat);
+  //  eigen3mat W2 = std::move(A2_inv * (-B01T * W1 + C01 * solved_W1_hat));
+  Eigen::FullPivLU<eigen3mat> A001_lu(A001);
+
+  //  ki.block(this->n_cell_bases, 0, 2 * this->n_cell_bases, 1) =
+  //    A001_lu.solve(L10) - W1;
+
+  rhs_of_momentum_eq.block(this->n_cell_bases, 0, this->n_cell_bases, 1) =
+    (A001_lu.solve(L10) - stored_W1).block(0, 0, this->n_cell_bases, 1);
+
+  wreck_it_Ralph(A001);
+  wreck_it_Ralph(A01);
+  wreck_it_Ralph(A02);
+  wreck_it_Ralph(A03);
+  wreck_it_Ralph(B01T);
+  wreck_it_Ralph(B02);
+  wreck_it_Ralph(B03T);
+  wreck_it_Ralph(C03T);
+  wreck_it_Ralph(C04T);
+  wreck_it_Ralph(D01);
+  wreck_it_Ralph(C02);
+  wreck_it_Ralph(C01);
+  wreck_it_Ralph(E01);
+  wreck_it_Ralph(L01);
+  wreck_it_Ralph(L10);
+  wreck_it_Ralph(L11);
+  wreck_it_Ralph(L12);
+  wreck_it_Ralph(L21);
+  wreck_it_Ralph(C34T);
+  wreck_it_Ralph(E31);
+  wreck_it_Ralph(L31);
+}
+
+template <int dim>
 void explicit_gn_dispersive<dim>::ready_for_next_stage(
   double *const local_hat_vec)
 {
@@ -1094,8 +1192,6 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
     mat1_lu.solve(L01 + L10 + L11 + L12 + L21 + mat2 * solved_W1_hat);
   //  eigen3mat W1 = stored_W1 = mat1_lu.solve(L01 + L10 + mat2 *
   //  solved_W1_hat);
-
-  //  eigen3mat W2 = std::move(A2_inv * (-B01T * W1 + C01 * solved_W1_hat));
 
   Eigen::FullPivLU<eigen3mat> A001_lu(A001);
   eigen3mat ki = eigen3mat::Zero((dim + 1) * this->n_cell_bases, 1);
@@ -1647,7 +1743,7 @@ void explicit_gn_dispersive<dim>::compute_prim_vars_derivatives()
       Eigen::Matrix<double, 2, 1> V_flux_at_iquad;
       //      V_flux_at_iquad << avg_prim_flux_at_iquad[1],
       //      avg_prim_flux_at_iquad[2];
-      double tau1 = -0.5;
+      double tau1 = 1.;
       V_flux_at_iquad << avg_prim_flux_at_iquad[1] -
                            tau1 * jump_V_dot_n_at_quad,
         avg_prim_flux_at_iquad[2] - tau1 * jump_V_dot_n_at_quad;
