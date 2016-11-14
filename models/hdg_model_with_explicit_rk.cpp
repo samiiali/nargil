@@ -9,7 +9,8 @@ hdg_model_with_explicit_rk<dim, CellType>::hdg_model_with_explicit_rk(
     n_faces_per_cell(this->manager->n_faces_per_cell),
     DG_Elem(poly_order),
     DG_System(DG_Elem, 1 + dim),
-    time_integrator(time_integrator_)
+    time_integrator(time_integrator_),
+    flux_gen1_flag(false)
 {
 }
 
@@ -1019,9 +1020,10 @@ void hdg_model_with_explicit_rk<dim, CellType>::free_containers()
 }
 
 template <int dim, template <int> class CellType>
+template <template <int> class SrcCellType>
 void hdg_model_with_explicit_rk<dim, CellType>::
   assemble_trace_of_conserved_vars(
-    const explicit_hdg_model<dim, explicit_nswe> *const src_model)
+    const explicit_hdg_model<dim, SrcCellType> *const src_model)
 {
   dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
   dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
@@ -1068,7 +1070,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::
       cell->elem_quad_bundle = &(this->manager->elem_quad_bundle);
       cell->face_quad_bundle = &(this->manager->face_quad_bundle);
       static_cast<CellType<dim> *>(cell.get())
-        ->produce_trace_of_conserved_vars(static_cast<explicit_nswe<dim> *>(
+        ->produce_trace_of_conserved_vars(static_cast<SrcCellType<dim> *>(
           src_model->all_owned_cells[i_cell].get()));
       cell->detach_FEValues(p1, p2, p3, p4);
       all_owned_cells[i_cell] = std::move(cell);
@@ -1077,8 +1079,9 @@ void hdg_model_with_explicit_rk<dim, CellType>::
 }
 
 template <int dim, template <int> class CellType>
+template <template <int> class SrcCellType>
 void hdg_model_with_explicit_rk<dim, CellType>::compute_and_sum_grad_prim_vars(
-  const explicit_hdg_model<dim, explicit_nswe> *const src_model,
+  const explicit_hdg_model<dim, SrcCellType> *const src_model,
   const double *const local_conserved_vars_sums,
   const double *const local_face_count,
   const double *const local_V_jumps)
@@ -1129,14 +1132,14 @@ void hdg_model_with_explicit_rk<dim, CellType>::compute_and_sum_grad_prim_vars(
       cell->face_quad_bundle = &(this->manager->face_quad_bundle);
       static_cast<CellType<dim> *>(cell.get())
         ->compute_avg_prim_vars_flux(
-          static_cast<explicit_nswe<dim> *>(
+          static_cast<SrcCellType<dim> *>(
             src_model->all_owned_cells[i_cell].get()),
           local_conserved_vars_sums,
           local_face_count,
           local_V_jumps);
       static_cast<CellType<dim> *>(cell.get())->compute_prim_vars_derivatives();
       static_cast<CellType<dim> *>(cell.get())
-        ->produce_trace_of_grad_prim_vars(static_cast<explicit_nswe<dim> *>(
+        ->produce_trace_of_grad_prim_vars(static_cast<SrcCellType<dim> *>(
           src_model->all_owned_cells[i_cell].get()));
       cell->detach_FEValues(p1, p2, p3, p4);
       all_owned_cells[i_cell] = std::move(cell);
@@ -1145,8 +1148,9 @@ void hdg_model_with_explicit_rk<dim, CellType>::compute_and_sum_grad_prim_vars(
 }
 
 template <int dim, template <int> class CellType>
+template <template <int> class SrcCellType>
 void hdg_model_with_explicit_rk<dim, CellType>::assemble_globals(
-  const explicit_hdg_model<dim, explicit_nswe> *const src_model,
+  const explicit_hdg_model<dim, SrcCellType> *const src_model,
   const double *const local_V_x_sums,
   const double *const local_V_y_sums,
   const solver_update_keys &keys)
@@ -1196,7 +1200,7 @@ void hdg_model_with_explicit_rk<dim, CellType>::assemble_globals(
       cell->elem_quad_bundle = &(this->manager->elem_quad_bundle);
       cell->face_quad_bundle = &(this->manager->face_quad_bundle);
       static_cast<CellType<dim> *>(cell.get())
-        ->compute_avg_grad_V_flux(static_cast<explicit_nswe<dim> *>(
+        ->compute_avg_grad_V_flux(static_cast<SrcCellType<dim> *>(
                                     src_model->all_owned_cells[i_cell].get()),
                                   local_V_x_sums,
                                   local_V_y_sums);
@@ -1487,8 +1491,9 @@ bool hdg_model_with_explicit_rk<dim, CellType>::compute_internal_dofs(
 }
 
 template <int dim, template <int> class CellType>
+template <template <int> class SrcCellType>
 void hdg_model_with_explicit_rk<dim, CellType>::init_solver(
-  const explicit_hdg_model<dim, explicit_nswe> *const src_model)
+  const explicit_hdg_model<dim, SrcCellType> *const src_model)
 {
   solver_options options_ = CellType<dim>::required_solver_options();
   solver_type type_ = CellType<dim>::required_solver_type();
@@ -1496,8 +1501,17 @@ void hdg_model_with_explicit_rk<dim, CellType>::init_solver(
   solver = std::move(generic_solver<dim, CellType>::make_solver(
     type_, &(this->manager->comm), this, options_));
 
-  flux_gen = std::move(GN_dispersive_flux_generator<dim>::make_flux_generator(
-    &(this->manager->comm), src_model));
+  if (std::is_same<SrcCellType<dim>, explicit_nswe<dim> >::value)
+  {
+    flux_gen1_flag = true;
+    flux_gen1 = std::move(
+      GN_dispersive_flux_generator<dim, explicit_nswe>::make_flux_generator(
+        &(this->manager->comm), src_model));
+  }
+  else
+  {
+    assert(false);
+  }
 }
 
 template <int dim, template <int> class CellType>
@@ -1506,8 +1520,11 @@ void hdg_model_with_explicit_rk<dim, CellType>::reinit_solver(
 {
   solver_options options_ = CellType<dim>::required_solver_options();
   solver->reinit_components(this, options_, update_keys_);
-  flux_gen->free_components();
-  flux_gen->init_components();
+  if (flux_gen1_flag)
+  {
+    flux_gen1->free_components();
+    flux_gen1->init_components();
+  }
 }
 
 template <int dim, template <int> class CellType>

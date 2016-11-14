@@ -1,33 +1,34 @@
 #include "solvers.hpp"
 
-template <int dim>
-std::unique_ptr<GN_dispersive_flux_generator<dim> >
-GN_dispersive_flux_generator<dim>::make_flux_generator(
+template <int dim, template <int> class SrcCellType>
+std::unique_ptr<GN_dispersive_flux_generator<dim, SrcCellType> >
+GN_dispersive_flux_generator<dim, SrcCellType>::make_flux_generator(
   const MPI_Comm *const mpi_comm_,
-  const explicit_hdg_model<dim, explicit_nswe> *const model_)
+  const explicit_hdg_model<dim, SrcCellType> *const model_)
 {
-  std::unique_ptr<GN_dispersive_flux_generator<dim> > output;
-  output.reset(new GN_dispersive_flux_generator<dim>(mpi_comm_, model_));
+  std::unique_ptr<GN_dispersive_flux_generator<dim, SrcCellType> > output;
+  output.reset(
+    new GN_dispersive_flux_generator<dim, SrcCellType>(mpi_comm_, model_));
   return std::move(output);
 }
 
-template <int dim>
-GN_dispersive_flux_generator<dim>::GN_dispersive_flux_generator(
+template <int dim, template <int> class SrcCellType>
+GN_dispersive_flux_generator<dim, SrcCellType>::GN_dispersive_flux_generator(
   const MPI_Comm *const mpi_comm_,
-  const explicit_hdg_model<dim, explicit_nswe> *const model_)
+  const explicit_hdg_model<dim, SrcCellType> *const model_)
   : comm(mpi_comm_), model(model_)
 {
   init_components();
 }
 
-template <int dim>
-GN_dispersive_flux_generator<dim>::~GN_dispersive_flux_generator()
+template <int dim, template <int> class SrcCellType>
+GN_dispersive_flux_generator<dim, SrcCellType>::~GN_dispersive_flux_generator()
 {
   free_components();
 }
 
-template <int dim>
-void GN_dispersive_flux_generator<dim>::init_components()
+template <int dim, template <int> class SrcCellType>
+void GN_dispersive_flux_generator<dim, SrcCellType>::init_components()
 {
   VecCreateMPI(*(this->comm),
                this->model->n_global_DOFs_rank_owns,
@@ -61,8 +62,8 @@ void GN_dispersive_flux_generator<dim>::init_components()
   VecSetOption(V_dot_n_sum, VEC_IGNORE_NEGATIVE_INDICES, PETSC_TRUE);
 }
 
-template <int dim>
-void GN_dispersive_flux_generator<dim>::free_components()
+template <int dim, template <int> class SrcCellType>
+void GN_dispersive_flux_generator<dim, SrcCellType>::free_components()
 {
   VecDestroy(&face_count);
   VecDestroy(&conserved_vars_flux);
@@ -70,8 +71,8 @@ void GN_dispersive_flux_generator<dim>::free_components()
   VecDestroy(&V_y_sum);
 }
 
-template <int dim>
-void GN_dispersive_flux_generator<dim>::push_to_global_vec(
+template <int dim, template <int> class SrcCellType>
+void GN_dispersive_flux_generator<dim, SrcCellType>::push_to_global_vec(
   Vec &the_vec,
   const std::vector<int> &rows,
   const std::vector<double> &vals,
@@ -83,16 +84,17 @@ void GN_dispersive_flux_generator<dim>::push_to_global_vec(
   VecSetValues(the_vec, rows.size(), rows.data(), vals.data(), mode);
 }
 
-template <int dim>
-void GN_dispersive_flux_generator<dim>::finish_assembly(Vec &the_vec)
+template <int dim, template <int> class SrcCellType>
+void GN_dispersive_flux_generator<dim, SrcCellType>::finish_assembly(
+  Vec &the_vec)
 {
   VecAssemblyBegin(the_vec);
   VecAssemblyEnd(the_vec);
 }
 
-template <int dim>
+template <int dim, template <int> class SrcCellType>
 std::vector<double>
-GN_dispersive_flux_generator<dim>::get_local_part_of_global_vec(
+GN_dispersive_flux_generator<dim, SrcCellType>::get_local_part_of_global_vec(
   Vec &petsc_vec, const bool &destroy_petsc_vec)
 {
   IS from, to;

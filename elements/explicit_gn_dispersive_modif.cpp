@@ -1,60 +1,60 @@
-#include "explicit_gn_dispersive.hpp"
+#include "explicit_gn_dispersive_modif.hpp"
 #include "support_classes.hpp"
 
 template <int dim>
 explicit_gn_dispersive_h_t_class<dim, double>
-  explicit_gn_dispersive<dim>::h_t_func{};
+  explicit_gn_dispersive_modif<dim>::h_t_func{};
 
 template <int dim>
 explicit_gn_dispersive_g_h_grad_zeta_class<dim, dealii::Tensor<1, dim> >
-  explicit_gn_dispersive<dim>::g_h_grad_zeta_func{};
+  explicit_gn_dispersive_modif<dim>::g_h_grad_zeta_func{};
 
 template <int dim>
 explicit_nswe_grad_b_func_class<dim, dealii::Tensor<1, dim> >
-  explicit_gn_dispersive<dim>::explicit_nswe_grad_b_func{};
+  explicit_gn_dispersive_modif<dim>::explicit_nswe_grad_b_func{};
 
 template <int dim>
 explicit_gn_dispersive_hVinf_t_class<dim, dealii::Tensor<1, dim> >
-  explicit_gn_dispersive<dim>::hVinf_t_func{};
+  explicit_gn_dispersive_modif<dim>::hVinf_t_func{};
 
 template <int dim>
 explicit_gn_dispersive_grad_grad_b_class<dim, dealii::Tensor<2, dim> >
-  explicit_gn_dispersive<dim>::grad_grad_b_func{};
+  explicit_gn_dispersive_modif<dim>::grad_grad_b_func{};
 
 template <int dim>
 explicit_gn_dispersive_grad_grad_grad_b_class<dim, dealii::Tensor<3, dim> >
-  explicit_gn_dispersive<dim>::grad_grad_grad_b_func{};
+  explicit_gn_dispersive_modif<dim>::grad_grad_grad_b_func{};
 
 template <int dim>
 explicit_gn_dispersive_qis_class<dim, dealii::Tensor<1, dim + 1> >
-  explicit_gn_dispersive<dim>::explicit_gn_dispersive_qs{};
+  explicit_gn_dispersive_modif<dim>::explicit_gn_dispersive_qs{};
 
 template <int dim>
 explicit_gn_dispersive_L_class<dim, dealii::Tensor<1, dim> >
-  explicit_gn_dispersive<dim>::explicit_gn_dispersive_L{};
+  explicit_gn_dispersive_modif<dim>::explicit_gn_dispersive_L{};
 
 template <int dim>
 explicit_gn_dispersive_W1_class<dim, dealii::Tensor<1, dim> >
-  explicit_gn_dispersive<dim>::explicit_gn_dispersive_W1{};
+  explicit_gn_dispersive_modif<dim>::explicit_gn_dispersive_W1{};
 
 template <int dim>
 explicit_gn_dispersive_W2_class<dim, double>
-  explicit_gn_dispersive<dim>::explicit_gn_dispersive_W2{};
+  explicit_gn_dispersive_modif<dim>::explicit_gn_dispersive_W2{};
 
 template <int dim>
-solver_options explicit_gn_dispersive<dim>::required_solver_options()
+solver_options explicit_gn_dispersive_modif<dim>::required_solver_options()
 {
   return solver_options::default_option;
 }
 
 template <int dim>
-solver_type explicit_gn_dispersive<dim>::required_solver_type()
+solver_type explicit_gn_dispersive_modif<dim>::required_solver_type()
 {
   return solver_type::implicit_petsc_aij;
 }
 
 template <int dim>
-unsigned explicit_gn_dispersive<dim>::get_num_dofs_per_node()
+unsigned explicit_gn_dispersive_modif<dim>::get_num_dofs_per_node()
 {
   return dim;
 }
@@ -65,8 +65,8 @@ unsigned explicit_gn_dispersive<dim>::get_num_dofs_per_node()
  * constructor will be called.
  */
 template <int dim>
-explicit_gn_dispersive<dim>::explicit_gn_dispersive(
-  explicit_gn_dispersive &&inp_cell) noexcept
+explicit_gn_dispersive_modif<dim>::explicit_gn_dispersive_modif(
+  explicit_gn_dispersive_modif &&inp_cell) noexcept
   : GenericCell<dim>(std::move(inp_cell)),
     taus(std::move(inp_cell.taus)),
     model(inp_cell.model),
@@ -88,11 +88,11 @@ explicit_gn_dispersive<dim>::explicit_gn_dispersive(
 }
 
 template <int dim>
-explicit_gn_dispersive<dim>::explicit_gn_dispersive(
+explicit_gn_dispersive_modif<dim>::explicit_gn_dispersive_modif(
   typename GenericCell<dim>::dealiiCell &inp_cell,
   const unsigned &id_num_,
   const unsigned &poly_order_,
-  hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model_)
+  hdg_model_with_explicit_rk<dim, explicit_gn_dispersive_modif> *model_)
   : GenericCell<dim>(inp_cell, id_num_, poly_order_),
     taus(this->n_faces, -10.0),
     model(model_),
@@ -108,7 +108,7 @@ explicit_gn_dispersive<dim>::explicit_gn_dispersive(
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::assign_BCs(
+void explicit_gn_dispersive_modif<dim>::assign_BCs(
   const bool &at_boundary,
   const unsigned &i_face,
   const dealii::Point<dim> &face_center)
@@ -160,30 +160,30 @@ void explicit_gn_dispersive<dim>::assign_BCs(
 }
 
 template <int dim>
-explicit_gn_dispersive<dim>::~explicit_gn_dispersive<dim>()
+explicit_gn_dispersive_modif<dim>::~explicit_gn_dispersive_modif<dim>()
 {
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::assign_initial_data()
+void explicit_gn_dispersive_modif<dim>::assign_initial_data()
 {
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::set_previous_step_results(
-  const explicit_nswe<dim> *const src_cell)
+void explicit_gn_dispersive_modif<dim>::set_previous_step_results(
+  const explicit_nswe_modif<dim> *const src_cell)
 {
   last_step_q = src_cell->last_step_q;
 }
 
 template <int dim>
-eigen3mat *explicit_gn_dispersive<dim>::get_previous_step_results()
+eigen3mat *explicit_gn_dispersive_modif<dim>::get_previous_step_results()
 {
   return &last_step_q;
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::calculate_matrices()
+void explicit_gn_dispersive_modif<dim>::calculate_matrices()
 {
   static_assert(dim == 2, "The problem dimension should be 2.");
   const unsigned n_faces = this->n_faces;
@@ -473,8 +473,7 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       */
 
       Eigen::Matrix<double, 2, 1> V2_x;
-      V2_x << (2 * h * h * hx * v1x * v1x + 4. / 3. * h * h * h * v1x * v1xx),
-        0.;
+      V2_x << (v1xx), 0.;
 
       A001 += cell_JxW[i_quad] * N_vec * N_vec.transpose();
       A01 += cell_JxW[i_quad] * N_vec * N_vec.transpose() +
@@ -790,7 +789,7 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::assemble_globals(
+void explicit_gn_dispersive_modif<dim>::assemble_globals(
   const solver_update_keys &keys_)
 {
   const std::vector<double> &quad_weights =
@@ -931,7 +930,7 @@ void explicit_gn_dispersive<dim>::assemble_globals(
 
 template <int dim>
 template <typename T>
-double explicit_gn_dispersive<dim>::compute_internal_dofs(
+double explicit_gn_dispersive_modif<dim>::compute_internal_dofs(
   const double *const,
   eigen3mat &W2,
   eigen3mat &W1,
@@ -984,10 +983,11 @@ double explicit_gn_dispersive<dim>::compute_internal_dofs(
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::internal_vars_errors(const eigen3mat &u_vec,
-                                                       const eigen3mat &q_vec,
-                                                       double &u_error,
-                                                       double &q_error)
+void explicit_gn_dispersive_modif<dim>::internal_vars_errors(
+  const eigen3mat &u_vec,
+  const eigen3mat &q_vec,
+  double &u_error,
+  double &q_error)
 {
   this->reinit_cell_fe_vals();
 
@@ -1017,20 +1017,20 @@ void explicit_gn_dispersive<dim>::internal_vars_errors(const eigen3mat &u_vec,
 }
 
 template <int dim>
-double
-explicit_gn_dispersive<dim>::get_iteration_increment_norm(const double *const)
+double explicit_gn_dispersive_modif<dim>::get_iteration_increment_norm(
+  const double *const)
 {
   return 0.0;
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::calculate_stage_matrices()
+void explicit_gn_dispersive_modif<dim>::calculate_stage_matrices()
 {
   calculate_matrices();
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::get_RHS_of_momentum_eq(
+void explicit_gn_dispersive_modif<dim>::get_RHS_of_momentum_eq(
   double *const local_hat_vec)
 {
   const std::vector<double> &quad_weights =
@@ -1127,7 +1127,7 @@ void explicit_gn_dispersive<dim>::get_RHS_of_momentum_eq(
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::ready_for_next_stage(
+void explicit_gn_dispersive_modif<dim>::ready_for_next_stage(
   double *const local_hat_vec)
 {
   const std::vector<double> &quad_weights =
@@ -1231,18 +1231,18 @@ void explicit_gn_dispersive<dim>::ready_for_next_stage(
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::ready_for_next_time_step()
+void explicit_gn_dispersive_modif<dim>::ready_for_next_time_step()
 {
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::ready_for_next_iteration()
+void explicit_gn_dispersive_modif<dim>::ready_for_next_iteration()
 {
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::produce_trace_of_conserved_vars(
-  const explicit_nswe<dim> *const src_cell)
+void explicit_gn_dispersive_modif<dim>::produce_trace_of_conserved_vars(
+  const explicit_nswe_modif<dim> *const src_cell)
 {
   this->reinit_cell_fe_vals();
   last_step_q.block(2 * this->n_cell_bases, 0, this->n_cell_bases, 1) =
@@ -1399,9 +1399,9 @@ void explicit_gn_dispersive<dim>::produce_trace_of_conserved_vars(
   }
 
   model->flux_gen1->push_to_global_vec(model->flux_gen1->conserved_vars_flux,
-                                       row_nums,
-                                       conserved_vars_trace_vec,
-                                       ADD_VALUES);
+                                      row_nums,
+                                      conserved_vars_trace_vec,
+                                      ADD_VALUES);
   model->flux_gen1->push_to_global_vec(
     model->flux_gen1->V_dot_n_sum, row_nums, V_dot_n, ADD_VALUES);
   model->flux_gen1->push_to_global_vec(
@@ -1409,8 +1409,8 @@ void explicit_gn_dispersive<dim>::produce_trace_of_conserved_vars(
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::compute_avg_prim_vars_flux(
-  const explicit_nswe<dim> *const src_cell,
+void explicit_gn_dispersive_modif<dim>::compute_avg_prim_vars_flux(
+  const explicit_nswe_modif<dim> *const src_cell,
   double const *const local_conserved_vars_sums,
   double const *const local_face_count,
   double const *const local_V_jump)
@@ -1608,7 +1608,7 @@ void explicit_gn_dispersive<dim>::compute_avg_prim_vars_flux(
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::compute_prim_vars_derivatives()
+void explicit_gn_dispersive_modif<dim>::compute_prim_vars_derivatives()
 {
   this->reinit_cell_fe_vals();
   static_assert(dim == 2, "The problem dimension should be 2.");
@@ -1819,8 +1819,8 @@ void explicit_gn_dispersive<dim>::compute_prim_vars_derivatives()
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::produce_trace_of_grad_prim_vars(
-  const explicit_nswe<dim> *const src_cell)
+void explicit_gn_dispersive_modif<dim>::produce_trace_of_grad_prim_vars(
+  const explicit_nswe_modif<dim> *const src_cell)
 // We should add grad_h to this function later.
 {
   this->reinit_cell_fe_vals();
@@ -1939,8 +1939,8 @@ void explicit_gn_dispersive<dim>::produce_trace_of_grad_prim_vars(
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::compute_avg_grad_V_flux(
-  const explicit_nswe<dim> *const src_cell,
+void explicit_gn_dispersive_modif<dim>::compute_avg_grad_V_flux(
+  const explicit_nswe_modif<dim> *const src_cell,
   double const *const local_V_x_sums,
   double const *const local_V_y_sums)
 {
@@ -1990,7 +1990,7 @@ void explicit_gn_dispersive<dim>::compute_avg_grad_V_flux(
 }
 
 template <int dim>
-void explicit_gn_dispersive<dim>::compute_grad_grad_V()
+void explicit_gn_dispersive_modif<dim>::compute_grad_grad_V()
 {
   this->reinit_cell_fe_vals();
   static_assert(dim == 2, "The problem dimension should be 2.");

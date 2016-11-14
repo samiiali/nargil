@@ -1,406 +1,12 @@
 #include "cell_class.hpp"
+#include "explicit_nswe.hpp"
+#include "support_classes.hpp"
 
-#ifndef EXPLICIT_NL_SWE_HPP
-#define EXPLICIT_NL_SWE_HPP
+#ifndef EXPLICIT_NSWE_HPP_MODIF
+#define EXPLICIT_NSWE_HPP_MODIF
 
 template <int dim>
-struct explicit_gn_dispersive;
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_nswe_grad_b_func_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double & = 0) const final
-  {
-    dealii::Tensor<1, in_point_dim, double> grad_b;
-    // GN example 1:
-    /*
-    grad_b[0] = sin(x[0] + 2. * x[1]);
-    grad_b[1] = 2. * sin(x[0] + 2. * x[1]);
-    */
-    /* End of GN example 1 */
-    // Example 2
-    grad_b[0] = 0.;
-    grad_b[1] = 0.;
-    // End of example 2
-    return grad_b;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_nswe_zero_func_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &,
-                            const dealii::Point<in_point_dim> &,
-                            const double & = 0) const final
-  {
-    dealii::Tensor<1, in_point_dim + 1, double> qs;
-    /* Example 1: */
-    qs[0] = 0.;
-    qs[1] = 0.;
-    qs[2] = 0.;
-    /* End of Example 1 */
-    return qs;
-  }
-};
-
-/*!
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_nswe_qis_func_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    dealii::Tensor<1, in_point_dim + 1, double> qs;
-    // Example 0:
-    /*
-    qs[0] = 7.;
-    qs[1] = 5 + sin(M_PI * x[1]);
-    qs[2] = -3. - cos(M_PI * x[0]);
-    */
-    // End of Example 0
-    // Example 0.1:
-    /*
-    qs[0] = 7.;
-    qs[1] = 5. * sin(x[1]);
-    qs[2] = -3.;
-    */
-    // End of Example 0.1:
-    // Example 0.2:
-    /*
-    qs[0] = 7. + sin(x[0]);
-    qs[1] = 5.;
-    qs[2] = -3.;
-    */
-    // End of Example 0.2:
-    // Example 0.3:
-    /*
-    qs[0] = 7. + t;
-    qs[1] = 5.;
-    qs[2] = -3.;
-    */
-    // End of Example 0.3:
-    /* Example 1 */
-    //     Example 1:
-    /*
-    qs[0] = 7 + sin(x[0] - t);
-    qs[1] = 5;
-    qs[2] = -3;
-    */
-    // End of Example 1.
-    //     Example 2:
-    /*
-    qs[0] = 2. + exp(sin(x[0] + x[1] - t));
-    qs[1] = cos(x[0] - 4 * t);
-    qs[2] = sin(x[1] + 4 * t);
-    */
-    // End of Example 2.
-    // First example in paper 3
-    /*
-    double x0 = x[0];
-    double y0 = x[1];
-    double t0 = t;
-    qs[0] = 2 + exp(sin(3 * x0) * sin(3 * y0) - sin(3 * t0));
-    qs[1] = cos(x0 - 4 * t0);
-    qs[2] = sin(y0 + 4 * t0);
-    */
-    // End of first example in paper 3
-    // Second example in paper 3
-    /*
-    double t0 = t;
-    if (t0 <= 1.0)
-      qs[0] = 2 + cos(M_PI * t0);
-    else
-      qs[0] = 1.;
-
-    qs[1] = 0.;
-    qs[2] = 0.;
-    */
-    // End of second example in paper 3
-    // Narrowing channel in paper 3
-    /*
-    if (t < 1.e-8)
-    {
-      qs[0] = 1.5;
-      qs[1] = 1.e-3;
-      qs[2] = 0.;
-    }
-    if (x[0] < -2. + 1.e-6 && t > 1.e-8)
-    {
-      qs[0] = std::min(3.0, 1.5 + 10 * t);
-      qs[1] = 1.5;
-      qs[2] = 0;
-    }
-    if (x[0] > 2 - 1.e-6)
-    {
-      qs[0] = 1.5;
-      qs[1] = 1.e-3;
-      qs[2] = 0;
-    }
-    */
-    // End of narrowing channel in paper 3
-    // G-N example zero
-    /*
-    double x0 = x[0];
-    double y0 = x[1];
-    double t0 = t;
-    qs[0] = 5. + sin(4 * x[0]);
-    qs[1] = 3.;
-    qs[2] = 3.;
-    */
-    // G-N example zero
-    // G-N example 1
-    /*
-    double g = 9.81;
-    double alpha = 1.;
-    double x0 = x[0];
-    double y0 = x[1];
-    double t0 = t;
-    qs[0] = 1. + 0.2 * sin(4 * x0 + t);
-    qs[1] = cos(x[0] - t);
-    qs[2] = 0.;
-    */
-    // End of G-N example 1
-    // G-N example 2
-    double x0 = x[0];
-    double y0 = x[1];
-    double t0 = t;
-    if (t0 < 1.E-6)
-    {
-      if (-1.0 <= x0 && x0 <= 1.0)
-        qs[0] = 1. + 0.2 * cos(M_PI * x0);
-      else
-        qs[0] = 0.8;
-    }
-    else
-    {
-      qs[0] = 0.8;
-    }
-    qs[1] = 0.;
-    qs[2] = 0.;
-    // End of G-N example 2
-    /*
-    double t0 = t;
-    if (t0 < 1.E-6)
-    {
-      if (x[0] >= 19.5 && x[0] <= 20.5)
-        qs[0] = 2. + cos(M_PI * (x[0] - 20.));
-      else
-        qs[0] = 2.;
-    }
-    else
-    {
-      qs[0] = 2.;
-    }
-    qs[1] = 0;
-    qs[2] = 0;
-    */
-    //
-    // Exact solution of Green-Naghdi:
-    /*
-    if (t0 <= 1.e-6)
-    {
-      double a_GN = 0.25;
-      double h_b = 1.0;
-      double x_0 = 20.;
-      double g = 9.81;
-      double c_GN = sqrt(g * (h_b + a_GN));
-      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
-      double zeta_GN =
-        pow(acosh(1. / (kappa_GN * (x[0] - x_0 - c_GN * t0))), 2);
-      qs[0] = h_b + zeta_GN;
-      qs[1] = (c_GN * (1. - h_b / (zeta_GN + h_b))) * qs[0];
-      qs[2] = 0.;
-    }
-    else
-    {
-      qs[0] = 0;
-      qs[1] = 0;
-      qs[2] = 0;
-    }
-    */
-    // End of checking inflow and outflow BC
-
-    return qs;
-  }
-};
-
-/*!
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_nswe_L_func_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    double x0 = x[0];
-    double y0 = x[1];
-    dealii::Tensor<1, in_point_dim + 1, double> L;
-    // Example 0: */
-    /*
-    L[0] = 0.;
-    L[1] = -(M_PI * (3 + cos(M_PI * x0)) * cos(M_PI * y0)) / 7.;
-    L[2] = (M_PI * sin(M_PI * x0) * (5 + sin(M_PI * y0))) / 7.;
-    */
-    // End of Example 0 */
-    // Example 0.1
-    /*
-    L[0] = 0.;
-    L[1] = -15. / 7. * cos(y0);
-    L[2] = 0.;
-    */
-    // End of Example 0.1
-    // Example 0.2
-    /*
-    L[0] = 0.;
-    L[1] = (cos(x[0]) * (-25 + pow(7 + sin(x[0]), 3))) / pow(7 + sin(x[0]), 2);
-    L[2] = (15 * cos(x[0])) / pow(7 + sin(x[0]), 2);
-    */
-    // End of Example 0.2
-    // Example 0.3
-    /*
-    L[0] = 1.0;
-    L[1] = 0.0;
-    L[2] = 0.0;
-    */
-    // End of Example 0.3
-    // Example 1:
-    /*
-    L[0] = -cos(t - x0);
-    L[1] = (cos(t - x0) * (-25 + pow(7 - sin(t - x0), 3))) / pow(-7 + sin(t -
-    x0), 2);
-    L[2] = (15 * cos(t - x0)) / pow(-7 + sin(t - x0), 2);
-    */
-    // End of Example 1
-    // Example 2:
-    /*
-    double g = 9.81;
-    L[0] = -(cos(t - x0 - y0) / exp(sin(t - x0 - y0))) + cos(4 * t + y0) +
-           sin(4 * t - x0);
-    L[1] =
-      ((pow(1 + 2 * exp(sin(t - x0 - y0)), 3) * g * cos(t - x0 - y0)) /
-         exp(4 * sin(t - x0 - y0)) -
-       (pow(cos(4 * t - x0), 2) * cos(t - x0 - y0)) / exp(sin(t - x0 - y0)) +
-       (2 + exp(-sin(t - x0 - y0))) * cos(4 * t - x0) * cos(4 * t + y0) +
-       (2 + exp(-sin(t - x0 - y0))) * sin(8 * t - 2 * x0) -
-       4 * pow(2 + exp(-sin(t - x0 - y0)), 2) * sin(4 * t - x0) -
-       (cos(4 * t - x0) * cos(t - x0 - y0) * sin(4 * t + y0)) /
-         exp(sin(t - x0 - y0)) +
-       pow(2 + exp(-sin(t - x0 - y0)), 3) * g * sin(x0 + 2 * y0)) /
-      pow(2 + exp(-sin(t - x0 - y0)), 2);
-    L[2] =
-      ((pow(1 + 2 * exp(sin(t - x0 - y0)), 3) * g * cos(t - x0 - y0)) /
-         exp(4 * sin(t - x0 - y0)) +
-       4 * pow(2 + exp(-sin(t - x0 - y0)), 2) * cos(4 * t + y0) -
-       (cos(4 * t - x0) * cos(t - x0 - y0) * sin(4 * t + y0)) /
-         exp(sin(t - x0 - y0)) +
-       (2 + exp(-sin(t - x0 - y0))) * sin(4 * t - x0) * sin(4 * t + y0) -
-       (cos(t - x0 - y0) * pow(sin(4 * t + y0), 2)) / exp(sin(t - x0 - y0)) +
-       (2 + exp(-sin(t - x0 - y0))) * sin(2 * (4 * t + y0)) +
-       2 * pow(2 + exp(-sin(t - x0 - y0)), 3) * g * sin(x0 + 2 * y0)) /
-      pow(2 + exp(-sin(t - x0 - y0)), 2);
-    */
-    // End of Example 2
-    // First example of paper 3
-    /*
-    double t0 = t;
-    L[0] = -3 * exp(-sin(3 * t0) + sin(3 * x0) * sin(3 * y0)) * cos(3 * t0) +
-           cos(4 * t0 + y0) + sin(4 * t0 - x0);
-    L[1] = (-3 * exp(3 * sin(3 * t0) + sin(3 * x0) * sin(3 * y0)) *
-              pow(cos(4 * t0 - x0), 2) * cos(3 * x0) * sin(3 * y0) +
-            (2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
-              (exp(3 * sin(3 * t0)) * sin(8 * t0 - 2 * x0) -
-               (2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
-                 (4 * exp(2 * sin(3 * t0)) * sin(4 * t0 - x0) -
-                  3 * exp(sin(3 * x0) * sin(3 * y0)) *
-                    (2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
-                    cos(3 * x0) * sin(3 * y0))) +
-            exp(3 * sin(3 * t0)) * cos(4 * t0 - x0) *
-              ((2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
-                 cos(4 * t0 + y0) -
-               3 * exp(sin(3 * x0) * sin(3 * y0)) * cos(3 * y0) * sin(3 * x0) *
-                 sin(4 * t0 + y0))) /
-           (exp(2 * sin(3 * t0)) *
-            pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 2));
-    L[2] = (4 * exp(2 * sin(3 * t0)) *
-              pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 2) *
-              cos(4 * t0 + y0) +
-            3 * exp(sin(3 * x0) * sin(3 * y0)) * cos(3 * y0) * sin(3 * x0) *
-              (pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 3) -
-               exp(3 * sin(3 * t0)) * pow(sin(4 * t0 + y0), 2)) +
-            exp(3 * sin(3 * t0)) *
-              ((2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
-                 sin(4 * t0 - x0) * sin(4 * t0 + y0) -
-               3 * exp(sin(3 * x0) * sin(3 * y0)) * cos(4 * t0 - x0) *
-                 cos(3 * x0) * sin(3 * y0) * sin(4 * t0 + y0) +
-               (2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0))) *
-                 sin(2 * (4 * t0 + y0)))) /
-           (exp(2 * sin(3 * t0)) *
-            pow(2 * exp(sin(3 * t0)) + exp(sin(3 * x0) * sin(3 * y0)), 2));
-    */
-    // End of first example of paper 3
-    // example 2 of paper 3
-    //    L[0] = L[1] = L[2] = x0 - x0 + y0 - y0;
-    // End of example 2 of paper 3
-
-    // Green-Naghdi example
-    /*
-    double g = 9.81;
-    L[0] = (2 * cos(t - 2 * x0)) / 3. +
-           exp(sin(t + x0 + y0)) * cos(t + x0 + y0) - sin(t + y0);
-    L[1] = (-3 * pow(2 + exp(sin(t + x0 + y0)), 2) * cos(t - 2 * x0) +
-            exp(sin(t + x0 + y0)) * cos(t + x0 + y0) *
-              (9 * pow(2 + exp(sin(t + x0 + y0)), 3) +
-               3 * cos(t + y0) * sin(t - 2 * x0) - pow(sin(t - 2 * x0), 2)) +
-            (2 + exp(sin(t + x0 + y0))) *
-              (-2 * sin(2 * (t - 2 * x0)) + 3 * sin(t - 2 * x0) * sin(t + y0) +
-               9 * pow(2 + exp(sin(t + x0 + y0)), 2) * g * sin(x0 + 2 * y0))) /
-           (9. * pow(2 + exp(sin(t + x0 + y0)), 2));
-    L[2] = (2 * (2 + exp(sin(t + x0 + y0))) * cos(t - 2 * x0) * cos(t + y0) +
-            exp(sin(t + x0 + y0)) * cos(t + x0 + y0) *
-              (3 * pow(2 + exp(sin(t + x0 + y0)), 3) - 3 * pow(cos(t + y0), 2) +
-               cos(t + y0) * sin(t - 2 * x0)) -
-            3 * (2 + exp(sin(t + x0 + y0))) *
-              ((2 + exp(sin(t + x0 + y0))) * sin(t + y0) + sin(2 * (t + y0)) -
-               2 * pow(2 + exp(sin(t + x0 + y0)), 2) * g * sin(x0 + 2 * y0))) /
-           (3. * pow(2 + exp(sin(t + x0 + y0)), 2));
-    */
-    // End of Green-Naghdi example
-    // Example one of Green-Naghdi
-    /*
-    double g = 9.81;
-    L[0] = cos(t + 4 * x0) / 5. + sin(t - x0);
-    L[1] = -sin(t - x0) + (5 * sin(2 * (t - x0))) / (5 + sin(t + 4 * x0)) +
-           cos(t + 4 * x0) *
-             ((4 * g) / 5. + (4 * g * sin(t + 4 * x0)) / 25. -
-              (20 * pow(cos(t - x0), 2)) / pow(5 + sin(t + 4 * x0), 2));
-    L[2] = 0.;
-    */
-    // End of example one of Green-Naghdi
-    // GN example 2
-    L[0] = 0;
-    L[1] = 0;
-    L[2] = 0;
-    // End of GN example 2
-    return L;
-  }
-};
+struct explicit_gn_dispersive_modif;
 
 /*!
  * \ingroup cells
@@ -677,7 +283,7 @@ struct explicit_nswe_L_func_class
  * p)\f$, and take this term to the right hand side of the element equations.
  */
 template <int dim>
-struct explicit_nswe : public GenericCell<dim>
+struct explicit_nswe_modif : public GenericCell<dim>
 {
   const double gravity = 9.81;
   using elem_basis_type = typename GenericCell<dim>::elem_basis_type;
@@ -692,7 +298,7 @@ struct explicit_nswe : public GenericCell<dim>
   static unsigned get_num_dofs_per_node();
 
   /*!
-   * \brief Constructor for the explicit_nswe.
+   * \brief Constructor for the explicit_nswe_modif.
    * Since we are using factory pattern to create cells,
    * we call this constructor, from the GenericCell::make_cell. In this case,
    * due to IS-A rule, the constructor of the GenericCell will be called as
@@ -704,14 +310,14 @@ struct explicit_nswe : public GenericCell<dim>
    * \param inp_cell
    * \param id_num_
    */
-  explicit_nswe() = delete;
-  explicit_nswe(const explicit_nswe &inp_cell) = delete;
-  explicit_nswe(explicit_nswe &&inp_cell) noexcept;
-  explicit_nswe(typename GenericCell<dim>::dealiiCell &inp_cell,
-                const unsigned &id_num_,
-                const unsigned &poly_order_,
-                explicit_hdg_model<dim, explicit_nswe> *model_);
-  ~explicit_nswe() final;
+  explicit_nswe_modif() = delete;
+  explicit_nswe_modif(const explicit_nswe_modif &inp_cell) = delete;
+  explicit_nswe_modif(explicit_nswe_modif &&inp_cell) noexcept;
+  explicit_nswe_modif(typename GenericCell<dim>::dealiiCell &inp_cell,
+                      const unsigned &id_num_,
+                      const unsigned &poly_order_,
+                      explicit_hdg_model<dim, explicit_nswe_modif> *model_);
+  ~explicit_nswe_modif() final;
   eigen3mat A00, C01, E00, E01, F01, F02, F04, F05, F06;
   void assign_BCs(const bool &at_boundary,
                   const unsigned &i_face,
@@ -725,8 +331,8 @@ struct explicit_nswe : public GenericCell<dim>
   /**
    *
    */
-  void
-  set_previous_step_results(const explicit_gn_dispersive<dim> *const src_cell);
+  void set_previous_step_results(
+    const explicit_gn_dispersive_modif<dim> *const src_cell);
 
   /**
    *
@@ -846,7 +452,7 @@ struct explicit_nswe : public GenericCell<dim>
 
   void ready_for_next_time_step();
 
-  explicit_hdg_model<dim, explicit_nswe> *model;
+  explicit_hdg_model<dim, explicit_nswe_modif> *model;
   explicit_RKn<4, original_RK> *time_integrator;
 
   static explicit_nswe_qis_func_class<dim, nswe_vec> explicit_nswe_qis_func;
@@ -863,6 +469,6 @@ struct explicit_nswe : public GenericCell<dim>
   std::vector<eigen3mat> ki_hats;
 };
 
-#include "explicit_nswe.cpp"
+#include "explicit_nswe_modif.cpp"
 
 #endif

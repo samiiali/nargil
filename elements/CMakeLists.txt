@@ -12,5 +12,9 @@ add_custom_target(${PROJECT_NAME} SOURCES
                   nswe.hpp
                   explicit_nswe.cpp
                   explicit_nswe.hpp
-		  explicit_gn_dispersive.cpp
-		  explicit_gn_dispersive.hpp)
+                  explicit_nswe_modif.cpp
+                  explicit_nswe_modif.hpp
+                  explicit_gn_dispersive.cpp
+                  explicit_gn_dispersive.hpp
+                  explicit_gn_dispersive_modif.cpp
+                  explicit_gn_dispersive_modif.hpp)

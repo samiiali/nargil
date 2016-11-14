@@ -36,23 +36,22 @@ enum struct implicit_petsc_factor_type
   pardiso = 4
 };
 
-template <int dim>
-struct explicit_gn_dispersive;
+// template <int dim>
+// struct explicit_gn_dispersive;
 
 template <int dim>
 struct explicit_nswe;
 
-template <int dim>
+template <int dim, template <int> class SrcCellType>
 struct GN_dispersive_flux_generator
 {
-  static std::unique_ptr<GN_dispersive_flux_generator<dim> >
-  make_flux_generator(
-    const MPI_Comm *const mpi_comm_,
-    const explicit_hdg_model<dim, explicit_nswe> *const model_);
+  static std::unique_ptr<GN_dispersive_flux_generator<dim, SrcCellType> >
+  make_flux_generator(const MPI_Comm *const mpi_comm_,
+                      const explicit_hdg_model<dim, SrcCellType> *const model_);
 
   GN_dispersive_flux_generator(
     const MPI_Comm *const mpi_comm_,
-    const explicit_hdg_model<dim, explicit_nswe> *const model_);
+    const explicit_hdg_model<dim, SrcCellType> *const model_);
 
   ~GN_dispersive_flux_generator();
 
@@ -72,7 +71,7 @@ struct GN_dispersive_flux_generator
                                const bool &destroy_petsc_vec = false);
 
   Vec face_count, conserved_vars_flux, V_x_sum, V_y_sum, V_dot_n_sum;
-  const explicit_hdg_model<dim, explicit_nswe> *const model;
+  const explicit_hdg_model<dim, SrcCellType> *const model;
   const MPI_Comm *const comm;
 };
 

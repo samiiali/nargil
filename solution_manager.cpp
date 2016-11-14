@@ -821,8 +821,280 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
         //        if (i_time % 10 == 0)
-        //        vtk_visualizer(model0, max_iter * i_time + num_iter);
-        //        vtk_visualizer(model0, i_time * 3);
+        //          vtk_visualizer(model0, i_time * 3);
+
+        //
+        // Second phase of time splitting.
+        //
+        {
+          model1.get_results_from_another_model(model0);
+          while (!rk4_1.ready_for_next_step())
+          {
+            bool iteration_required = false;
+            unsigned max_iter = 1;
+            unsigned num_iter = 0;
+            do
+            {
+              solver_update_keys keys_0 =
+                static_cast<solver_update_keys>(update_mat | update_rhs);
+
+              if (i_time == 0 && num_iter == 0)
+                model1.init_solver(
+                  &model0); // Flux generator is also initiated here.
+              else
+                model1.reinit_solver(
+                  keys_0); // Flux generator is also reinitiated here.
+
+              t11 = MPI_Wtime();
+
+              //
+              // The place that we compute average fluxes !
+              //
+              model1.sorry_for_this_boolshit = true;
+
+              model1.assemble_trace_of_conserved_vars(&model0);
+              model1.flux_gen1->finish_assembly(model1.flux_gen1->face_count);
+              model1.flux_gen1->finish_assembly(
+                model1.flux_gen1->conserved_vars_flux);
+              model1.flux_gen1->finish_assembly(model1.flux_gen1->V_dot_n_sum);
+
+              std::vector<double> local_conserved_vars_sum, local_face_count,
+                local_V_jumps;
+              local_conserved_vars_sum.reserve(
+                model0.n_local_DOFs_on_this_rank);
+              local_face_count.reserve(model0.n_local_DOFs_on_this_rank);
+              local_V_jumps.reserve(model0.n_local_DOFs_on_this_rank);
+              local_conserved_vars_sum =
+                model1.flux_gen1->get_local_part_of_global_vec(
+                  (model1.flux_gen1->conserved_vars_flux));
+              local_face_count = model1.flux_gen1->get_local_part_of_global_vec(
+                (model1.flux_gen1->face_count));
+              local_V_jumps = model1.flux_gen1->get_local_part_of_global_vec(
+                (model1.flux_gen1->V_dot_n_sum));
+              // In the following method, we also compute the derivatives of
+              // primitive variables in elements and assemble the
+              // V_x_flux, V_y_flux.
+              model1.compute_and_sum_grad_prim_vars(
+                &model0,
+                local_conserved_vars_sum.data(),
+                local_face_count.data(),
+                local_V_jumps.data());
+              std::vector<double> local_V_x_flux, local_V_y_flux;
+              local_V_x_flux.reserve(model0.n_local_DOFs_on_this_rank);
+              local_V_y_flux.reserve(model0.n_local_DOFs_on_this_rank);
+              model1.flux_gen1->finish_assembly(model1.flux_gen1->V_x_sum);
+              model1.flux_gen1->finish_assembly(model1.flux_gen1->V_y_sum);
+              local_V_x_flux = model1.flux_gen1->get_local_part_of_global_vec(
+                (model1.flux_gen1->V_x_sum));
+              local_V_y_flux = model1.flux_gen1->get_local_part_of_global_vec(
+                (model1.flux_gen1->V_y_sum));
+              //
+              // We also compute the grad_grad_V in the assemble_globals.
+              // Hence, we need to send model0 and the local_V_x_flux and
+              // local_V_y_flux to this function for computation of the
+              // average flux of grad_V.
+              //
+              model1.assemble_globals(
+                &model0, local_V_x_flux.data(), local_V_y_flux.data(), keys_0);
+              model1.solver->finish_assembly(keys_0);
+              t12 = MPI_Wtime();
+
+              t21 = MPI_Wtime();
+              model1.solver->form_factors(implicit_petsc_factor_type::mumps);
+              model1.solver->solve_system(sol_vec);
+              local_sol_vec1 =
+                model1.solver->get_local_part_of_global_vec(sol_vec, true);
+              t22 = MPI_Wtime();
+
+              iteration_required =
+                model1.check_for_next_iter(local_sol_vec1.data());
+
+              ++num_iter;
+
+              if (comm_rank == 0 &&
+                  (!iteration_required || num_iter == max_iter))
+                std::cout << num_iter << std::endl;
+
+              dt_local_ops += (t12 - t11);
+              dt_global_ops += (t22 - t21);
+
+            } while (iteration_required && num_iter < max_iter);
+          }
+          t31 = MPI_Wtime();
+          model1.compute_internal_dofs(local_sol_vec1.data());
+          t32 = MPI_Wtime();
+          //        if (i_time % 1 == 0)
+          //            vtk_visualizer(model1, i_time * 3 + 1);
+          model0.get_results_from_another_model(model1);
+        }
+
+        //
+        // Third phase of time splitting
+        //
+        while (!rk4_0.ready_for_next_step())
+        {
+          bool iteration_required = false;
+          unsigned max_iter = 20;
+          unsigned num_iter = 0;
+          do
+          {
+            solver_update_keys keys_0 =
+              static_cast<solver_update_keys>(update_mat | update_rhs);
+            //
+            // if (i_time == 0 && num_iter == 0)
+            //  model0.init_solver();
+            // else
+            //
+            model0.reinit_solver(keys_0);
+
+            t11 = MPI_Wtime();
+            model0.assemble_globals(keys_0);
+            model0.solver->finish_assembly(keys_0);
+            t12 = MPI_Wtime();
+
+            t21 = MPI_Wtime();
+            model0.solver->form_factors(implicit_petsc_factor_type::mumps);
+            model0.solver->solve_system(sol_vec);
+            local_sol_vec0 =
+              model0.solver->get_local_part_of_global_vec(sol_vec, true);
+            t22 = MPI_Wtime();
+
+            iteration_required =
+              model0.check_for_next_iter(local_sol_vec0.data());
+
+            ++num_iter;
+
+            if (comm_rank == 0 && (!iteration_required || num_iter == max_iter))
+              std::cout << num_iter << std::endl;
+
+            dt_local_ops += (t12 - t11);
+            dt_global_ops += (t22 - t21);
+          } while (iteration_required && num_iter < max_iter);
+        }
+        t31 = MPI_Wtime();
+        model0.compute_internal_dofs(local_sol_vec0.data());
+        t32 = MPI_Wtime();
+        if (i_time % 1 == 0)
+          vtk_visualizer(model0, i_time * 3 + 2);
+
+        //
+        // Time splitting finished. Going for calculation of the results.
+        //
+        dt_local_ops += (t32 - t31);
+
+        local_ops_time += dt_local_ops;
+        global_ops_time += dt_global_ops;
+
+        if (comm_rank == 0)
+          std::cout << "time: " << i_time << ", local ops: " << dt_local_ops
+                    << ", global_ops: " << dt_global_ops << std::endl;
+      }
+
+      if (comm_rank == 0)
+        std::cout << "Total local ops: " << local_ops_time
+                  << ", total global_ops: " << global_ops_time << std::endl;
+
+      model0.DoF_H_Refine.clear();
+      model0.DoF_H_System.clear();
+      model1.DoF_H_Refine.clear();
+      model1.DoF_H_System.clear();
+    }
+  }
+
+  if (false) // Explicit GN Dispersive without splitting
+  {
+    double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
+                                         global_ops_time = 0.;
+    explicit_RKn<4, original_RK> rk4_0(2.5e-3);
+    explicit_RKn<4, original_RK> rk4_1(5.0e-3);
+    explicit_hdg_model<dim, explicit_nswe_modif> model0(this, &rk4_0);
+    hdg_model_with_explicit_rk<dim, explicit_gn_dispersive_modif> model1(
+      this, &rk4_1);
+    for (unsigned h1 = h_1; h1 < h_2; ++h1)
+    {
+      if (h1 != h_1)
+      {
+        rk4_0.reset();
+        rk4_1.reset();
+      }
+
+      refine_grid(h1, model0);
+
+      model0.DoF_H_System.distribute_dofs(model0.DG_System);
+      model0.DoF_H_Refine.distribute_dofs(model0.DG_Elem);
+      model0.free_containers();
+      model0.init_mesh_containers();
+      model0.set_boundary_indicator();
+      model0.count_globals();
+      //      write_grid();
+      model0.assign_initial_data(rk4_0);
+
+      model1.DoF_H_System.distribute_dofs(model1.DG_System);
+      model1.DoF_H_Refine.distribute_dofs(model1.DG_Elem);
+      model1.free_containers();
+      model1.init_mesh_containers();
+      model1.set_boundary_indicator();
+      model1.count_globals();
+      //      model1.assign_initial_data(rk4_1);
+
+      std::vector<double> local_sol_vec0;
+      local_sol_vec0.reserve(model0.n_local_DOFs_on_this_rank);
+
+      std::vector<double> local_sol_vec1;
+      local_sol_vec1.reserve(model1.n_local_DOFs_on_this_rank);
+
+      for (unsigned i_time = 0; i_time < 1000; ++i_time)
+      {
+        double dt_local_ops = 0.;
+        double dt_global_ops = 0.;
+
+        //
+        //  First phase of time splitting
+        //
+        while (!rk4_0.ready_for_next_step())
+        {
+          bool iteration_required = false;
+          unsigned max_iter = 20;
+          unsigned num_iter = 0;
+          do
+          {
+            solver_update_keys keys_0 =
+              static_cast<solver_update_keys>(update_mat | update_rhs);
+            if (i_time == 0 && num_iter == 0)
+              model0.init_solver();
+            else
+              model0.reinit_solver(keys_0);
+
+            t11 = MPI_Wtime();
+            model0.assemble_globals(keys_0);
+            model0.solver->finish_assembly(keys_0);
+            t12 = MPI_Wtime();
+
+            t21 = MPI_Wtime();
+            model0.solver->form_factors(implicit_petsc_factor_type::mumps);
+            model0.solver->solve_system(sol_vec);
+            local_sol_vec0 =
+              model0.solver->get_local_part_of_global_vec(sol_vec, true);
+            t22 = MPI_Wtime();
+
+            iteration_required =
+              model0.check_for_next_iter(local_sol_vec0.data());
+
+            ++num_iter;
+
+            if (comm_rank == 0 && (!iteration_required || num_iter == max_iter))
+              std::cout << num_iter << std::endl;
+
+            dt_local_ops += (t12 - t11);
+            dt_global_ops += (t22 - t21);
+          } while (iteration_required && num_iter < max_iter);
+        }
+        t31 = MPI_Wtime();
+        model0.compute_internal_dofs(local_sol_vec0.data());
+        t32 = MPI_Wtime();
+        if (i_time % 10 == 0)
+          //        vtk_visualizer(model0, max_iter * i_time + num_iter);
+          vtk_visualizer(model0, i_time * 3);
 
         //
         // Second phase of time splitting.
@@ -883,6 +1155,8 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
               std::vector<double> local_V_x_flux, local_V_y_flux;
               local_V_x_flux.reserve(model0.n_local_DOFs_on_this_rank);
               local_V_y_flux.reserve(model0.n_local_DOFs_on_this_rank);
+              model1.flux_gen->finish_assembly(model1.flux_gen->V_x_sum);
+              model1.flux_gen->finish_assembly(model1.flux_gen->V_y_sum);
               local_V_x_flux = model1.flux_gen->get_local_part_of_global_vec(
                 (model1.flux_gen->V_x_sum));
               local_V_y_flux = model1.flux_gen->get_local_part_of_global_vec(
@@ -922,7 +1196,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
           t31 = MPI_Wtime();
           model1.compute_internal_dofs(local_sol_vec1.data());
           t32 = MPI_Wtime();
-          if (i_time % 10 == 0)
+          if (i_time % 1 == 0)
             //        vtk_visualizer(model0, max_iter * i_time + num_iter);
             vtk_visualizer(model1, i_time * 3 + 1);
           model0.get_results_from_another_model(model1);
@@ -932,6 +1206,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         //
         // Third phase of time splitting
         //
+        /*
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
@@ -978,6 +1253,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         if (i_time % 5 == 0)
           //        vtk_visualizer(model0, max_iter * i_time + num_iter);
           vtk_visualizer(model0, i_time * 3 + 2);
+        */
 
         //
         // Time splitting finished. Going for calculation of the results.
@@ -1002,6 +1278,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       model1.DoF_H_System.clear();
     }
   }
+
   VecDestroy(&sol_vec);
 }
 
