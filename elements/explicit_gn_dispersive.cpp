@@ -246,6 +246,7 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
   }
   */
 
+  /*
   // Here, we have projected the argument of the gradients corresponding to
   // the R1 and R2 to the element bases.
   eigen3mat L11_arg = eigen3mat::Zero(n_cell_bases, 1);
@@ -305,6 +306,7 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       L11_arg += cell_quad_weights[i_quad] * L11_val_at_iquad * NT.transpose();
     }
   }
+  */
 
   {
     eigen3mat grad_NT, div_N, NT, N_vec;
@@ -471,6 +473,13 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
                 << std::endl;
       std::cout << 5. + sin(4. * quad_pt_locs[i_quad][0]) - h_h << std::endl;
       */
+
+      // This is to make the problem 1D.
+      grad_NT.block(1, 0, 1, n_cell_bases) = eigen3mat::Zero(1, n_cell_bases);
+      div_N.block(n_cell_bases, 0, n_cell_bases, 1) =
+        eigen3mat::Zero(n_cell_bases, 1);
+      grad_h_at_quad(1, 0) = 0.;
+      // End of 1D modification.
 
       Eigen::Matrix<double, 2, 1> V2_x;
       V2_x << (2 * h * h * hx * v1x * v1x + 4. / 3. * h * h * h * v1x * v1xx),
@@ -681,6 +690,10 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       W1_val_vec(1, 0) = W1_vec_tensor[1];
 
       double tau_on_face = -20.;
+
+      // Make the problem 1D
+      grad_h_at_quad(1, 0) = 0.;
+      // End of 1D modification of the problem
 
       D01 += tau_on_face * face_JxW[i_face_quad] * N_vec * N_vec.transpose();
       C01_on_face +=
