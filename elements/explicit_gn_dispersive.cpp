@@ -116,18 +116,17 @@ void explicit_gn_dispersive<dim>::assign_BCs(
   // Green-Naghdi first example: Flat bottom
   if (at_boundary && (face_center[0] < -9.99 || face_center[0] > 9.99))
   {
-    this->BCs[i_face] = GenericCell<dim>::BC::essential;
+    //    this->BCs[i_face] = GenericCell<dim>::BC::essential;
+    this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim, 1);
-    this->dof_names_on_faces[i_face][1] = 0;
+    //    this->dof_names_on_faces[i_face][1] = 0;
   }
-  /*
   else if (at_boundary)
   {
-    this->BCs[i_face] = GenericCell<dim>::BC::essential;
+    this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim, 1);
-    this->dof_names_on_faces[i_face][1] = 0;
+    //    this->dof_names_on_faces[i_face][1] = 0;
   }
-  */
   /*
   else if (at_boundary)
   {
@@ -155,7 +154,7 @@ void explicit_gn_dispersive<dim>::assign_BCs(
   {
     this->BCs[i_face] = GenericCell<dim>::BC::not_set;
     this->dof_names_on_faces[i_face].resize(dim, 1);
-    this->dof_names_on_faces[i_face][1] = 0;
+    //    this->dof_names_on_faces[i_face][1] = 0;
   }
 }
 
@@ -723,11 +722,6 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       {
         E31_on_face -=
           face_JxW[i_face_quad] * NT_face_vec.transpose() * NT_face_vec;
-
-        //        L31_on_face +=
-        //          face_JxW[i_face_quad] * NT_face_vec.transpose() *
-        //          w1_at_quad;
-
         L31_on_face +=
           face_JxW[i_face_quad] * NT_face_vec.transpose() *
           (1. / alpha * gravity * h_hat * (grad_h_at_quad + grad_b_at_quad) -
@@ -741,9 +735,10 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
             normal.transpose() * N_vec.transpose();
         E31_on_face +=
           face_JxW[i_face_quad] * NT_face_vec.transpose() * NT_face_vec;
-        L31_on_face += face_JxW[i_face_quad] / alpha * gravity * h_hat *
-                       NT_face_vec.transpose() * normal * normal.transpose() *
-                       (grad_h_at_quad + grad_b_at_quad);
+        // L31_on_face += face_JxW[i_face_quad] / alpha * gravity * h_hat *
+        //                NT_face_vec.transpose() * normal * normal.transpose()
+        //                *
+        //                (grad_h_at_quad + grad_b_at_quad);
       }
       if (this->BCs[i_face] == GenericCell<dim>::BC::in_out_BC)
       {

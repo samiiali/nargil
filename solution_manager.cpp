@@ -771,7 +771,9 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       std::vector<double> local_sol_vec1;
       local_sol_vec1.reserve(model1.n_local_DOFs_on_this_rank);
 
-      for (unsigned i_time = 0; i_time < 1000; ++i_time)
+      bool model1_init_fuse = true;
+
+      for (unsigned i_time = 0; i_time < 2000; ++i_time)
       {
         double dt_local_ops = 0.;
         double dt_global_ops = 0.;
@@ -826,6 +828,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         //
         // Second phase of time splitting.
         //
+        if (i_time >= 0)
         {
           model1.get_results_from_another_model(model0);
           while (!rk4_1.ready_for_next_step())
@@ -838,12 +841,17 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
               solver_update_keys keys_0 =
                 static_cast<solver_update_keys>(update_mat | update_rhs);
 
-              if (i_time == 0 && num_iter == 0)
+              if (model1_init_fuse)
+              {
                 model1.init_solver(
                   &model0); // Flux generator is also initiated here.
+              }
               else
+              {
                 model1.reinit_solver(
                   keys_0); // Flux generator is also reinitiated here.
+                model1_init_fuse = false;
+              }
 
               t11 = MPI_Wtime();
 
@@ -974,7 +982,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
-        if (i_time % 1 == 0)
+        if (i_time % 2 == 0)
           vtk_visualizer(model0, i_time * 3 + 2);
 
         //
@@ -1092,7 +1100,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
-        if (i_time % 10 == 0)
+        if (i_time % 1 == 0)
           //        vtk_visualizer(model0, max_iter * i_time + num_iter);
           vtk_visualizer(model0, i_time * 3);
 

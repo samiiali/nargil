@@ -175,6 +175,7 @@ struct explicit_nswe_qis_func_class
     */
     // End of G-N example 1
     // G-N example 2
+    /*
     double x0 = x[0];
     double y0 = x[1];
     double t0 = t;
@@ -191,47 +192,55 @@ struct explicit_nswe_qis_func_class
     }
     qs[1] = 0.;
     qs[2] = 0.;
+    */
     // End of G-N example 2
+    // G-N example 3
     /*
+    double x0 = x[0];
+    double y0 = x[1];
     double t0 = t;
-    if (t0 < 1.E-6)
+    if (t0 < 1.35)
     {
-      if (x[0] >= 19.5 && x[0] <= 20.5)
-        qs[0] = 2. + cos(M_PI * (x[0] - 20.));
-      else
-        qs[0] = 2.;
+      qs[0] = 0.55 - 0.05 * cos(2 * M_PI * t0 / 1.35);
     }
     else
     {
-      qs[0] = 2.;
+      qs[0] = 0.5;
     }
-    qs[1] = 0;
-    qs[2] = 0;
+    qs[1] = 0.;
+    qs[2] = 0.;
     */
+    // End of G-N example 3
     //
     // Exact solution of Green-Naghdi:
-    /*
-    if (t0 <= 1.e-6)
+    if (t <= 1.e-6)
     {
-      double a_GN = 0.25;
-      double h_b = 1.0;
-      double x_0 = 20.;
+      double x0 = x[0];
+      double a_GN = 0.1;
+      double h_b = 0.5;
+      double x0_GN = -4.;
       double g = 9.81;
       double c_GN = sqrt(g * (h_b + a_GN));
       double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
-      double zeta_GN =
-        pow(acosh(1. / (kappa_GN * (x[0] - x_0 - c_GN * t0))), 2);
+      double zeta_GN = a_GN / pow(cosh(kappa_GN * (x0 - x0_GN - c_GN * t)), 2);
       qs[0] = h_b + zeta_GN;
-      qs[1] = (c_GN * (1. - h_b / (zeta_GN + h_b))) * qs[0];
+      qs[1] = c_GN * qs[0] - c_GN * h_b;
       qs[2] = 0.;
     }
     else
     {
-      qs[0] = 0;
-      qs[1] = 0;
-      qs[2] = 0;
+      double x0 = x[0];
+      double a_GN = 0.1;
+      double h_b = 0.5;
+      double x0_GN = -4.;
+      double g = 9.81;
+      double c_GN = sqrt(g * (h_b + a_GN));
+      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
+      double zeta_GN = a_GN / pow(cosh(kappa_GN * (x0 - x0_GN - c_GN * t)), 2);
+      qs[0] = h_b + zeta_GN;
+      qs[1] = c_GN * qs[0] - c_GN * h_b;
+      qs[2] = 0.;
     }
-    */
     // End of checking inflow and outflow BC
 
     return qs;

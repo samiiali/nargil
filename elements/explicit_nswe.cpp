@@ -92,12 +92,14 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
   */
-  if (at_boundary && (face_center[0] < -9.99 || face_center[0] > 9.99))
+  /* Example 1, 2, 3 of GN
+  if (at_boundary && (face_center[0] < -9.99))
   {
-    this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
+    this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
-  else if (at_boundary)
+  */
+  if (at_boundary)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);

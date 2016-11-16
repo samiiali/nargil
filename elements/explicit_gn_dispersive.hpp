@@ -26,9 +26,9 @@ struct explicit_gn_dispersive_h_t_class
     //    h_t = 0.2 * cos(4. * x1 + t);
     // End of example 1 of GN
 
-    // Example 2 of GN
+    // Example 2, 3 of GN
     h_t = 0;
-    // End of example 2 of GN
+    // End of example 2, 3 of GN
 
     return h_t;
   }
@@ -54,12 +54,12 @@ struct explicit_gn_dispersive_grad_grad_b_class
     grad_grad_b[1][1] = 4 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
     */
     // End of example 1 !
-    // Example 2
+    // Example 2, 3
     grad_grad_b[0][0] = 0.;
     grad_grad_b[0][1] = 0.;
     grad_grad_b[1][0] = 0.;
     grad_grad_b[1][1] = 0.;
-    // End of example 2
+    // End of example 2, 3
     return grad_grad_b;
   }
 };
@@ -84,7 +84,7 @@ struct explicit_gn_dispersive_grad_grad_grad_b_class
     grad_grad_b[1][1] = 4 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
     */
     // End of example 1 !
-    // Example 2
+    // Example 2, 3
     grad_grad_grad_b[0][0][0] = 0.;
     grad_grad_grad_b[0][0][1] = 0.;
     grad_grad_grad_b[0][1][0] = 0.;
@@ -93,7 +93,7 @@ struct explicit_gn_dispersive_grad_grad_grad_b_class
     grad_grad_grad_b[1][0][1] = 0.;
     grad_grad_grad_b[1][1][0] = 0.;
     grad_grad_grad_b[1][1][1] = 0.;
-    // End of example 2
+    // End of example 2, 3
     return grad_grad_grad_b;
   }
 };
@@ -124,10 +124,10 @@ struct explicit_gn_dispersive_g_h_grad_zeta_class
     //    g_h_grad_zeta[1] = 0.;
     // End of example 1
 
-    // Example 2
+    // Example 2, 3
     g_h_grad_zeta[0] = 0.;
     g_h_grad_zeta[1] = 0.;
-    // End of example 2
+    // End of example 2, 3
 
     return g_h_grad_zeta;
   }
@@ -159,6 +159,7 @@ struct explicit_gn_dispersive_qis_class
     //    qis[2] = 0.;
     // End of example 1
     // G-N example 2
+    /*
     double x0 = x[0];
     double y0 = x[1];
     double t0 = t;
@@ -176,8 +177,24 @@ struct explicit_gn_dispersive_qis_class
       qis[1] = 0.;
     }
     qis[2] = 0.;
+    */
     // End of G-N example 2
+    // Example 3 of GN
+    double x0 = x[0];
+    double y0 = x[1];
+    double t0 = t;
+    if (t0 < 1.35)
+    {
+      qis[0] = 0.55 - 0.05 * cos(2 * M_PI * t0 / 1.35);
+    }
+    else
+    {
+      qis[0] = 0.5;
+    }
+    qis[1] = 0.;
+    qis[2] = 0.;
     return qis;
+    // End of example 3 of GN
   }
 };
 
@@ -206,10 +223,10 @@ struct explicit_gn_dispersive_hVinf_t_class
     hVinf_t[1] = 0.;
     */
     // End of example one !
-    // Example two
+    // Example 2, 3
     hVinf_t[0] = 0.;
     hVinf_t[1] = 0.;
-    // End of example two
+    // End of example 2, 3
     return hVinf_t;
   }
 };
@@ -247,10 +264,10 @@ struct explicit_gn_dispersive_W1_class
     w1[1] = 0.;
     */
     // End of example one
-    // Example two
+    // Example 2, 3
     w1[0] = 0.;
     w1[1] = 0.;
-    // End of example two
+    // End of example 2, 3
     return w1;
   }
 };
@@ -284,9 +301,9 @@ struct explicit_gn_dispersive_W2_class
             (1 + sin(t + 4 * x1) / 5.));
     */
     // End of example one
-    // Example 2
+    // Example 2, 3
     W2 = 0.;
-    // End of example 2
+    // End of example 2, 3
 
     return W2;
   }
@@ -396,14 +413,14 @@ struct explicit_gn_dispersive_L_class
 
     //
     //
-    // GN example 2
+    // GN example 2, 3
     //
     //
     L[0] = 0.;
     L[1] = 0.;
     //
     //
-    // End of GN example 2
+    // End of GN example 2, 3
     //
     //
 
