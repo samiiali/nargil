@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="CPP_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/solution_manager.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/solvers.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/models/generic_model.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/models/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/models/hdg_model.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/models/explicit_hdg_model.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/models/hdg_model_with_explicit_rk.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/models/hdg_model.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/models/generic_model.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/models/hdg_model_with_explicit_rk.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/models/explicit_hdg_model.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/solvers.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/support_classes.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/gn_eps_0_beta_0.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/nswe.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/advection_diffusion.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/gn_eps_0_beta_0.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/nswe.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/advection_diffusion.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/cell_class.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/diffusion.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/cell_class.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/explicit_nswe.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/explicit_nswe.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/explicit_gn_dispersive.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/diffusion.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/elements/explicit_gn_dispersive.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/support_classes.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/solution_manager.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/poly_bases/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/poly_bases/poly_basis.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/poly_bases/jacobi_polynomial.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/poly_bases/lagrange_polynomial.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/poly_bases/poly_basis.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/poly_bases/jacobi_polynomial.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/poly_bases/lagrange_polynomial.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/time_integrators.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/CMakeLists.txt" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/main.cpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/lib_headers.hpp" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/time_integrators.hpp" isTestSource="false" />
+    </content>
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module-library">
+      <library name="Header Search Paths">
+        <CLASSES>
+          <root url="file:///opt/apps/ossw/libraries/mpich2/mpich2-3.1.4/c7/gcc-system/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/MTL4" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/deal.II/install/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/PETSc/petsc-3.6.0/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/PETSc/petsc-3.6.0/arch-linux2-c-debug/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/Eigen/eigen_3_2_10" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/p4est/install/FAST/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/SLEPc/slepc-3.6.0/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/SLEPc/slepc-3.6.0/arch-linux2-c-debug/include" />
+          <root url="file:///workspace/Library/HDF5/install/include" />
+          <root url="file:///usr/include" />
+          <root url="file:///usr/lib/gcc/x86_64-redhat-linux/4.8.5/include" />
+          <root url="file:///usr/local/include" />
+        </CLASSES>
+        <SOURCES>
+          <root url="file:///opt/apps/ossw/libraries/mpich2/mpich2-3.1.4/c7/gcc-system/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/MTL4" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/deal.II/install/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/PETSc/petsc-3.6.0/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/PETSc/petsc-3.6.0/arch-linux2-c-debug/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/Eigen/eigen_3_2_10" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/p4est/install/FAST/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/SLEPc/slepc-3.6.0/include" />
+          <root url="file://$MODULE_DIR$/../../../../../../Libraries/SLEPc/slepc-3.6.0/arch-linux2-c-debug/include" />
+          <root url="file:///workspace/Library/HDF5/install/include" />
+          <root url="file:///usr/include" />
+          <root url="file:///usr/lib/gcc/x86_64-redhat-linux/4.8.5/include" />
+          <root url="file:///usr/local/include" />
+        </SOURCES>
+      </library>
+    </orderEntry>
+  </component>
+</module>

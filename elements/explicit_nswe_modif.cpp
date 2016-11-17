@@ -1,36 +1,35 @@
-#include "explicit_nswe.hpp"
-#include "support_classes.hpp"
+#include "explicit_nswe_modif.hpp"
 
 template <int dim>
 explicit_nswe_grad_b_func_class<dim, dealii::Tensor<1, dim> >
-  explicit_nswe<dim>::explicit_nswe_grad_b_func{};
+  explicit_nswe_modif<dim>::explicit_nswe_grad_b_func{};
 
 template <int dim>
-explicit_nswe_qis_func_class<dim, typename explicit_nswe<dim>::nswe_vec>
-  explicit_nswe<dim>::explicit_nswe_qis_func{};
+explicit_nswe_qis_func_class<dim, typename explicit_nswe_modif<dim>::nswe_vec>
+  explicit_nswe_modif<dim>::explicit_nswe_qis_func{};
 
 template <int dim>
-explicit_nswe_L_func_class<dim, typename explicit_nswe<dim>::nswe_vec>
-  explicit_nswe<dim>::explicit_nswe_L_func{};
+explicit_nswe_L_func_class<dim, typename explicit_nswe_modif<dim>::nswe_vec>
+  explicit_nswe_modif<dim>::explicit_nswe_L_func{};
 
 template <int dim>
-explicit_nswe_zero_func_class<dim, typename explicit_nswe<dim>::nswe_vec>
-  explicit_nswe<dim>::explicit_nswe_zero_func{};
+explicit_nswe_zero_func_class<dim, typename explicit_nswe_modif<dim>::nswe_vec>
+  explicit_nswe_modif<dim>::explicit_nswe_zero_func{};
 
 template <int dim>
-solver_options explicit_nswe<dim>::required_solver_options()
+solver_options explicit_nswe_modif<dim>::required_solver_options()
 {
   return solver_options::ignore_mat_zero_entries;
 }
 
 template <int dim>
-solver_type explicit_nswe<dim>::required_solver_type()
+solver_type explicit_nswe_modif<dim>::required_solver_type()
 {
   return solver_type::implicit_petsc_aij;
 }
 
 template <int dim>
-unsigned explicit_nswe<dim>::get_num_dofs_per_node()
+unsigned explicit_nswe_modif<dim>::get_num_dofs_per_node()
 {
   return dim + 1;
 }
@@ -41,24 +40,24 @@ unsigned explicit_nswe<dim>::get_num_dofs_per_node()
  * constructor will be called.
  */
 template <int dim>
-explicit_nswe<dim>::explicit_nswe(explicit_nswe &&inp_cell) noexcept
-  : GenericCell<dim>(std::move(inp_cell)),
-    model(inp_cell.model),
-    time_integrator(model->time_integrator),
-    last_step_q(std::move(inp_cell.last_step_q)),
-    last_iter_qhat(std::move(inp_cell.last_iter_qhat)),
-    last_stage_q(std::move(inp_cell.last_stage_q)),
-    ki_s(std::move(inp_cell.ki_s)),
-    ki_hats(std::move(inp_cell.ki_hats))
+explicit_nswe_modif<dim>::explicit_nswe_modif(explicit_nswe_modif &&inp_cell)
+  noexcept : GenericCell<dim>(std::move(inp_cell)),
+             model(inp_cell.model),
+             time_integrator(model->time_integrator),
+             last_step_q(std::move(inp_cell.last_step_q)),
+             last_iter_qhat(std::move(inp_cell.last_iter_qhat)),
+             last_stage_q(std::move(inp_cell.last_stage_q)),
+             ki_s(std::move(inp_cell.ki_s)),
+             ki_hats(std::move(inp_cell.ki_hats))
 {
 }
 
 template <int dim>
-explicit_nswe<dim>::explicit_nswe(
+explicit_nswe_modif<dim>::explicit_nswe_modif(
   typename GenericCell<dim>::dealiiCell &inp_cell,
   const unsigned &id_num_,
   const unsigned &poly_order_,
-  explicit_hdg_model<dim, explicit_nswe> *model_)
+  explicit_hdg_model<dim, explicit_nswe_modif> *model_)
   : GenericCell<dim>(inp_cell, id_num_, poly_order_),
     model(model_),
     time_integrator(model_->time_integrator),
@@ -73,9 +72,9 @@ explicit_nswe<dim>::explicit_nswe(
 }
 
 template <int dim>
-void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
-                                    const unsigned &i_face,
-                                    const dealii::Point<dim> &face_center)
+void explicit_nswe_modif<dim>::assign_BCs(const bool &at_boundary,
+                                          const unsigned &i_face,
+                                          const dealii::Point<dim> &face_center)
 {
   // Example 1
   /*
@@ -92,14 +91,12 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
   */
-  /* Example 1, 2, 3 of GN
-  if (at_boundary && (face_center[0] < -9.99))
+  if (at_boundary && (face_center[0] < -9.99 || face_center[0] > 9.99))
   {
     this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
-  */
-  if (at_boundary)
+  else if (at_boundary)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
@@ -155,12 +152,12 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
 }
 
 template <int dim>
-explicit_nswe<dim>::~explicit_nswe()
+explicit_nswe_modif<dim>::~explicit_nswe_modif()
 {
 }
 
 template <int dim>
-void explicit_nswe<dim>::assign_initial_data()
+void explicit_nswe_modif<dim>::assign_initial_data()
 {
   this->reinit_cell_fe_vals();
 
@@ -200,8 +197,8 @@ void explicit_nswe<dim>::assign_initial_data()
 }
 
 template <int dim>
-void explicit_nswe<dim>::set_previous_step_results(
-  const explicit_gn_dispersive<dim> *const src_cell)
+void explicit_nswe_modif<dim>::set_previous_step_results(
+  const explicit_gn_dispersive_modif<dim> *const src_cell)
 {
   //  last_step_q = std::move(*last_step_q_);
   last_step_q = src_cell->last_step_q;
@@ -209,7 +206,7 @@ void explicit_nswe<dim>::set_previous_step_results(
 
 template <int dim>
 Eigen::Matrix<double, (dim + 1), dim>
-explicit_nswe<dim>::get_Fij(const std::vector<double> &qs)
+explicit_nswe_modif<dim>::get_Fij(const std::vector<double> &qs)
 {
   assert(dim == 2);
   double g = gravity;
@@ -223,9 +220,9 @@ explicit_nswe<dim>::get_Fij(const std::vector<double> &qs)
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_d_Fij_dqk_nj(const std::vector<double> &qs,
-                                     const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_d_Fij_dqk_nj(const std::vector<double> &qs,
+                                           const dealii::Point<dim> &normal)
 {
   assert(dim == 2);
   double g = gravity;
@@ -243,7 +240,7 @@ explicit_nswe<dim>::get_d_Fij_dqk_nj(const std::vector<double> &qs,
 
 template <int dim>
 Eigen::Matrix<double, dim *(dim + 1), dim + 1>
-explicit_nswe<dim>::get_partial_Fik_qj(const std::vector<double> &qs)
+explicit_nswe_modif<dim>::get_partial_Fik_qj(const std::vector<double> &qs)
 {
   assert(dim == 2);
   double g = gravity;
@@ -258,9 +255,9 @@ explicit_nswe<dim>::get_partial_Fik_qj(const std::vector<double> &qs)
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_tauij_LF(const std::vector<double> &qhats,
-                                 const dealii::Point<dim> normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_tauij_LF(const std::vector<double> &qhats,
+                                       const dealii::Point<dim> normal)
 {
   assert(dim == 2);
   double g = gravity;
@@ -274,8 +271,8 @@ explicit_nswe<dim>::get_tauij_LF(const std::vector<double> &qhats,
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_partial_tauij_qhk_qj_LF(
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_partial_tauij_qhk_qj_LF(
   const std::vector<double> &qs,
   const std::vector<double> &qhats,
   const dealii::Point<dim> &normal)
@@ -333,9 +330,9 @@ explicit_nswe<dim>::get_partial_tauij_qhk_qj_LF(
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_XR(const std::vector<double> &qhats,
-                           const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_XR(const std::vector<double> &qhats,
+                                 const dealii::Point<dim> &normal)
 {
   double q1 = qhats[0];
   double q2 = qhats[1];
@@ -351,9 +348,9 @@ explicit_nswe<dim>::get_XR(const std::vector<double> &qhats,
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_XL(const std::vector<double> &qhats,
-                           const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_XL(const std::vector<double> &qhats,
+                                 const dealii::Point<dim> &normal)
 {
   double q1 = qhats[0];
   double q2 = qhats[1];
@@ -373,9 +370,9 @@ explicit_nswe<dim>::get_XL(const std::vector<double> &qhats,
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_Dn(const std::vector<double> &qhats,
-                           const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_Dn(const std::vector<double> &qhats,
+                                 const dealii::Point<dim> &normal)
 {
   double q1 = qhats[0];
   double q2 = qhats[1];
@@ -391,9 +388,9 @@ explicit_nswe<dim>::get_Dn(const std::vector<double> &qhats,
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_absDn(const std::vector<double> &qhats,
-                              const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_absDn(const std::vector<double> &qhats,
+                                    const dealii::Point<dim> &normal)
 {
   double q1 = qhats[0];
   double q2 = qhats[1];
@@ -431,9 +428,9 @@ explicit_nswe<dim>::get_absDn(const std::vector<double> &qhats,
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_Aij_plus(const std::vector<double> &qhats,
-                                 const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_Aij_plus(const std::vector<double> &qhats,
+                                       const dealii::Point<dim> &normal)
 {
   assert(dim == 2);
   nswe_jac XR = get_XR(qhats, normal);
@@ -445,9 +442,9 @@ explicit_nswe<dim>::get_Aij_plus(const std::vector<double> &qhats,
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_Aij_mnus(const std::vector<double> &qhats,
-                                 const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_Aij_mnus(const std::vector<double> &qhats,
+                                       const dealii::Point<dim> &normal)
 {
   assert(dim == 2);
   nswe_jac XR = get_XR(qhats, normal);
@@ -459,9 +456,9 @@ explicit_nswe<dim>::get_Aij_mnus(const std::vector<double> &qhats,
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_Aij_absl(const std::vector<double> &qhats,
-                                 const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_Aij_absl(const std::vector<double> &qhats,
+                                       const dealii::Point<dim> &normal)
 {
   assert(dim == 2);
   nswe_jac XR = get_XR(qhats, normal);
@@ -473,7 +470,7 @@ explicit_nswe<dim>::get_Aij_absl(const std::vector<double> &qhats,
 
 template <int dim>
 template <typename T>
-Eigen::Matrix<double, dim + 1, 1> explicit_nswe<dim>::get_solid_wall_BB(
+Eigen::Matrix<double, dim + 1, 1> explicit_nswe_modif<dim>::get_solid_wall_BB(
   const T &qs, const T &qhats, const dealii::Point<dim> &normal)
 {
   double q1 = qs[0];
@@ -492,9 +489,9 @@ Eigen::Matrix<double, dim + 1, 1> explicit_nswe<dim>::get_solid_wall_BB(
 
 template <int dim>
 template <typename T>
-std::vector<typename explicit_nswe<dim>::nswe_jac>
-explicit_nswe<dim>::get_dRik_dqhj(const T &qhats,
-                                  const dealii::Point<dim> &normal)
+std::vector<typename explicit_nswe_modif<dim>::nswe_jac>
+explicit_nswe_modif<dim>::get_dRik_dqhj(const T &qhats,
+                                        const dealii::Point<dim> &normal)
 {
   double q1 = qhats[0];
   double n1 = normal[0];
@@ -511,9 +508,9 @@ explicit_nswe<dim>::get_dRik_dqhj(const T &qhats,
 
 template <int dim>
 template <typename T>
-std::vector<typename explicit_nswe<dim>::nswe_jac>
-explicit_nswe<dim>::get_dLik_dqhj(const T &qhats,
-                                  const dealii::Point<dim> &normal)
+std::vector<typename explicit_nswe_modif<dim>::nswe_jac>
+explicit_nswe_modif<dim>::get_dLik_dqhj(const T &qhats,
+                                        const dealii::Point<dim> &normal)
 {
   double q1 = qhats[0];
   double q2 = qhats[1];
@@ -540,9 +537,9 @@ explicit_nswe<dim>::get_dLik_dqhj(const T &qhats,
 
 template <int dim>
 template <typename T>
-std::vector<typename explicit_nswe<dim>::nswe_jac>
-explicit_nswe<dim>::get_dDik_dqhj(const T &qhats,
-                                  const dealii::Point<dim> &normal)
+std::vector<typename explicit_nswe_modif<dim>::nswe_jac>
+explicit_nswe_modif<dim>::get_dDik_dqhj(const T &qhats,
+                                        const dealii::Point<dim> &normal)
 {
   double q1 = qhats[0];
   double q2 = qhats[1];
@@ -562,9 +559,9 @@ explicit_nswe<dim>::get_dDik_dqhj(const T &qhats,
 
 template <int dim>
 template <typename T>
-std::vector<typename explicit_nswe<dim>::nswe_jac>
-explicit_nswe<dim>::get_dAbsDik_dqhj(const T &qhats,
-                                     const dealii::Point<dim> &normal)
+std::vector<typename explicit_nswe_modif<dim>::nswe_jac>
+explicit_nswe_modif<dim>::get_dAbsDik_dqhj(const T &qhats,
+                                           const dealii::Point<dim> &normal)
 {
   double q1 = qhats[0];
   double q2 = qhats[1];
@@ -618,10 +615,11 @@ explicit_nswe<dim>::get_dAbsDik_dqhj(const T &qhats,
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_dAik_dqhj_qk_plus(const std::vector<double> &qs,
-                                          const std::vector<double> &qhats,
-                                          const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_dAik_dqhj_qk_plus(
+  const std::vector<double> &qs,
+  const std::vector<double> &qhats,
+  const dealii::Point<dim> &normal)
 {
   assert(dim == 2);
   nswe_jac result;
@@ -645,7 +643,8 @@ explicit_nswe<dim>::get_dAik_dqhj_qk_plus(const std::vector<double> &qs,
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac explicit_nswe<dim>::get_dAik_dqhj_qk_mnus(
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_dAik_dqhj_qk_mnus(
   const Eigen::Matrix<double, dim + 1, 1> &qs,
   const std::vector<double> &qhats,
   const dealii::Point<dim> &normal)
@@ -671,10 +670,11 @@ typename explicit_nswe<dim>::nswe_jac explicit_nswe<dim>::get_dAik_dqhj_qk_mnus(
 }
 
 template <int dim>
-typename explicit_nswe<dim>::nswe_jac
-explicit_nswe<dim>::get_dAik_dqhj_qk_absl(const std::vector<double> &qs,
-                                          const std::vector<double> &qhats,
-                                          const dealii::Point<dim> &normal)
+typename explicit_nswe_modif<dim>::nswe_jac
+explicit_nswe_modif<dim>::get_dAik_dqhj_qk_absl(
+  const std::vector<double> &qs,
+  const std::vector<double> &qhats,
+  const dealii::Point<dim> &normal)
 {
   assert(dim == 2);
   nswe_jac result;
@@ -696,7 +696,7 @@ explicit_nswe<dim>::get_dAik_dqhj_qk_absl(const std::vector<double> &qs,
 }
 
 template <int dim>
-void explicit_nswe<dim>::calculate_matrices()
+void explicit_nswe_modif<dim>::calculate_matrices()
 {
   const unsigned n_faces = this->n_faces;
   const unsigned n_cell_bases = this->n_cell_bases;
@@ -1009,7 +1009,7 @@ void explicit_nswe<dim>::calculate_matrices()
 }
 
 template <int dim>
-void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
+void explicit_nswe_modif<dim>::assemble_globals(const solver_update_keys &keys_)
 {
   /*
   const std::vector<double> &cell_quad_weights =
@@ -1192,8 +1192,8 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
 }
 
 template <int dim>
-double
-explicit_nswe<dim>::get_trace_increment_norm(const double *const local_uhat)
+double explicit_nswe_modif<dim>::get_trace_increment_norm(
+  const double *const local_uhat)
 {
   this->reinit_cell_fe_vals();
   const std::vector<double> &face_quad_weights =
@@ -1241,7 +1241,7 @@ explicit_nswe<dim>::get_trace_increment_norm(const double *const local_uhat)
 
 template <int dim>
 template <typename T>
-double explicit_nswe<dim>::compute_internal_dofs(
+double explicit_nswe_modif<dim>::compute_internal_dofs(
   const double *const,
   eigen3mat &q2,
   eigen3mat &q1,
@@ -1302,10 +1302,10 @@ double explicit_nswe<dim>::compute_internal_dofs(
 }
 
 template <int dim>
-void explicit_nswe<dim>::internal_vars_errors(const eigen3mat &u_vec,
-                                              const eigen3mat &q_vec,
-                                              double &u_error,
-                                              double &q_error)
+void explicit_nswe_modif<dim>::internal_vars_errors(const eigen3mat &u_vec,
+                                                    const eigen3mat &q_vec,
+                                                    double &u_error,
+                                                    double &q_error)
 {
   this->reinit_cell_fe_vals();
   eigen3mat total_vec((dim + 1) * this->n_cell_bases, 1);
@@ -1317,7 +1317,7 @@ void explicit_nswe<dim>::internal_vars_errors(const eigen3mat &u_vec,
 }
 
 template <int dim>
-void explicit_nswe<dim>::calculate_stage_matrices()
+void explicit_nswe_modif<dim>::calculate_stage_matrices()
 {
   const unsigned n_faces = this->n_faces;
   const unsigned n_cell_bases = this->n_cell_bases;
@@ -1532,7 +1532,7 @@ void explicit_nswe<dim>::calculate_stage_matrices()
 }
 
 template <int dim>
-void explicit_nswe<dim>::ready_for_next_stage()
+void explicit_nswe_modif<dim>::ready_for_next_stage()
 {
   const std::vector<double> &cell_quad_weights =
     this->elem_quad_bundle->get_weights();
@@ -1564,6 +1564,6 @@ void explicit_nswe<dim>::ready_for_next_stage()
 }
 
 template <int dim>
-void explicit_nswe<dim>::ready_for_next_time_step()
+void explicit_nswe_modif<dim>::ready_for_next_time_step()
 {
 }

@@ -1355,8 +1355,7 @@ void explicit_hdg_model<dim, CellType>::get_results_from_another_model(
         std::move(all_owned_cells[i_cell]));
       static_cast<CellType<dim> *>(cell.get())
         ->set_previous_step_results(
-          static_cast<srcCellType<dim> *>(src_cell.get())
-            ->get_previous_step_results());
+          static_cast<srcCellType<dim> *>(src_cell.get()));
       all_owned_cells[i_cell] = std::move(cell);
       src_model.all_owned_cells[i_cell] = std::move(src_cell);
     }

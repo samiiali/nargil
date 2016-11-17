@@ -1,433 +1,11 @@
 #include "cell_class.hpp"
-#include "explicit_nswe.hpp"
+#include "explicit_gn_dispersive.hpp"
+#include "explicit_nswe_modif.hpp"
 
-#ifndef EXPLICIT_GN_DISPERSIVE
-#define EXPLICIT_GN_DISPERSIVE
+#ifndef EXPLICIT_GN_DISPERSIVE_MODIF
+#define EXPLICIT_GN_DISPERSIVE_MODIF
 
-double alpha = 1.0;
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_h_t_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    double h_t;
-    double x1 = x[0];
-    double y1 = x[1];
-    double g = 9.81;
-
-    // Example 1 of GN
-    //    h_t = 0.2 * cos(4. * x1 + t);
-    // End of example 1 of GN
-
-    // Example 2, 3 of GN
-    h_t = 0;
-    // End of example 2, 3 of GN
-
-    return h_t;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_grad_grad_b_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double & = 0) const final
-  {
-    dealii::Tensor<2, 2> grad_grad_b;
-    // Example 1 !
-    /*
-    grad_grad_b[0][0] = sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
-    grad_grad_b[0][1] = 2 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
-    grad_grad_b[1][0] = 2 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
-    grad_grad_b[1][1] = 4 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
-    */
-    // End of example 1 !
-    // Example 2, 3
-    grad_grad_b[0][0] = 0.;
-    grad_grad_b[0][1] = 0.;
-    grad_grad_b[1][0] = 0.;
-    grad_grad_b[1][1] = 0.;
-    // End of example 2, 3
-    return grad_grad_b;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_grad_grad_grad_b_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double & = 0) const final
-  {
-    dealii::Tensor<3, 2> grad_grad_grad_b;
-    // Example 1 !
-    /*
-    grad_grad_b[0][0] = sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
-    grad_grad_b[0][1] = 2 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
-    grad_grad_b[1][0] = 2 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
-    grad_grad_b[1][1] = 4 * sin(x[0] + 2 * x[1]) * sin(x[0] + 2 * x[1]);
-    */
-    // End of example 1 !
-    // Example 2, 3
-    grad_grad_grad_b[0][0][0] = 0.;
-    grad_grad_grad_b[0][0][1] = 0.;
-    grad_grad_grad_b[0][1][0] = 0.;
-    grad_grad_grad_b[0][1][1] = 0.;
-    grad_grad_grad_b[1][0][0] = 0.;
-    grad_grad_grad_b[1][0][1] = 0.;
-    grad_grad_grad_b[1][1][0] = 0.;
-    grad_grad_grad_b[1][1][1] = 0.;
-    // End of example 2, 3
-    return grad_grad_grad_b;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_g_h_grad_zeta_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    dealii::Tensor<1, in_point_dim> g_h_grad_zeta;
-    // Example zero !
-    /*
-    qis[0] = 2 + exp(sin(x[0] + x[1] - t));
-    qis[1] = cos(x[0] - 4 * t);
-    qis[2] = sin(x[1] + 4 * t);
-    */
-    // End of example zero !
-    // Example 1
-    //    double g = 9.81;
-    //    g_h_grad_zeta[0] = 4. / alpha * g * (5. + sin(4. * x[0])) * cos(4. *
-    //    x[0]);
-    //    g_h_grad_zeta[1] = 0.;
-    // End of example 1
-
-    // Example 2, 3
-    g_h_grad_zeta[0] = 0.;
-    g_h_grad_zeta[1] = 0.;
-    // End of example 2, 3
-
-    return g_h_grad_zeta;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_qis_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    dealii::Tensor<1, in_point_dim + 1> qis;
-    // Example zero !
-    /*
-    qis[0] = 2 + exp(sin(x[0] + x[1] - t));
-    qis[1] = cos(x[0] - 4 * t);
-    qis[2] = sin(x[1] + 4 * t);
-    */
-    // End of example zero !
-    // Example 1
-    //    double g = 9.81;
-    //    qis[0] = 1. + 0.2 * sin(4 * x[0] + t);
-    //    qis[1] = cos(x[0] - t);
-    //    qis[2] = 0.;
-    // End of example 1
-    // G-N example 2
-    /*
-    double x0 = x[0];
-    double y0 = x[1];
-    double t0 = t;
-    if (t0 < 1.E-6)
-    {
-      if (-1.0 <= x0 && x0 <= 1.0)
-        qis[0] = 1. + 0.2 * cos(M_PI * x0);
-      else
-        qis[0] = 0.8;
-      qis[1] = 0.5;
-    }
-    else
-    {
-      qis[0] = 0.8;
-      qis[1] = 0.;
-    }
-    qis[2] = 0.;
-    */
-    // End of G-N example 2
-    // Example 3 of GN
-    double x0 = x[0];
-    double y0 = x[1];
-    double t0 = t;
-    if (t0 < 1.35)
-    {
-      qis[0] = 0.55 - 0.05 * cos(2 * M_PI * t0 / 1.35);
-    }
-    else
-    {
-      qis[0] = 0.5;
-    }
-    qis[1] = 0.;
-    qis[2] = 0.;
-    return qis;
-    // End of example 3 of GN
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_hVinf_t_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t) const final
-  {
-
-    dealii::Tensor<1, in_point_dim> hVinf_t;
-    // Example zero !
-    /*
-    hVinf_t[0] = cos(x[0] - 4 * t);
-    hVinf_t[1] = sin(x[1] + 4 * t);
-    */
-    // End of example zero !
-    // Example one
-    /*
-    hVinf_t[0] = sin(x[0] - t);
-    hVinf_t[1] = 0.;
-    */
-    // End of example one !
-    // Example 2, 3
-    hVinf_t[0] = 0.;
-    hVinf_t[1] = 0.;
-    // End of example 2, 3
-    return hVinf_t;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_W1_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    double g = 9.81;
-    dealii::Tensor<1, in_point_dim, double> w1;
-    double x1 = x[0];
-    double y1 = x[1];
-    // Example zero
-    /*
-    w1[0] = ((2 + exp(-sin(t - x1 - y1))) * g * cos(t - x1 - y1)) /
-              (exp(sin(t - x1 - y1)) * alpha) +
-            4 * sin(4 * t - x1);
-    w1[1] = ((2 + exp(-sin(t - x1 - y1))) * g * cos(t - x1 - y1)) /
-              (exp(sin(t - x1 - y1)) * alpha) -
-            4 * cos(4 * t + y1);
-    */
-    // End of example zero
-    // Example one
-    /*
-    w1[0] =
-      sin(t - x1) +
-      (4. * g * cos(t + 4 * x1) * (1 + sin(t + 4 * x1) / 5.)) / (5. * alpha);
-    w1[1] = 0.;
-    */
-    // End of example one
-    // Example 2, 3
-    w1[0] = 0.;
-    w1[1] = 0.;
-    // End of example 2, 3
-    return w1;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_W2_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    double W2;
-    double x1 = x[0];
-    double y1 = x[1];
-    double g = 9.81;
-    // Example one
-    /*
-    W2 = pow(1 + sin(t + 4 * x1) / 5., 3) *
-         ((-4 * cos(t + 4 * x1) *
-           (sin(t - x1) +
-            (4 * g * cos(t + 4 * x1) * (1 + sin(t + 4 * x1) / 5.)) /
-              (5. * alpha))) /
-            (5. * pow(1 + sin(t + 4 * x1) / 5., 2)) +
-          (-cos(t - x1) + (16 * g * pow(cos(t + 4 * x1), 2)) / (25. * alpha) -
-           (16 * g * (1 + sin(t + 4 * x1) / 5.) * sin(t + 4 * x1)) /
-             (5. * alpha)) /
-            (1 + sin(t + 4 * x1) / 5.));
-    */
-    // End of example one
-    // Example 2, 3
-    W2 = 0.;
-    // End of example 2, 3
-
-    return W2;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_L_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    dealii::Tensor<1, in_point_dim> L;
-
-    double x1 = x[0];
-    double y1 = x[1];
-    double g = 9.81;
-
-    // Including everything
-    /*
-    L[0] =
-      (-903500 * cos(t - 6 * x1) - 6000 * (-25 + 37 * alpha) * cos(5 * x1) -
-       12500 * cos(5 * (t + 2 * x1)) + 457500 * cos(3 * t + 2 * x1) -
-       150000 * cos(2 * t + 3 * x1) + 428000 * alpha * cos(2 * t + 3 * x1) -
-       42000 * cos(t + 4 * x1) + 3914880 * g * cos(t + 4 * x1) -
-       30000 * cos(3 * (t + 4 * x1)) - 720320 * g * cos(3 * (t + 4 * x1)) +
-       5440 * g * cos(5 * (t + 4 * x1)) - 22000 * alpha * cos(4 * t + 11 * x1) +
-       16000 * alpha * cos(2 * t + 13 * x1) - 13500 * cos(t + 14 * x1) +
-       765000 * sin(t - x1) + 118550 * alpha * sin(t - x1) +
-       50000 * sin(2 * (t - x1)) + 195000 * sin(10 * x1) -
-       875 * alpha * sin(5 * (t + 3 * x1)) + 600000 * sin(2 * (t + 4 * x1)) +
-       2739840 * g * sin(2 * (t + 4 * x1)) - 90112 * g * sin(4 * (t + 4 * x1)) +
-       128 * g * sin(6 * (t + 4 * x1)) + 325000 * sin(4 * t + 6 * x1) -
-       7500 * sin(3 * t + 7 * x1) + 176700 * alpha * sin(3 * t + 7 * x1) +
-       7500 * sin(t + 9 * x1) - 116300 * alpha * sin(t + 9 * x1) +
-       675 * alpha * sin(3 * t + 17 * x1)) /
-      (30000. * pow(5 + sin(t + 4 * x1), 2));
-    */
-    // Including only 1/alpha g h grad zeta
-    /*
-    L[0] =
-      (-2500 * alpha * cos(5 * x1) + 4500 * alpha * cos(2 * t + 3 * x1) +
-       34880 * g * cos(t + 4 * x1) - 2880 * g * cos(3 * (t + 4 * x1)) +
-       7500 * sin(t - x1) + 2550 * alpha * sin(t - x1) +
-       19456 * g * sin(2 * (t + 4 * x1)) - 128 * g * sin(4 * (t + 4 * x1)) +
-       875 * alpha * sin(3 * t + 7 * x1) - 675 * alpha * sin(t + 9 * x1)) /
-      7500.;
-    */
-    // Including only 1/alpha g h grad zeta plus (v1_x)
-    /*
-    L[0] =
-      (-3000 * (-125 + 74 * alpha) * cos(5 * x1) +
-       1000 * (225 + 428 * alpha) * cos(2 * t + 3 * x1) +
-       3914880 * g * cos(t + 4 * x1) - 720320 * g * cos(3 * (t + 4 * x1)) +
-       5440 * g * cos(5 * (t + 4 * x1)) - 22000 * alpha * cos(4 * t + 11 * x1) +
-       16000 * alpha * cos(2 * t + 13 * x1) + 15000 * sin(t - x1) +
-       118550 * alpha * sin(t - x1) - 875 * alpha * sin(5 * (t + 3 * x1)) +
-       2739840 * g * sin(2 * (t + 4 * x1)) - 90112 * g * sin(4 * (t + 4 * x1)) +
-       128 * g * sin(6 * (t + 4 * x1)) - 7500 * sin(3 * t + 7 * x1) +
-       176700 * alpha * sin(3 * t + 7 * x1) + 7500 * sin(t + 9 * x1) -
-       116300 * alpha * sin(t + 9 * x1) + 675 * alpha * sin(3 * t + 17 * x1)) /
-      (30000. * pow(5 + sin(t + 4 * x1), 2));
-    */
-    // Including only 1/alpha g h grad zeta plus (v1_xx)
-    /*
-    L[0] =
-      (450000 * cos(t - x1) - 750 * (-3030 + 2957 * alpha) * cos(5 * x1) -
-       2272500 * cos(2 * t + 3 * x1) + 4338150 * alpha * cos(2 * t + 3 * x1) +
-       41888640 * g * cos(t + 4 * x1) - 10033152 * g * cos(3 * (t + 4 * x1)) +
-       144640 * g * cos(5 * (t + 4 * x1)) - 128 * g * cos(7 * (t + 4 * x1)) -
-       1875000 * cos(3 * t + 7 * x1) - 675000 * cos(t + 9 * x1) +
-       7500 * cos(4 * t + 11 * x1) - 397575 * alpha * cos(4 * t + 11 * x1) -
-       7500 * cos(2 * t + 13 * x1) + 276975 * alpha * cos(2 * t + 13 * x1) +
-       875 * alpha * cos(6 * t + 19 * x1) - 675 * alpha * cos(4 * t + 21 * x1) +
-       7950000 * sin(t - x1) + 535500 * alpha * sin(t - x1) -
-       16500000 * sin(5 * x1) - 30750 * alpha * sin(5 * (t + 3 * x1)) -
-       4500000 * sin(2 * t + 3 * x1) + 32033600 * g * sin(2 * (t + 4 * x1)) -
-       1626880 * g * sin(4 * (t + 4 * x1)) + 6720 * g * sin(6 * (t + 4 * x1)) -
-       225000 * sin(3 * t + 7 * x1) + 2217000 * alpha * sin(3 * t + 7 * x1) +
-       225000 * sin(t + 9 * x1) - 1401000 * alpha * sin(t + 9 * x1) +
-       22750 * alpha * sin(3 * t + 17 * x1)) /
-      (60000. * pow(5 + sin(t + 4 * x1), 3));
-    */
-    // Including only 1/alpha g h grad zeta plus (v1_x)^2
-    /*
-    L[0] =
-      (5 *
-       ((-15 *
-         pow(3 * cos(5 * x1) + 5 * (cos(2 * t + 3 * x1) - 2 * sin(t - x1)),
-             2)) /
-          4. +
-        (3 * sin(t - x1) * pow(5 + sin(t + 4 * x1), 4)) / 5. -
-        (pow(5 + sin(t + 4 * x1), 4) *
-         (2500 * alpha * cos(5 * x1) - 4500 * alpha * cos(2 * t + 3 * x1) -
-          34880 * g * cos(t + 4 * x1) + 2880 * g * cos(3 * (t + 4 * x1)) -
-          2550 * alpha * sin(t - x1) - 19456 * g * sin(2 * (t + 4 * x1)) +
-          128 * g * sin(4 * (t + 4 * x1)) - 875 * alpha * sin(3 * t + 7 * x1) +
-          675 * alpha * sin(t + 9 * x1))) /
-          12500.)) /
-      (3. * pow(5 + sin(t + 4 * x1), 4));
-    */
-    L[1] = 0;
-
-    //
-    //
-    // GN example 2, 3
-    //
-    //
-    L[0] = 0.;
-    L[1] = 0.;
-    //
-    //
-    // End of GN example 2, 3
-    //
-    //
-
-    // End of example for second equation alone
-    return L;
-  }
-};
+// double alpha = 1.0;
 
 /**
  * ## Governing Equation
@@ -687,7 +265,7 @@ struct explicit_gn_dispersive_L_class
  * \f]
  */
 template <int dim>
-struct explicit_gn_dispersive
+struct explicit_gn_dispersive_modif
   : public GenericCell<dim> // There is a partial definition of this class at
                             // explicit_nswe.hpp ... also in solver.hpp
 {
@@ -715,15 +293,17 @@ struct explicit_gn_dispersive
    * \param inp_cell
    * \param id_num_
    */
-  explicit_gn_dispersive() = delete;
-  explicit_gn_dispersive(const explicit_gn_dispersive &inp_cell) = delete;
-  explicit_gn_dispersive(explicit_gn_dispersive &&inp_cell) noexcept;
-  explicit_gn_dispersive(
+  explicit_gn_dispersive_modif() = delete;
+  explicit_gn_dispersive_modif(const explicit_gn_dispersive_modif &inp_cell) =
+    delete;
+  explicit_gn_dispersive_modif(
+    explicit_gn_dispersive_modif &&inp_cell) noexcept;
+  explicit_gn_dispersive_modif(
     typename GenericCell<dim>::dealiiCell &inp_cell,
     const unsigned &id_num_,
     const unsigned &poly_order_,
-    hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model_);
-  ~explicit_gn_dispersive() final;
+    hdg_model_with_explicit_rk<dim, explicit_gn_dispersive_modif> *model_);
+  ~explicit_gn_dispersive_modif() final;
   eigen3mat A001, A02, B01T, C01, A01, B02, D01, C02, A03, B03T, L01, C03T, E01,
     C04T, L10, L11, L12, L21, C34T, E31, L31;
   void assign_BCs(const bool &at_boundary,
@@ -736,7 +316,8 @@ struct explicit_gn_dispersive
 
   void assign_initial_data();
 
-  void set_previous_step_results(explicit_nswe<dim> const *const src_cell);
+  void
+  set_previous_step_results(const explicit_nswe_modif<dim> *const src_cell);
 
   eigen3mat *get_previous_step_results();
 
@@ -769,27 +350,28 @@ struct explicit_gn_dispersive
 
   void ready_for_next_iteration();
 
-  void
-  produce_trace_of_conserved_vars(const explicit_nswe<dim> *const src_cell);
+  void produce_trace_of_conserved_vars(
+    const explicit_nswe_modif<dim> *const src_cell);
 
-  void compute_avg_prim_vars_flux(const explicit_nswe<dim> *const src_cell,
-                                  double const *const local_prim_vars_sums,
-                                  double const *const local_face_count,
-                                  double const *const local_V_jump);
+  void
+  compute_avg_prim_vars_flux(const explicit_nswe_modif<dim> *const src_cell,
+                             double const *const local_prim_vars_sums,
+                             double const *const local_face_count,
+                             double const *const local_V_jump);
 
   void compute_prim_vars_derivatives();
 
-  void
-  produce_trace_of_grad_prim_vars(const explicit_nswe<dim> *const src_cell);
+  void produce_trace_of_grad_prim_vars(
+    const explicit_nswe_modif<dim> *const src_cell);
 
-  void compute_avg_grad_V_flux(const explicit_nswe<dim> *const src_cell,
+  void compute_avg_grad_V_flux(const explicit_nswe_modif<dim> *const src_cell,
                                double const *const local_V_x_sums,
                                double const *const local_V_y_sums);
 
   void compute_grad_grad_V();
 
   std::vector<double> taus;
-  hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> *model;
+  hdg_model_with_explicit_rk<dim, explicit_gn_dispersive_modif> *model;
   explicit_RKn<4, original_RK> *time_integrator;
 
   static explicit_gn_dispersive_h_t_class<dim, double> h_t_func;
@@ -842,6 +424,6 @@ struct explicit_gn_dispersive
   std::vector<eigen3mat> ki_s;
 };
 
-#include "explicit_gn_dispersive.cpp"
+#include "explicit_gn_dispersive_modif.cpp"
 
 #endif
