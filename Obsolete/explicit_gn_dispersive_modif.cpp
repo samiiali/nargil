@@ -442,15 +442,15 @@ void explicit_gn_dispersive_modif<dim>::calculate_matrices()
       dealii::Tensor<1, dim> grad_b_at_quad_tensor =
         explicit_nswe_grad_b_func.value(quad_pt_locs[i_quad],
                                         quad_pt_locs[i_quad]);
-      dealii::Tensor<1, dim> L10_at_quad_tensor =
-        g_h_grad_zeta_func.value(quad_pt_locs[i_quad],
-                                 quad_pt_locs[i_quad],
-                                 time_integrator->get_current_stage_time());
+      //      dealii::Tensor<1, dim> L10_at_quad_tensor =
+      //        g_h_grad_zeta_func.value(quad_pt_locs[i_quad],
+      //                                 quad_pt_locs[i_quad],
+      //                                 time_integrator->get_current_stage_time());
 
       for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
       {
         L01_at_quad(i_dim, 0) = L01_at_quad_tensor[i_dim];
-        L10_at_quad(i_dim, 0) = L10_at_quad_tensor[i_dim];
+        //        L10_at_quad(i_dim, 0) = L10_at_quad_tensor[i_dim];
         grad_b_at_quad(i_dim, 0) = grad_b_at_quad_tensor[i_dim];
       }
 
@@ -1399,9 +1399,9 @@ void explicit_gn_dispersive_modif<dim>::produce_trace_of_conserved_vars(
   }
 
   model->flux_gen1->push_to_global_vec(model->flux_gen1->conserved_vars_flux,
-                                      row_nums,
-                                      conserved_vars_trace_vec,
-                                      ADD_VALUES);
+                                       row_nums,
+                                       conserved_vars_trace_vec,
+                                       ADD_VALUES);
   model->flux_gen1->push_to_global_vec(
     model->flux_gen1->V_dot_n_sum, row_nums, V_dot_n, ADD_VALUES);
   model->flux_gen1->push_to_global_vec(

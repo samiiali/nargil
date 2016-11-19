@@ -55,11 +55,42 @@ struct explicit_gn_dispersive_grad_grad_b_class
     */
     // End of example 1 !
     // Example 2, 3
-    grad_grad_b[0][0] = 0.;
-    grad_grad_b[0][1] = 0.;
-    grad_grad_b[1][0] = 0.;
-    grad_grad_b[1][1] = 0.;
+    //    grad_grad_b[0][0] = 0.;
+    //    grad_grad_b[0][1] = 0.;
+    //    grad_grad_b[1][0] = 0.;
+    //    grad_grad_b[1][1] = 0.;
     // End of example 2, 3
+    // Example 9
+    double x2 = x[0] - 2.;
+    double y0 = x[1];
+    double r2 = sqrt(x2 * x2 + y0 * y0);
+    if (r2 <= 2.)
+    {
+      grad_grad_b[0][0] =
+        -(M_PI * (M_PI * r2 * pow(x2, 2) * cos((M_PI * r2) / 2.) +
+                  2 * (r2 - x2) * (r2 + x2) * sin((M_PI * r2) / 2.))) /
+        (32. * pow(r2, 3));
+      grad_grad_b[0][1] =
+        -(M_PI * x2 * y0 *
+          (M_PI * r2 * cos((M_PI * r2) / 2.) - 2 * sin((M_PI * r2) / 2.))) /
+        (32. * pow(r2, 3));
+      grad_grad_b[1][0] =
+        -(M_PI * x2 * y0 *
+          (M_PI * r2 * cos((M_PI * r2) / 2.) - 2 * sin((M_PI * r2) / 2.))) /
+        (32. * pow(r2, 3));
+      grad_grad_b[1][1] =
+        -(M_PI * (M_PI * r2 * pow(y0, 2) * cos((M_PI * r2) / 2.) +
+                  2 * (r2 - y0) * (r2 + y0) * sin((M_PI * r2) / 2.))) /
+        (32. * pow(r2, 3));
+    }
+    else
+    {
+      grad_grad_b[0][0] = 0.;
+      grad_grad_b[0][1] = 0.;
+      grad_grad_b[1][0] = 0.;
+      grad_grad_b[1][1] = 0.;
+    }
+    // End of example 9
     return grad_grad_b;
   }
 };
@@ -85,149 +116,89 @@ struct explicit_gn_dispersive_grad_grad_grad_b_class
     */
     // End of example 1 !
     // Example 2, 3
-    grad_grad_grad_b[0][0][0] = 0.;
-    grad_grad_grad_b[0][0][1] = 0.;
-    grad_grad_grad_b[0][1][0] = 0.;
-    grad_grad_grad_b[0][1][1] = 0.;
-    grad_grad_grad_b[1][0][0] = 0.;
-    grad_grad_grad_b[1][0][1] = 0.;
-    grad_grad_grad_b[1][1][0] = 0.;
-    grad_grad_grad_b[1][1][1] = 0.;
+    //    grad_grad_grad_b[0][0][0] = 0.;
+    //    grad_grad_grad_b[0][0][1] = 0.;
+    //    grad_grad_grad_b[0][1][0] = 0.;
+    //    grad_grad_grad_b[0][1][1] = 0.;
+    //    grad_grad_grad_b[1][0][0] = 0.;
+    //    grad_grad_grad_b[1][0][1] = 0.;
+    //    grad_grad_grad_b[1][1][0] = 0.;
+    //    grad_grad_grad_b[1][1][1] = 0.;
     // End of example 2, 3
+    // Example 9
+    double x2 = x[0] - 2.;
+    double y0 = x[1];
+    double r2 = sqrt(x2 * x2 + y0 * y0);
+    if (r2 <= 2.)
+    {
+      grad_grad_grad_b[0][0][0] =
+        (M_PI * x2 *
+         (6 * M_PI * r2 * (-pow(r2, 2) + pow(x2, 2)) * cos((M_PI * r2) / 2.) +
+          (-12 * pow(x2, 2) + pow(r2, 2) * (12 + pow(M_PI, 2) * pow(x2, 2))) *
+            sin((M_PI * r2) / 2.))) /
+        (64. * pow(r2, 5));
+      grad_grad_grad_b[0][0][1] =
+        (M_PI * y0 *
+         (-2 * M_PI * r2 * (pow(r2, 2) - 3 * pow(x2, 2)) *
+            cos((M_PI * r2) / 2.) +
+          (-12 * pow(x2, 2) + pow(r2, 2) * (4 + pow(M_PI, 2) * pow(x2, 2))) *
+            sin((M_PI * r2) / 2.))) /
+        (64. * pow(r2, 5));
+      grad_grad_grad_b[0][1][0] =
+        (M_PI * y0 *
+         (-2 * M_PI * r2 * (pow(r2, 2) - 3 * pow(x2, 2)) *
+            cos((M_PI * r2) / 2.) +
+          (-12 * pow(x2, 2) + pow(r2, 2) * (4 + pow(M_PI, 2) * pow(x2, 2))) *
+            sin((M_PI * r2) / 2.))) /
+        (64. * pow(r2, 5));
+      grad_grad_grad_b[0][1][1] =
+        (M_PI * x2 *
+         (-2 * M_PI * r2 * (pow(r2, 2) - 3 * pow(y0, 2)) *
+            cos((M_PI * r2) / 2.) +
+          (-12 * pow(y0, 2) + pow(r2, 2) * (4 + pow(M_PI, 2) * pow(y0, 2))) *
+            sin((M_PI * r2) / 2.))) /
+        (64. * pow(r2, 5));
+      grad_grad_grad_b[1][0][0] =
+        (M_PI * y0 *
+         (-2 * M_PI * r2 * (pow(r2, 2) - 3 * pow(x2, 2)) *
+            cos((M_PI * r2) / 2.) +
+          (-12 * pow(x2, 2) + pow(r2, 2) * (4 + pow(M_PI, 2) * pow(x2, 2))) *
+            sin((M_PI * r2) / 2.))) /
+        (64. * pow(r2, 5));
+      grad_grad_grad_b[1][0][1] =
+        (M_PI * x2 *
+         (-2 * M_PI * r2 * (pow(r2, 2) - 3 * pow(y0, 2)) *
+            cos((M_PI * r2) / 2.) +
+          (-12 * pow(y0, 2) + pow(r2, 2) * (4 + pow(M_PI, 2) * pow(y0, 2))) *
+            sin((M_PI * r2) / 2.))) /
+        (64. * pow(r2, 5));
+      grad_grad_grad_b[1][1][0] =
+        (M_PI * x2 *
+         (-2 * M_PI * r2 * (pow(r2, 2) - 3 * pow(y0, 2)) *
+            cos((M_PI * r2) / 2.) +
+          (-12 * pow(y0, 2) + pow(r2, 2) * (4 + pow(M_PI, 2) * pow(y0, 2))) *
+            sin((M_PI * r2) / 2.))) /
+        (64. * pow(r2, 5));
+      grad_grad_grad_b[1][1][1] =
+        (M_PI * y0 *
+         (6 * M_PI * r2 * (-pow(r2, 2) + pow(y0, 2)) * cos((M_PI * r2) / 2.) +
+          (-12 * pow(y0, 2) + pow(r2, 2) * (12 + pow(M_PI, 2) * pow(y0, 2))) *
+            sin((M_PI * r2) / 2.))) /
+        (64. * pow(r2, 5));
+    }
+    else
+    {
+      grad_grad_grad_b[0][0][0] = 0.;
+      grad_grad_grad_b[0][0][1] = 0.;
+      grad_grad_grad_b[0][1][0] = 0.;
+      grad_grad_grad_b[0][1][1] = 0.;
+      grad_grad_grad_b[1][0][0] = 0.;
+      grad_grad_grad_b[1][0][1] = 0.;
+      grad_grad_grad_b[1][1][0] = 0.;
+      grad_grad_grad_b[1][1][1] = 0.;
+    }
+    // End of example 9
     return grad_grad_grad_b;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_g_h_grad_zeta_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    dealii::Tensor<1, in_point_dim> g_h_grad_zeta;
-    // Example zero !
-    /*
-    qis[0] = 2 + exp(sin(x[0] + x[1] - t));
-    qis[1] = cos(x[0] - 4 * t);
-    qis[2] = sin(x[1] + 4 * t);
-    */
-    // End of example zero !
-    // Example 1
-    //    double g = 9.81;
-    //    g_h_grad_zeta[0] = 4. / alpha * g * (5. + sin(4. * x[0])) * cos(4. *
-    //    x[0]);
-    //    g_h_grad_zeta[1] = 0.;
-    // End of example 1
-
-    // Example 2, 3
-    g_h_grad_zeta[0] = 0.;
-    g_h_grad_zeta[1] = 0.;
-    // End of example 2, 3
-
-    return g_h_grad_zeta;
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_qis_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t = 0) const final
-  {
-    dealii::Tensor<1, in_point_dim + 1> qis;
-    // Example zero !
-    /*
-    qis[0] = 2 + exp(sin(x[0] + x[1] - t));
-    qis[1] = cos(x[0] - 4 * t);
-    qis[2] = sin(x[1] + 4 * t);
-    */
-    // End of example zero !
-    // Example 1
-    //    double g = 9.81;
-    //    qis[0] = 1. + 0.2 * sin(4 * x[0] + t);
-    //    qis[1] = cos(x[0] - t);
-    //    qis[2] = 0.;
-    // End of example 1
-    // G-N example 2
-    /*
-    double x0 = x[0];
-    double y0 = x[1];
-    double t0 = t;
-    if (t0 < 1.E-6)
-    {
-      if (-1.0 <= x0 && x0 <= 1.0)
-        qis[0] = 1. + 0.2 * cos(M_PI * x0);
-      else
-        qis[0] = 0.8;
-      qis[1] = 0.5;
-    }
-    else
-    {
-      qis[0] = 0.8;
-      qis[1] = 0.;
-    }
-    qis[2] = 0.;
-    */
-    // End of G-N example 2
-    // Example 3 of GN
-    double x0 = x[0];
-    double y0 = x[1];
-    double t0 = t;
-    if (t0 < 1.35)
-    {
-      qis[0] = 0.55 - 0.05 * cos(2 * M_PI * t0 / 1.35);
-    }
-    else
-    {
-      qis[0] = 0.5;
-    }
-    qis[1] = 0.;
-    qis[2] = 0.;
-    return qis;
-    // End of example 3 of GN
-  }
-};
-
-/**
- * \ingroup input_data_group
- */
-template <int in_point_dim, typename output_type>
-struct explicit_gn_dispersive_hVinf_t_class
-  : public TimeFunction<in_point_dim, output_type>
-{
-  virtual output_type value(const dealii::Point<in_point_dim> &x,
-                            const dealii::Point<in_point_dim> &,
-                            const double &t) const final
-  {
-
-    dealii::Tensor<1, in_point_dim> hVinf_t;
-    // Example zero !
-    /*
-    hVinf_t[0] = cos(x[0] - 4 * t);
-    hVinf_t[1] = sin(x[1] + 4 * t);
-    */
-    // End of example zero !
-    // Example one
-    /*
-    hVinf_t[0] = sin(x[0] - t);
-    hVinf_t[1] = 0.;
-    */
-    // End of example one !
-    // Example 2, 3
-    hVinf_t[0] = 0.;
-    hVinf_t[1] = 0.;
-    // End of example 2, 3
-    return hVinf_t;
   }
 };
 
@@ -408,8 +379,8 @@ struct explicit_gn_dispersive_L_class
           675 * alpha * sin(t + 9 * x1))) /
           12500.)) /
       (3. * pow(5 + sin(t + 4 * x1), 4));
-    */
     L[1] = 0;
+    */
 
     //
     //
@@ -793,13 +764,7 @@ struct explicit_gn_dispersive
   explicit_RKn<4, original_RK> *time_integrator;
 
   static explicit_gn_dispersive_h_t_class<dim, double> h_t_func;
-  static explicit_gn_dispersive_g_h_grad_zeta_class<dim,
-                                                    dealii::Tensor<1, dim> >
-    g_h_grad_zeta_func;
-  static explicit_gn_dispersive_qis_class<dim, nswe_vec>
-    explicit_gn_dispersive_qs;
-  static explicit_gn_dispersive_hVinf_t_class<dim, dealii::Tensor<1, dim> >
-    hVinf_t_func;
+  static explicit_nswe_qis_func_class<dim, nswe_vec> explicit_gn_dispersive_qs;
   static explicit_nswe_grad_b_func_class<dim, dealii::Tensor<1, dim> >
     explicit_nswe_grad_b_func;
   static explicit_gn_dispersive_grad_grad_b_class<dim, dealii::Tensor<2, dim> >

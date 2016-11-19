@@ -10,6 +10,40 @@ struct explicit_gn_dispersive;
  * \ingroup input_data_group
  */
 template <int in_point_dim, typename output_type>
+struct explicit_nswe_b_func_class
+  : public TimeFunction<in_point_dim, output_type>
+{
+  virtual output_type value(const dealii::Point<in_point_dim> &x,
+                            const dealii::Point<in_point_dim> &,
+                            const double & = 0) const final
+  {
+    double b;
+    // Example 6: Nonflat topo x-dir example
+    //    if (x[0] < 2.)
+    //      b = 0.;
+    //    else
+    //      b = 0.05 * (x[0] - 2.);
+    // End of example 6
+    // Example 7: y-dir flat bottom
+    //    b = 0.;
+    // End of example 7
+    // Example 7: y-dir flat bottom
+    double x2 = x[0] - 2.0;
+    double y0 = x[1];
+    double r2 = sqrt(x2 * x2 + y0 * y0);
+    if (r2 <= 2.)
+      b = (1. + cos(M_PI / 2. * r2)) / 8.;
+    else
+      b = 0.;
+    // End of example 7
+    return b;
+  }
+};
+
+/**
+ * \ingroup input_data_group
+ */
+template <int in_point_dim, typename output_type>
 struct explicit_nswe_grad_b_func_class
   : public TimeFunction<in_point_dim, output_type>
 {
@@ -19,15 +53,40 @@ struct explicit_nswe_grad_b_func_class
   {
     dealii::Tensor<1, in_point_dim, double> grad_b;
     // GN example 1:
-    /*
-    grad_b[0] = sin(x[0] + 2. * x[1]);
-    grad_b[1] = 2. * sin(x[0] + 2. * x[1]);
-    */
-    /* End of GN example 1 */
-    // Example 2
-    grad_b[0] = 0.;
-    grad_b[1] = 0.;
-    // End of example 2
+    //    grad_b[0] = 0.;
+    //    grad_b[1] = 0.;
+    // End of GN example 1
+    // Example 5 : Topography
+    //    grad_b[0] = 0.1 * sin(x[0] / 2.);
+    //    grad_b[1] = 0.;
+    // End of example 5
+    // GN Example 6
+    //    if (x[0] < 2.)
+    //    {
+    //      grad_b[0] = 0.;
+    //      grad_b[1] = 0.;
+    //    }
+    //    else
+    //    {
+    //      grad_b[0] = 0.05;
+    //      grad_b[1] = 0.;
+    //    }
+    // End of GN example 6
+    // GN example 9
+    double x2 = x[0] - 2.;
+    double y0 = x[1];
+    double r2 = sqrt(x2 * x2 + y0 * y0);
+    if (r2 <= 2)
+    {
+      grad_b[0] = -(M_PI * x2 / 16. / r2 * sin(M_PI / 2. * r2));
+      grad_b[1] = -(M_PI * y0 / 16. / r2 * sin(M_PI / 2. * r2));
+    }
+    else
+    {
+      grad_b[0] = 0.;
+      grad_b[1] = 0.;
+    }
+    // End of GN example 9
     return grad_b;
   }
 };
@@ -44,11 +103,11 @@ struct explicit_nswe_zero_func_class
                             const double & = 0) const final
   {
     dealii::Tensor<1, in_point_dim + 1, double> qs;
-    /* Example 1: */
+    // Example 1:
     qs[0] = 0.;
     qs[1] = 0.;
     qs[2] = 0.;
-    /* End of Example 1 */
+    // End of Example 1
     return qs;
   }
 };
@@ -212,7 +271,8 @@ struct explicit_nswe_qis_func_class
     */
     // End of G-N example 3
     //
-    // Exact solution of Green-Naghdi:
+    // Exact solution of Green-Naghdi: Example 4
+    /*
     if (t <= 1.e-6)
     {
       double x0 = x[0];
@@ -241,8 +301,152 @@ struct explicit_nswe_qis_func_class
       qs[1] = c_GN * qs[0] - c_GN * h_b;
       qs[2] = 0.;
     }
-    // End of checking inflow and outflow BC
-
+    */
+    // End of Example 4
+    // Exact solution of Green-Naghdi: Example 6
+    //    if (t <= 1.E-6)
+    //    {
+    //      double x0 = x[0];
+    //      double a_GN = 0.1;
+    //      double h_b = 0.5;
+    //      double x0_GN = -4.;
+    //      double g = 9.81;
+    //      double c_GN = sqrt(g * (h_b + a_GN));
+    //      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
+    //      double zeta_GN = a_GN / pow(cosh(kappa_GN * (x0 - x0_GN - c_GN *
+    //      t)), 2);
+    //      double h_1 = h_b + zeta_GN;
+    //      if (x0 < 2.)
+    //        qs[0] = h_b + zeta_GN;
+    //      else
+    //        qs[0] = h_b + zeta_GN - 0.05 * (x0 - 2.);
+    //      qs[1] = c_GN * h_1 - c_GN * h_b;
+    //      qs[2] = 0.;
+    //    }
+    //    else
+    //    {
+    //      qs[0] = 0.;
+    //      qs[1] = 0.;
+    //      qs[2] = 0.;
+    //    }
+    // End of exact solution example 6
+    // Example 5: Bathymetry with just NSWE
+    //    qs[0] = 1. + 0.2 * sin(x[0] - t);
+    //    qs[1] = cos(x[0] - t);
+    //    qs[2] = 0.;
+    // End of example 5.
+    // Exact solution of Green-Naghdi: Example 7
+    //    if (t <= 1.e-6)
+    //    {
+    //      double y0 = x[1];
+    //      double a_GN = 0.1;
+    //      double h_b = 0.5;
+    //      double y0_GN = -4.;
+    //      double g = 9.81;
+    //      double c_GN = sqrt(g * (h_b + a_GN));
+    //      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
+    //      double zeta_GN = a_GN / pow(cosh(kappa_GN * (y0 - y0_GN - c_GN *
+    //      t)), 2);
+    //      qs[0] = h_b + zeta_GN;
+    //      qs[1] = 0.;
+    //      qs[2] = c_GN * qs[0] - c_GN * h_b;
+    //    }
+    //    else
+    //    {
+    //      double y0 = x[1];
+    //      double a_GN = 0.1;
+    //      double h_b = 0.5;
+    //      double y0_GN = -4.;
+    //      double g = 9.81;
+    //      double c_GN = sqrt(g * (h_b + a_GN));
+    //      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
+    //      double zeta_GN = a_GN / pow(cosh(kappa_GN * (y0 - y0_GN - c_GN *
+    //      t)), 2);
+    //      qs[0] = h_b + zeta_GN;
+    //      qs[1] = 0.;
+    //      qs[2] = c_GN * qs[0] - c_GN * h_b;
+    //    }
+    // End of Example 7
+    // Exact solution of Green-Naghdi: Example 8
+    //    if (t <= 1.e-6)
+    //    {
+    //      double x0 = x[0];
+    //      double y0 = x[1];
+    //      double x1 = sqrt(3.) / 2. * x0 + y0 / 2.;
+    //      double a_GN = 0.1;
+    //      double h_b = 0.5;
+    //      double x0_GN = -4.;
+    //      double g = 9.81;
+    //      double c_GN = sqrt(g * (h_b + a_GN));
+    //      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
+    //      double zeta_GN = a_GN / pow(cosh(kappa_GN * (x1 - x0_GN - c_GN *
+    //      t)), 2);
+    //      qs[0] = h_b + zeta_GN;
+    //      qs[1] = sqrt(3.) / 2. * (c_GN * qs[0] - c_GN * h_b);
+    //      qs[2] = 1. / 2. * (c_GN * qs[0] - c_GN * h_b);
+    //    }
+    //    else
+    //    {
+    //      double x0 = x[0];
+    //      double y0 = x[1];
+    //      double x1 = sqrt(3.) / 2. * x0 + y0 / 2.;
+    //      double a_GN = 0.1;
+    //      double h_b = 0.5;
+    //      double x0_GN = -4.;
+    //      double g = 9.81;
+    //      double c_GN = sqrt(g * (h_b + a_GN));
+    //      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
+    //      double zeta_GN = a_GN / pow(cosh(kappa_GN * (x1 - x0_GN - c_GN *
+    //      t)), 2);
+    //      qs[0] = h_b + zeta_GN;
+    //      qs[1] = sqrt(3.) / 2. * (c_GN * qs[0] - c_GN * h_b);
+    //      qs[2] = 1. / 2. * (c_GN * qs[0] - c_GN * h_b);
+    //    }
+    // End of Example 8
+    // Exact solution of Green-Naghdi: Example 9
+    if (t <= 1.E-6)
+    {
+      double x0 = x[0];
+      double x2 = x[0] - 2.;
+      double y0 = x[1];
+      double r2 = sqrt(x2 * x2 + y0 * y0);
+      double a_GN = 0.05;
+      double h_b = 0.3;
+      double x0_GN = -4.;
+      double g = 9.81;
+      double c_GN = sqrt(g * (h_b + a_GN));
+      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
+      double zeta_GN = a_GN / pow(cosh(kappa_GN * (x0 - x0_GN - c_GN * t)), 2);
+      double h_1 = h_b + zeta_GN;
+      if (r2 <= 2.)
+        qs[0] = h_b + zeta_GN - (1. + cos(M_PI / 2. * r2)) / 8.;
+      else
+        qs[0] = h_b + zeta_GN;
+      qs[1] = c_GN * h_1 - c_GN * h_b;
+      qs[2] = 0.;
+    }
+    else
+    {
+      double x0 = x[0];
+      double x2 = x[0] - 2.;
+      double y0 = x[1];
+      double r2 = sqrt(x2 * x2 + y0 * y0);
+      double a_GN = 0.05;
+      double h_b = 0.3;
+      double x0_GN = -4.;
+      double g = 9.81;
+      double c_GN = sqrt(g * (h_b + a_GN));
+      double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
+      double zeta_GN = a_GN / pow(cosh(kappa_GN * (x0 - x0_GN - c_GN * t)), 2);
+      double h_1 = h_b + zeta_GN;
+      if (r2 <= 2.)
+        qs[0] = h_b + zeta_GN - (1. + cos(M_PI / 2. * r2)) / 8.;
+      else
+        qs[0] = h_b + zeta_GN;
+      qs[1] = c_GN * h_1 - c_GN * h_b;
+      qs[2] = 0.;
+    }
+    // End of Example 8
     return qs;
   }
 };
@@ -402,11 +606,22 @@ struct explicit_nswe_L_func_class
     L[2] = 0.;
     */
     // End of example one of Green-Naghdi
-    // GN example 2
+    // GN example 2, 6
     L[0] = 0;
     L[1] = 0;
     L[2] = 0;
-    // End of GN example 2
+    // End of GN example 2, 6
+    // Example 5: Topography
+    /*
+    double g = 9.81;
+    L[0] = -cos(t - x0) / 5. + sin(t - x0);
+    L[1] = (-5 * pow(cos(t - x0), 3)) / pow(-5 + sin(t - x0), 2) -
+           (g * cos(t - x0) * (-5 + sin(t - x0))) / 25. - sin(t - x0) -
+           (5 * sin(2 * (t - x0))) / (-5 + sin(t - x0)) -
+           0.02 * g * (-5. + sin(t - x0)) * sin(x0 / 2.);
+    L[2] = 0.;
+    */
+    // End of example 5
     return L;
   }
 };
@@ -858,6 +1073,7 @@ struct explicit_nswe : public GenericCell<dim>
   explicit_hdg_model<dim, explicit_nswe> *model;
   explicit_RKn<4, original_RK> *time_integrator;
 
+  static explicit_nswe_b_func_class<dim, double> b_func;
   static explicit_nswe_qis_func_class<dim, nswe_vec> explicit_nswe_qis_func;
   static explicit_nswe_zero_func_class<dim, nswe_vec> explicit_nswe_zero_func;
   static explicit_nswe_L_func_class<dim, nswe_vec> explicit_nswe_L_func;
@@ -867,6 +1083,7 @@ struct explicit_nswe : public GenericCell<dim>
   eigen3mat last_step_q;
   eigen3mat last_iter_qhat;
   eigen3mat last_stage_q;
+  eigen3mat bathymetry;
 
   std::vector<eigen3mat> ki_s;
   std::vector<eigen3mat> ki_hats;

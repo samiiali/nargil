@@ -51,7 +51,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     execution_time.open("Execution_Time.txt",
                         std::ofstream::out | std::fstream::app);
   }
-  if (true) // Long Strip Example 1
+  if (false) // Long Strip Example 1
   {
     std::vector<unsigned> repeats(dim, 1);
     repeats[0] = 100;
@@ -71,6 +71,70 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     the_grid.add_periodicity(periodic_faces);
   }
   // End of Long Strip Example 1
+
+  if (true) // GN 2D Example : Example 9
+  {
+    std::vector<unsigned> repeats(dim, 40);
+    repeats[0] = 80;
+    dealii::Point<dim> point_1, point_2;
+    point_1 = {-10., -5.0};
+    point_2 = {10, 5.0};
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      the_grid, repeats, point_1, point_2, true);
+    std::vector<dealii::GridTools::PeriodicFacePair<
+      typename dealii::parallel::distributed::Triangulation<
+        dim>::cell_iterator> >
+      periodic_faces;
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({20., 0.}));
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 10.}));
+    the_grid.add_periodicity(periodic_faces);
+  }
+  // End of GN 2D Example : Example 9
+
+  if (false) // Long Strip Example 7 of GN (Y-Dir)
+  {
+    std::vector<unsigned> repeats(dim, 1);
+    repeats[1] = 100;
+    dealii::Point<dim> point_1, point_2;
+    point_1 = {-0.1, -10.};
+    point_2 = {0.1, 10.};
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      the_grid, repeats, point_1, point_2, true);
+    std::vector<dealii::GridTools::PeriodicFacePair<
+      typename dealii::parallel::distributed::Triangulation<
+        dim>::cell_iterator> >
+      periodic_faces;
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({0.2, 0.}));
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 20.}));
+    the_grid.add_periodicity(periodic_faces);
+  }
+  // End of Long Strip Example 7 if GN (Y-Dir)
+
+  if (false) // Long Strip Example 8 of GN (30 deg rotated)
+  {
+    std::vector<unsigned> repeats(dim, 1);
+    repeats[1] = 100;
+    dealii::Point<dim> point_1, point_2;
+    point_1 = {-0.1, -10.};
+    point_2 = {0.1, 10.};
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      the_grid, repeats, point_1, point_2, true);
+    std::vector<dealii::GridTools::PeriodicFacePair<
+      typename dealii::parallel::distributed::Triangulation<
+        dim>::cell_iterator> >
+      periodic_faces;
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({0.2, 0.}));
+    dealii::GridTools::collect_periodic_faces(
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 20.}));
+    the_grid.add_periodicity(periodic_faces);
+    dealii::GridTools::rotate(-M_PI / 3., the_grid);
+  }
+  // End of Long Strip Example 8 if GN (30 deg rotated)
 
   if (false) // Example 1
   {
@@ -948,11 +1012,9 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
           {
             solver_update_keys keys_0 =
               static_cast<solver_update_keys>(update_mat | update_rhs);
-            //
-            // if (i_time == 0 && num_iter == 0)
-            //  model0.init_solver();
-            // else
-            //
+
+            // Since, we have already done init_solver(keys_0), we just
+            // reinit here.
             model0.reinit_solver(keys_0);
 
             t11 = MPI_Wtime();
@@ -1009,6 +1071,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
     }
   }
 
+  /*
   if (false) // Explicit GN Dispersive without splitting
   {
     double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
@@ -1107,7 +1170,6 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         //
         // Second phase of time splitting.
         //
-        /*
         {
           model1.get_results_from_another_model(model0);
           while (!rk4_1.ready_for_next_step())
@@ -1209,12 +1271,10 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
             vtk_visualizer(model1, i_time * 3 + 1);
           model0.get_results_from_another_model(model1);
         }
-        */
 
         //
         // Third phase of time splitting
         //
-        /*
         while (!rk4_0.ready_for_next_step())
         {
           bool iteration_required = false;
@@ -1261,7 +1321,6 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         if (i_time % 5 == 0)
           //        vtk_visualizer(model0, max_iter * i_time + num_iter);
           vtk_visualizer(model0, i_time * 3 + 2);
-        */
 
         //
         // Time splitting finished. Going for calculation of the results.
@@ -1286,6 +1345,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
       model1.DoF_H_System.clear();
     }
   }
+  */
 
   VecDestroy(&sol_vec);
 }
@@ -1300,7 +1360,8 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
  * is on). When \c refn_cycle is not zero, it performs only one
  * refinement cycle (independant of the given argument \c n).
  * In the latter case, the refinement type will be
- * adaptive or uniform according to the variable SolutionManager::adaptive_on.
+ * adaptive or uniform according to the variable
+ * SolutionManager::adaptive_on.
  * In any case, SolutionManager::refn_cycle will be updated to reflect the
  * total number of applied refinement cycles.
  */
@@ -1452,7 +1513,8 @@ void SolutionManager<dim>::vtk_visualizer(
 /*!
  * \param[in]  logger is the ostream which should print the output.
  * \param[in]  log is the meassage to be shown.
- * \param[in]  insert_eol is a key to determine that inserting an end of line
+ * \param[in]  insert_eol is a key to determine that inserting an end of
+ * line
  * is
  * required or not.
  * \return Nothing.
@@ -1506,9 +1568,10 @@ void SolutionManager<dim>::write_grid()
   Grid1_Out.set_flags(svg_flags);
   if (dim == 2)
   {
-    std::ofstream Grid1_OutFile(
-      "/org/groups/chg/_Ali_/My_Stuff/Shared/All_Codes/deal_II/nargil/build/" +
-      std::to_string(refn_cycle) + std::to_string(comm_rank) + ".svg");
+    std::ofstream Grid1_OutFile("/org/groups/chg/_Ali_/My_Stuff/Shared/"
+                                "All_Codes/deal_II/nargil/build/" +
+                                std::to_string(refn_cycle) +
+                                std::to_string(comm_rank) + ".svg");
     Grid1_Out.write_svg(the_grid, Grid1_OutFile);
   }
   else

@@ -6,16 +6,8 @@ explicit_gn_dispersive_h_t_class<dim, double>
   explicit_gn_dispersive<dim>::h_t_func{};
 
 template <int dim>
-explicit_gn_dispersive_g_h_grad_zeta_class<dim, dealii::Tensor<1, dim> >
-  explicit_gn_dispersive<dim>::g_h_grad_zeta_func{};
-
-template <int dim>
 explicit_nswe_grad_b_func_class<dim, dealii::Tensor<1, dim> >
   explicit_gn_dispersive<dim>::explicit_nswe_grad_b_func{};
-
-template <int dim>
-explicit_gn_dispersive_hVinf_t_class<dim, dealii::Tensor<1, dim> >
-  explicit_gn_dispersive<dim>::hVinf_t_func{};
 
 template <int dim>
 explicit_gn_dispersive_grad_grad_b_class<dim, dealii::Tensor<2, dim> >
@@ -26,7 +18,7 @@ explicit_gn_dispersive_grad_grad_grad_b_class<dim, dealii::Tensor<3, dim> >
   explicit_gn_dispersive<dim>::grad_grad_grad_b_func{};
 
 template <int dim>
-explicit_gn_dispersive_qis_class<dim, dealii::Tensor<1, dim + 1> >
+explicit_nswe_qis_func_class<dim, dealii::Tensor<1, dim + 1> >
   explicit_gn_dispersive<dim>::explicit_gn_dispersive_qs{};
 
 template <int dim>
@@ -114,18 +106,10 @@ void explicit_gn_dispersive<dim>::assign_BCs(
   const dealii::Point<dim> &face_center)
 {
   // Green-Naghdi first example: Flat bottom
-  if (at_boundary && (face_center[0] < -9.99 || face_center[0] > 9.99))
-  {
-    //    this->BCs[i_face] = GenericCell<dim>::BC::essential;
-    this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
-    this->dof_names_on_faces[i_face].resize(dim, 1);
-    //    this->dof_names_on_faces[i_face][1] = 0;
-  }
-  else if (at_boundary)
+  if (at_boundary)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim, 1);
-    //    this->dof_names_on_faces[i_face][1] = 0;
   }
   /*
   else if (at_boundary)
@@ -154,7 +138,6 @@ void explicit_gn_dispersive<dim>::assign_BCs(
   {
     this->BCs[i_face] = GenericCell<dim>::BC::not_set;
     this->dof_names_on_faces[i_face].resize(dim, 1);
-    //    this->dof_names_on_faces[i_face][1] = 0;
   }
 }
 
@@ -329,6 +312,13 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
         }
       }
 
+      dealii::Tensor<1, dim> L01_at_quad_tensor =
+        explicit_gn_dispersive_L.value(
+          quad_pt_locs[i_quad],
+          quad_pt_locs[i_quad],
+          time_integrator->get_current_stage_time());
+      dealii::Tensor<1, dim> grad_b_tensor = explicit_nswe_grad_b_func.value(
+        quad_pt_locs[i_quad], quad_pt_locs[i_quad]);
       dealii::Tensor<2, dim> grad_grad_b =
         grad_grad_b_func.value(quad_pt_locs[i_quad], quad_pt_locs[i_quad]);
       dealii::Tensor<3, dim> grad_grad_grad_b =
@@ -388,6 +378,8 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
         (NT * grad_grad_V.block(6 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
       double v2yy =
         (NT * grad_grad_V.block(7 * n_cell_bases, 0, n_cell_bases, 1))(0, 0);
+      double bx = grad_b_tensor[0];
+      double by = grad_b_tensor[1];
       double bxx = grad_grad_b[0][0];
       double bxy = grad_grad_b[1][0];
       double byx = grad_grad_b[0][1];
@@ -410,6 +402,10 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
         3. * h * h * hy * (-v1x * v2y + v2x * v1y + (v1x + v2y) * (v1x + v2y)) +
         h * h * h * (-v1xy * v2y + v2xy * v1y +
                      2 * (v1x + v2y) * (v1xy + v2yy) - v1x * v2yy + v2x * v1yy);
+      double arg_R1_grad_b_1 =
+        h * h * (-v1x * v2y + v2x * v1y + (v1x + v2y) * (v1x + v2y)) * bx;
+      double arg_R1_grad_b_2 =
+        h * h * (-v1x * v2y + v2x * v1y + (v1x + v2y) * (v1x + v2y)) * by;
       // Next, we obtain the first term in R2(W), which is
       // grad(h^2 W). It will have two components as well.
       double grad_W_in_R2_1 =
@@ -422,10 +418,18 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
         h * h * (2 * v1 * v1y * bxx + v1 * v1 * bxxy + 2 * v1y * v2 * bxy +
                  2 * v1 * v2y * bxy + 2 * v1 * v2 * bxyy + 2 * v2 * v2y * byy +
                  v2 * v2 * byyy);
+      double arg_R2_grad_b_1 =
+        h * (v1 * v1 * bxx + 2 * v1 * v2 * bxy + v2 * v2 * byy) * bx;
+      double arg_R2_grad_b_2 =
+        h * (v1 * v1 * bxx + 2 * v1 * v2 * bxy + v2 * v2 * byy) * by;
 
-      Eigen::Matrix<double, 2, 1> L11_arg_new;
-      L11_arg_new << 2. / 3. * grad_W_in_R1_1 + 1. / 2. * grad_W_in_R2_1,
+      Eigen::Matrix<double, 2, 1> L11_arg;
+      L11_arg << 2. / 3. * grad_W_in_R1_1 + 1. / 2. * grad_W_in_R2_1,
         2. / 3. * grad_W_in_R1_2 + 1. / 2. * grad_W_in_R2_2;
+      Eigen::Matrix<double, 2, 1> L12_arg;
+      L12_arg << arg_R1_grad_b_1 + arg_R2_grad_b_1,
+        arg_R1_grad_b_2 + arg_R2_grad_b_2;
+
       // Now we compare this with the analytical solution and the results
       // from L11_arg.
 
@@ -434,28 +438,20 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       // std::endl;
       // std::cout << grad_h_h << " " << grad_h << std::endl;
 
-      Eigen::Matrix<double, dim, 1> L01_at_quad, grad_b_at_quad;
+      Eigen::Matrix<double, dim, 1> L01_at_quad;
       //      Eigen::Matrix<double, dim, 1> L10_at_quad;
-      dealii::Tensor<1, dim> L01_at_quad_tensor =
-        explicit_gn_dispersive_L.value(
-          quad_pt_locs[i_quad],
-          quad_pt_locs[i_quad],
-          time_integrator->get_current_stage_time());
-      dealii::Tensor<1, dim> grad_b_at_quad_tensor =
-        explicit_nswe_grad_b_func.value(quad_pt_locs[i_quad],
-                                        quad_pt_locs[i_quad]);
       /*
       dealii::Tensor<1, dim> L10_at_quad_tensor =
         g_h_grad_zeta_func.value(quad_pt_locs[i_quad],
                                  quad_pt_locs[i_quad],
                                  time_integrator->get_current_stage_time());
       */
-
+      Eigen::Matrix<double, dim, 1> grad_b_at_quad;
       for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
       {
         L01_at_quad(i_dim, 0) = L01_at_quad_tensor[i_dim];
         //        L10_at_quad(i_dim, 0) = L10_at_quad_tensor[i_dim];
-        grad_b_at_quad(i_dim, 0) = grad_b_at_quad_tensor[i_dim];
+        grad_b_at_quad(i_dim, 0) = grad_b_tensor[i_dim];
       }
 
       /*
@@ -506,7 +502,8 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
 
       //      L11 += cell_JxW[i_quad] * N_vec * V2_x;
 
-      L11 += cell_JxW[i_quad] * N_vec * L11_arg_new;
+      L11 += cell_JxW[i_quad] * N_vec * L11_arg;
+      L12 += cell_JxW[i_quad] * N_vec * L12_arg;
 
       //      L12 += cell_JxW[i_quad] *
       //             (h_h * h_h * (-v1x * v2y + v2x * v1y + (v1x + v2y) * (v1x +
@@ -656,13 +653,6 @@ void explicit_gn_dispersive<dim>::calculate_matrices()
       // double b_22 = grad_grad_b[1][1];
       for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
         normal(i_dim, 0) = normals[i_face_quad](i_dim);
-      dealii::Tensor<1, dim> hVinf_t_tensor =
-        hVinf_t_func.value(face_quad_pt_locs[i_face_quad],
-                           face_quad_pt_locs[i_face_quad],
-                           time_integrator->get_current_stage_time());
-      Eigen::Matrix<double, dim, 1> hVinf_t_at_quad;
-      hVinf_t_at_quad(0, 0) = hVinf_t_tensor[0];
-      hVinf_t_at_quad(1, 0) = hVinf_t_tensor[1];
 
       Eigen::Matrix<double, 2, 1> W1_val_vec;
       dealii::Tensor<1, dim> W1_vec_tensor = explicit_gn_dispersive_W1.value(

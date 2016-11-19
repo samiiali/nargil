@@ -2,6 +2,9 @@
 #include "support_classes.hpp"
 
 template <int dim>
+explicit_nswe_b_func_class<dim, double> explicit_nswe<dim>::b_func{};
+
+template <int dim>
 explicit_nswe_grad_b_func_class<dim, dealii::Tensor<1, dim> >
   explicit_nswe<dim>::explicit_nswe_grad_b_func{};
 
@@ -48,6 +51,7 @@ explicit_nswe<dim>::explicit_nswe(explicit_nswe &&inp_cell) noexcept
     last_step_q(std::move(inp_cell.last_step_q)),
     last_iter_qhat(std::move(inp_cell.last_iter_qhat)),
     last_stage_q(std::move(inp_cell.last_stage_q)),
+    bathymetry(std::move(inp_cell.bathymetry)),
     ki_s(std::move(inp_cell.ki_s)),
     ki_hats(std::move(inp_cell.ki_hats))
 {
@@ -65,6 +69,7 @@ explicit_nswe<dim>::explicit_nswe(
     last_step_q((dim + 1) * this->n_cell_bases, 1),
     last_iter_qhat((dim + 1) * this->n_faces * this->n_face_bases, 1),
     last_stage_q((dim + 1) * this->n_cell_bases, 1),
+    bathymetry(this->n_cell_bases, 1),
     ki_s(time_integrator->order,
          eigen3mat::Zero((dim + 1) * this->n_cell_bases, 1)),
     ki_hats(time_integrator->order,
@@ -104,6 +109,11 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
+  //  else if (at_boundary && (face_center[1] < -9.99))
+  //  {
+  //    this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
+  //    this->dof_names_on_faces[i_face].resize(dim + 1, 1);
+  //  }
   // End of example 1
   // Paper 3 - Example 2
   /*
@@ -197,6 +207,15 @@ void explicit_nswe<dim>::assign_initial_data()
         last_iter_qhat(row0 + i_poly) = qhat_mtl[i_poly][i_nswe_dim];
       }
   }
+
+  mtl::vec::dense_vector<double> bath_mtl;
+  this->project_to_elem_basis(b_func,
+                              *(this->the_elem_basis),
+                              cell_quad_weights,
+                              bath_mtl,
+                              time_integrator->get_current_time());
+  for (unsigned i_poly = 0; i_poly < this->n_cell_bases; ++i_poly)
+    bathymetry(i_poly, 0) = bath_mtl[i_poly];
 }
 
 template <int dim>
@@ -1252,7 +1271,8 @@ double explicit_nswe<dim>::compute_internal_dofs(
   q2 = last_step_q.block(0, 0, this->n_cell_bases, 1);
   q1 = last_step_q.block(this->n_cell_bases, 0, dim * this->n_cell_bases, 1);
 
-  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(q2);
+  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(q2 + bathymetry);
+  //  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(bathymetry);
   eigen3mat nodal_q(dim * this->n_cell_bases, 1);
   for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
   {
