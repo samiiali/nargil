@@ -195,11 +195,12 @@ void explicit_nswe<dim>::assign_initial_data()
   {
     mtl::vec::dense_vector<dealii::Tensor<1, dim + 1> > qhat_mtl;
     this->reinit_face_fe_vals(i_face);
-    this->project_essential_BC_to_face(explicit_nswe_qis_func,
-                                       *(this->the_face_basis),
-                                       face_quad_weights,
-                                       qhat_mtl,
-                                       0.);
+    this->project_func_to_face(explicit_nswe_qis_func,
+                               *(this->the_face_basis),
+                               face_quad_weights,
+                               qhat_mtl,
+                               i_face,
+                               0.);
     for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
       {
@@ -1098,12 +1099,12 @@ void explicit_nswe<dim>::assemble_globals(const solver_update_keys &keys_)
   {
     mtl::vec::dense_vector<dealii::Tensor<1, dim + 1> > qhat_mtl;
     this->reinit_face_fe_vals(i_face);
-    this->project_essential_BC_to_face(
-      explicit_nswe_qis_func,
-      *(this->the_face_basis),
-      face_quad_weights,
-      qhat_mtl,
-      time_integrator->get_current_stage_time());
+    this->project_func_to_face(explicit_nswe_qis_func,
+                               *(this->the_face_basis),
+                               face_quad_weights,
+                               qhat_mtl,
+                               i_face,
+                               time_integrator->get_current_stage_time());
     for (unsigned i_nswe_dim = 0; i_nswe_dim < dim + 1; ++i_nswe_dim)
       for (unsigned i_poly = 0; i_poly < this->n_face_bases; ++i_poly)
       {
@@ -1271,8 +1272,8 @@ double explicit_nswe<dim>::compute_internal_dofs(
   q2 = last_step_q.block(0, 0, this->n_cell_bases, 1);
   q1 = last_step_q.block(this->n_cell_bases, 0, dim * this->n_cell_bases, 1);
 
-  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(q2 + bathymetry);
-  //  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(bathymetry);
+  //  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(q2 + bathymetry);
+  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(bathymetry);
   eigen3mat nodal_q(dim * this->n_cell_bases, 1);
   for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
   {

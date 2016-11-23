@@ -214,6 +214,15 @@ struct GenericCell
 
   template <typename BasisType, typename func_out_type>
   void
+  project_func_to_face(const TimeFunction<dim, func_out_type> &func,
+                       const poly_space_basis<BasisType, dim - 1> &the_basis,
+                       const std::vector<double> &weights,
+                       mtl::vec::dense_vector<func_out_type> &vec,
+                       const unsigned &i_face,
+                       const double &time = 0);
+
+  template <typename BasisType, typename func_out_type>
+  void
   project_flux_BC_to_face(const Function<dim, func_out_type> &func,
                           const poly_space_basis<BasisType, dim - 1> &the_basis,
                           const std::vector<double> &weights,

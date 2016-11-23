@@ -74,22 +74,60 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
 
   if (true) // GN 2D Example : Example 9
   {
-    std::vector<unsigned> repeats(dim, 40);
-    repeats[0] = 80;
-    dealii::Point<dim> point_1, point_2;
-    point_1 = {-10., -5.0};
-    point_2 = {10, 5.0};
+    dealii::parallel::distributed::Triangulation<dim> left_part(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::parallel::distributed::Triangulation<dim> mid_part(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::parallel::distributed::Triangulation<dim> right_part(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::parallel::distributed::Triangulation<dim> left_plus_mid(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+    std::vector<unsigned> repeats1(dim, 20);
+    repeats1[1] = 25;
+    std::vector<unsigned> repeats2(dim, 25);
+    repeats2[1] = 25;
+    std::vector<unsigned> repeats3(dim, 15);
+    repeats3[1] = 25;
+    dealii::Point<dim> point_1, point_2, point_3, point_4;
+    point_1 = {-3., -2.5};
+    point_2 = {1., 2.5};
+    point_3 = {4., -2.5};
+    point_4 = {7., 2.5};
     dealii::GridGenerator::subdivided_hyper_rectangle(
-      the_grid, repeats, point_1, point_2, true);
+      left_part, repeats1, point_1, point_2, true);
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      mid_part, repeats2, point_2, point_3, true);
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      right_part, repeats3, point_3, point_4, true);
+    dealii::GridGenerator::merge_triangulations(
+      left_part, mid_part, left_plus_mid);
+    dealii::GridGenerator::merge_triangulations(
+      left_plus_mid, right_part, the_grid);
+
+    /*
     std::vector<dealii::GridTools::PeriodicFacePair<
       typename dealii::parallel::distributed::Triangulation<
         dim>::cell_iterator> >
       periodic_faces;
     dealii::GridTools::collect_periodic_faces(
-      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({20., 0.}));
+      the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({10., 0.}));
     dealii::GridTools::collect_periodic_faces(
-      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 10.}));
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 5.}));
     the_grid.add_periodicity(periodic_faces);
+    */
   }
   // End of GN 2D Example : Example 9
 
@@ -886,7 +924,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
-        //        if (i_time % 10 == 0)
+        //        if (i_time % 2 == 0)
         //          vtk_visualizer(model0, i_time * 3);
 
         //

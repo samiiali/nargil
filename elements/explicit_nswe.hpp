@@ -410,9 +410,9 @@ struct explicit_nswe_qis_func_class
       double x2 = x[0] - 2.;
       double y0 = x[1];
       double r2 = sqrt(x2 * x2 + y0 * y0);
-      double a_GN = 0.05;
+      double a_GN = 0.1;
       double h_b = 0.3;
-      double x0_GN = -4.;
+      double x0_GN = 0.;
       double g = 9.81;
       double c_GN = sqrt(g * (h_b + a_GN));
       double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);
@@ -431,9 +431,9 @@ struct explicit_nswe_qis_func_class
       double x2 = x[0] - 2.;
       double y0 = x[1];
       double r2 = sqrt(x2 * x2 + y0 * y0);
-      double a_GN = 0.05;
+      double a_GN = 0.1;
       double h_b = 0.3;
-      double x0_GN = -4.;
+      double x0_GN = 0.;
       double g = 9.81;
       double c_GN = sqrt(g * (h_b + a_GN));
       double kappa_GN = sqrt(3. * a_GN) / 2. / h_b / sqrt(h_b + a_GN);

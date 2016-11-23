@@ -271,6 +271,50 @@ void GenericCell<dim, spacedim>::project_essential_BC_to_face(
 
 template <int dim, int spacedim>
 template <typename BasisType, typename func_out_type>
+void GenericCell<dim, spacedim>::project_func_to_face(
+  const TimeFunction<dim, func_out_type> &func,
+  const poly_space_basis<BasisType, dim - 1> &the_basis,
+  const std::vector<double> &weights,
+  mtl::vec::dense_vector<func_out_type> &vec,
+  const unsigned &i_face,
+  const double &time)
+{
+  if (std::is_same<JacobiPolys<dim - 1>, BasisType>::value)
+  {
+    std::vector<dealii::Point<dim> > integration_points_loc =
+      this->face_quad_fe_vals->get_quadrature_points();
+    std::vector<dealii::Point<dim - 1> > face_quad_points =
+      this->face_quad_bundle->get_points();
+    assert(the_basis.n_quads == integration_points_loc.size());
+    assert(integration_points_loc.size() == weights.size());
+    vec.change_dim(the_basis.n_polys);
+    vec = 0;
+    for (unsigned i1 = 0; i1 < weights.size(); ++i1)
+    {
+      const std::vector<double> &face_basis_at_iquad =
+        this->the_face_basis->value(face_quad_points[i1],
+                                    this->half_range_flag[i_face]);
+      mtl::vec::dense_vector<double> Nj(the_basis.n_polys,
+                                        (double *)face_basis_at_iquad.data());
+      const func_out_type &value = func.value(
+        integration_points_loc[i1], integration_points_loc[i1], time);
+      vec += weights[i1] * value * Nj;
+    }
+  }
+  else if (std::is_same<LagrangePolys<dim - 1>, BasisType>::value)
+  {
+    std::vector<dealii::Point<dim> > support_points_loc =
+      this->face_supp_fe_vals->get_quadrature_points();
+    assert(support_points_loc.size() == the_basis.n_polys);
+    vec.change_dim(the_basis.n_polys);
+    unsigned counter = 0;
+    for (auto &&support_point : support_points_loc)
+      vec[counter++] = func.value(support_point, support_point, time);
+  }
+}
+
+template <int dim, int spacedim>
+template <typename BasisType, typename func_out_type>
 void GenericCell<dim, spacedim>::project_flux_BC_to_face(
   const Function<dim, func_out_type> &func,
   const poly_space_basis<BasisType, dim - 1> &the_basis,
