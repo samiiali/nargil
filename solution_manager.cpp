@@ -54,7 +54,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
   if (false) // Long Strip Example 1
   {
     std::vector<unsigned> repeats(dim, 1);
-    repeats[0] = 100;
+    repeats[0] = 80;
     dealii::Point<dim> point_1, point_2;
     point_1 = {-10., -0.1};
     point_2 = {10, 0.1};
@@ -72,7 +72,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
   }
   // End of Long Strip Example 1
 
-  if (true) // GN 2D Example : Example 9
+  if (false) // GN 2D Example : Example 9
   {
     dealii::parallel::distributed::Triangulation<dim> left_part(
       comm,
@@ -155,7 +155,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
   if (false) // Long Strip Example 8 of GN (30 deg rotated)
   {
     std::vector<unsigned> repeats(dim, 1);
-    repeats[1] = 100;
+    repeats[1] = 120;
     dealii::Point<dim> point_1, point_2;
     point_1 = {-0.1, -10.};
     point_2 = {0.1, 10.};
@@ -271,14 +271,13 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     the_grid.add_periodicity(periodic_faces);
   } // End of Francois's example 2
 
-  // Dissertation example 2
-  if (false)
+  if (false) // Long Strip Example 10
   {
     std::vector<unsigned> repeats(dim, 1);
-    repeats[0] = 300;
+    repeats[0] = 250;
     dealii::Point<dim> point_1, point_2;
-    point_1 = {0., 0.};
-    point_2 = {40., .5};
+    point_1 = {0., -0.1};
+    point_2 = {40, 0.1};
     dealii::GridGenerator::subdivided_hyper_rectangle(
       the_grid, repeats, point_1, point_2, true);
     std::vector<dealii::GridTools::PeriodicFacePair<
@@ -288,10 +287,56 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     dealii::GridTools::collect_periodic_faces(
       the_grid, 0, 1, 0, periodic_faces, dealii::Tensor<1, dim>({40., 0.}));
     dealii::GridTools::collect_periodic_faces(
-      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 0.5}));
+      the_grid, 2, 3, 0, periodic_faces, dealii::Tensor<1, dim>({0., 0.2}));
     the_grid.add_periodicity(periodic_faces);
   }
-  // End of Dissertation example 2
+
+  if (true) // Long Strip Dissertation Example 4
+  {
+    dealii::parallel::distributed::Triangulation<dim> left_part(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::parallel::distributed::Triangulation<dim> mid_part(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::parallel::distributed::Triangulation<dim> right_part(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+    dealii::parallel::distributed::Triangulation<dim> left_plus_mid(
+      comm,
+      typename dealii::Triangulation<dim>::MeshSmoothing(
+        dealii::Triangulation<dim>::smoothing_on_refinement |
+        dealii::Triangulation<dim>::smoothing_on_coarsening));
+
+    std::vector<unsigned> repeats1(dim, 60);
+    repeats1[1] = 1;
+    std::vector<unsigned> repeats2(dim, 110);
+    repeats2[1] = 1;
+    std::vector<unsigned> repeats3(dim, 40);
+    repeats3[1] = 1;
+    dealii::Point<dim> point_1, point_2, point_3, point_4;
+    point_1 = {0., -0.1};
+    point_2 = {10., 0.1};
+    point_3 = {20.35, -0.1};
+    point_4 = {25., 0.1};
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      left_part, repeats1, point_1, point_2, true);
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      mid_part, repeats2, point_2, point_3, true);
+    dealii::GridGenerator::subdivided_hyper_rectangle(
+      right_part, repeats3, point_3, point_4, true);
+    dealii::GridGenerator::merge_triangulations(
+      left_part, mid_part, left_plus_mid);
+    dealii::GridGenerator::merge_triangulations(
+      left_plus_mid, right_part, the_grid);
+  }
+  // End of Long Strip Dissertation Example 4
 }
 
 template <int dim>
@@ -835,8 +880,8 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
   {
     double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
                                          global_ops_time = 0.;
-    explicit_RKn<4, original_RK> rk4_0(2.5e-3);
-    explicit_RKn<4, original_RK> rk4_1(5.0e-3);
+    explicit_RKn<4, original_RK> rk4_0(5.0e-3);
+    explicit_RKn<4, original_RK> rk4_1(1.0e-2);
     explicit_hdg_model<dim, explicit_nswe> model0(this, &rk4_0);
     hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> model1(this,
                                                                    &rk4_1);
@@ -875,7 +920,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
 
       bool model1_init_fuse = true;
 
-      for (unsigned i_time = 0; i_time < 2000; ++i_time)
+      for (unsigned i_time = 0; i_time < 1200; ++i_time)
       {
         double dt_local_ops = 0.;
         double dt_global_ops = 0.;
@@ -1082,8 +1127,8 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         t31 = MPI_Wtime();
         model0.compute_internal_dofs(local_sol_vec0.data());
         t32 = MPI_Wtime();
-        if (i_time % 2 == 0)
-          vtk_visualizer(model0, i_time * 3 + 2);
+        if (i_time % 1 == 0)
+          vtk_visualizer(model0, i_time);
 
         //
         // Time splitting finished. Going for calculation of the results.

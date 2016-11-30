@@ -104,7 +104,16 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
   */
-  if (at_boundary)
+  double x0 = face_center[0];
+  double y0 = face_center[1];
+  //  double x1 = sqrt(3.) / 2. * x0 + y0 / 2.;
+  double x1 = x0;
+  if (at_boundary && (x1 < 0.01))
+  {
+    this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
+    this->dof_names_on_faces[i_face].resize(dim + 1, 1);
+  }
+  else if (at_boundary)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
@@ -1272,8 +1281,8 @@ double explicit_nswe<dim>::compute_internal_dofs(
   q2 = last_step_q.block(0, 0, this->n_cell_bases, 1);
   q1 = last_step_q.block(this->n_cell_bases, 0, dim * this->n_cell_bases, 1);
 
-  //  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(q2 + bathymetry);
-  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(bathymetry);
+  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(q2 + bathymetry);
+  //  eigen3mat nodal_u = output_basis.get_dof_vals_at_quads(bathymetry);
   eigen3mat nodal_q(dim * this->n_cell_bases, 1);
   for (unsigned i_dim = 0; i_dim < dim; ++i_dim)
   {
