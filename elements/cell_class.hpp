@@ -1,6 +1,6 @@
 #include "poly_bases/poly_basis.hpp"
-#include "solvers.hpp"
-#include "time_integrators.hpp"
+//#include "solvers.hpp"
+//#include "time_integrators.hpp"
 #include <type_traits>
 
 #ifndef CELL_CLASS_HPP

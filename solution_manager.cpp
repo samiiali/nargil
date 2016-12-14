@@ -51,10 +51,10 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     execution_time.open("Execution_Time.txt",
                         std::ofstream::out | std::fstream::app);
   }
-  if (false) // Long Strip Example 1
+  if (true) // Long Strip Example 1
   {
     std::vector<unsigned> repeats(dim, 1);
-    repeats[0] = 80;
+    repeats[0] = 120;
     dealii::Point<dim> point_1, point_2;
     point_1 = {-10., -0.1};
     point_2 = {10, 0.1};
@@ -291,7 +291,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     the_grid.add_periodicity(periodic_faces);
   }
 
-  if (true) // Long Strip Dissertation Example 4
+  if (false) // Long Strip Dissertation Example 4
   {
     dealii::parallel::distributed::Triangulation<dim> left_part(
       comm,
@@ -882,6 +882,8 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
                                          global_ops_time = 0.;
     explicit_RKn<4, original_RK> rk4_0(5.0e-3);
     explicit_RKn<4, original_RK> rk4_1(1.0e-2);
+    bool dispersive_on = true;
+
     explicit_hdg_model<dim, explicit_nswe> model0(this, &rk4_0);
     hdg_model_with_explicit_rk<dim, explicit_gn_dispersive> model1(this,
                                                                    &rk4_1);
@@ -975,7 +977,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
         //
         // Second phase of time splitting.
         //
-        if (i_time >= 0)
+        if (i_time >= 0 && dispersive_on)
         {
           model1.get_results_from_another_model(model0);
           while (!rk4_1.ready_for_next_step())

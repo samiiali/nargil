@@ -26,7 +26,7 @@ struct explicit_nswe_b_func_class
     // End of example 6
 
     // Example 7: y-dir flat bottom
-    //    b = 0.;
+    b = 0.;
     // End of example 7
 
     // Example 9: GN 2D Cosine bump
@@ -47,12 +47,12 @@ struct explicit_nswe_b_func_class
     // End of example 10
 
     // Example 10: Nonflat topo x-dir example
-    if (x[0] < 12.)
-      b = 0.;
-    else if (x[0] <= 19.35)
-      b = 1. / 30. * (x[0] - 12.);
-    else
-      b = 0.245;
+    //    if (x[0] < 12.)
+    //      b = 0.;
+    //    else if (x[0] <= 19.35)
+    //      b = 1. / 30. * (x[0] - 12.);
+    //    else
+    //      b = 0.245;
     // End of example 10
 
     return b;
@@ -71,10 +71,10 @@ struct explicit_nswe_grad_b_func_class
                             const double & = 0) const final
   {
     dealii::Tensor<1, in_point_dim, double> grad_b;
-    //     GN example 1:
-    //    grad_b[0] = 0.;
-    //    grad_b[1] = 0.;
-    //     End of GN example 1
+    // GN example 1:
+    grad_b[0] = 0.;
+    grad_b[1] = 0.;
+    // End of GN example 1
     // Example 5 : Topography
     //    grad_b[0] = 0.1 * sin(x[0] / 2.);
     //    grad_b[1] = 0.;
@@ -109,16 +109,16 @@ struct explicit_nswe_grad_b_func_class
     // End of GN example 9
 
     // GN Example 10
-    if (x[0] < 12. || x[0] > 19.35)
-    {
-      grad_b[0] = 0.;
-      grad_b[1] = 0.;
-    }
-    else
-    {
-      grad_b[0] = 1. / 30.;
-      grad_b[1] = 0.;
-    }
+    // if (x[0] < 12. || x[0] > 19.35)
+    // {
+    //   grad_b[0] = 0.;
+    //   grad_b[1] = 0.;
+    // }
+    // else
+    // {
+    //   grad_b[0] = 1. / 30.;
+    //   grad_b[1] = 0.;
+    // }
     // End of example 10
 
     return grad_b;
@@ -288,7 +288,6 @@ struct explicit_nswe_qis_func_class
     */
     // End of G-N example 2
     // G-N example 3
-    /*
     double x0 = x[0];
     double y0 = x[1];
     double t0 = t;
@@ -302,7 +301,6 @@ struct explicit_nswe_qis_func_class
     }
     qs[1] = 0.;
     qs[2] = 0.;
-    */
     // End of G-N example 3
     //
     // Exact solution of Green-Naghdi: Example 4
@@ -452,6 +450,7 @@ struct explicit_nswe_qis_func_class
     // End of exact solution example 10
 
     // Dissertaion GN Example 4
+    /*
     double x0 = x[0];
     double a_GN = 0.1335;
     double h_b = 0.25;
@@ -471,6 +470,7 @@ struct explicit_nswe_qis_func_class
 
     qs[1] = c_GN * h_1 - c_GN * h_b;
     qs[2] = 0.;
+    */
     // End of Dissertation GN Example 4
 
     return qs;

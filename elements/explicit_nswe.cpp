@@ -97,22 +97,21 @@ void explicit_nswe<dim>::assign_BCs(const bool &at_boundary,
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
   */
-  /* Example 1, 2, 3 of GN
+  // Example 1, 2, 3 of GN
   if (at_boundary && (face_center[0] < -9.99))
   {
     this->BCs[i_face] = GenericCell<dim>::BC::in_out_BC;
     this->dof_names_on_faces[i_face].resize(dim + 1, 1);
   }
-  */
-  double x0 = face_center[0];
-  double y0 = face_center[1];
+  //  double x0 = face_center[0];
+  //  double y0 = face_center[1];
   //  double x1 = sqrt(3.) / 2. * x0 + y0 / 2.;
-  double x1 = x0;
-  if (at_boundary && (x1 < 0.01))
-  {
-    this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
-    this->dof_names_on_faces[i_face].resize(dim + 1, 1);
-  }
+  //  double x1 = x0;
+  //  if (at_boundary && (x1 < 0.01))
+  //  {
+  //    this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
+  //    this->dof_names_on_faces[i_face].resize(dim + 1, 1);
+  //  }
   else if (at_boundary)
   {
     this->BCs[i_face] = GenericCell<dim>::BC::solid_wall;
