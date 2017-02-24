@@ -77,6 +77,8 @@ struct kappa_inv_class : public Function<in_point_dim, output_type>
       kappa_inv_ = kappa.inverse();
     } // End of example 1 //
 
+    kappa_inv_.setIdentity();
+
     return kappa_inv_;
   }
 };
@@ -100,6 +102,8 @@ struct tau_func_class : public TimeFunction<in_point_dim, double>
       double vec2_dot_n = fabs(vec1[0] * fabs(n[0]) + vec1[1] * fabs(n[1]));
       tau = vec1_dot_n * 1 + vec2_dot_n * tau;
     } // End of Francois's example
+
+    tau = 1.0;
 
     return tau;
   }
@@ -140,6 +144,8 @@ struct u_func_class : public TimeFunction<in_point_dim, double>
         u_func = sin(M_PI * x[0]) * cos(M_PI * x[1]) * sin(M_PI * x[2]);
     }
 
+    u_func = sin(x[0]) + cos(x[1]);
+
     return u_func;
   }
 };
@@ -178,6 +184,9 @@ struct q_func_class : public TimeFunction<in_point_dim, output_type>
       q_func[2] =
         -M_PI * sin(M_PI * x[0]) * cos(M_PI * x[1]) * cos(M_PI * x[2]);
     }
+
+    q_func[0] = -cos(x[0]);
+    q_func[1] = sin(x[1]);
 
     return q_func;
   }
@@ -274,6 +283,8 @@ struct f_func_class : public TimeFunction<in_point_dim, double>
         f_func = 3 * M_PI * M_PI * sin(M_PI * x[0]) * cos(M_PI * x[1]) *
                  sin(M_PI * x[2]);
 
+    f_func = sin(x[0]) + cos(x[1]);
+
     return f_func;
   }
 };
@@ -308,6 +319,8 @@ struct dirichlet_BC_func_class : public TimeFunction<in_point_dim, double>
 
     if (true) // Francois's second example
       gD = 10.0;
+
+    gD = u_func.value(x, x);
 
     return gD;
   }
@@ -345,8 +358,7 @@ struct neumann_BC_func_class : public Function<in_point_dim, double>
 /*!
  * \ingroup cells
  */
-template <int dim>
-struct Diffusion : public GenericCell<dim>
+template <int dim> struct Diffusion : public GenericCell<dim>
 {
   using elem_basis_type = typename GenericCell<dim>::elem_basis_type;
   typedef std::unique_ptr<dealii::FEValues<dim> > FE_val_ptr;

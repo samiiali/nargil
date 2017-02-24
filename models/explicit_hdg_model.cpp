@@ -959,8 +959,8 @@ template <int dim, template <int> class CellType>
 void explicit_hdg_model<dim, CellType>::assign_initial_data(
   const explicit_RKn<4, original_RK> &)
 {
-  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
-  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
+  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 1);
+  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 1);
 #ifdef _OPENMP
 #pragma omp parallel
   {
@@ -1021,8 +1021,8 @@ template <int dim, template <int> class CellType>
 void explicit_hdg_model<dim, CellType>::assemble_globals(
   const solver_update_keys &keys)
 {
-  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
-  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
+  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 1);
+  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 1);
 #ifdef _OPENMP
 #pragma omp parallel
   {
@@ -1078,8 +1078,8 @@ bool explicit_hdg_model<dim, CellType>::check_for_next_iter(
 {
   bool explicit_iteration_required = true;
   double this_iter_increment = 0.;
-  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
-  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
+  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 1);
+  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 1);
 
 #ifdef _OPENMP
 #pragma omp parallel
@@ -1195,8 +1195,8 @@ bool explicit_hdg_model<dim, CellType>::compute_internal_dofs(
   double *const local_uhat)
 {
   typedef typename GenericCell<dim>::elem_basis_type elem_basis_type;
-  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
-  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
+  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 1);
+  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 1);
 
   /* active indices contain both ghost and locally owned indices. */
   local_nodal_sol<dim> refn_local_nodal(&this->DoF_H_Refine,

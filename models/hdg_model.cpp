@@ -958,8 +958,8 @@ void hdg_model<dim, CellType>::count_globals()
 template <int dim, template <int> class CellType>
 void hdg_model<dim, CellType>::assign_initial_data(const BDFIntegrator &)
 {
-  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
-  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
+  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 1);
+  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 1);
 #ifdef _OPENMP
 #pragma omp parallel
   {
@@ -1019,8 +1019,8 @@ void hdg_model<dim, CellType>::free_containers()
 template <int dim, template <int> class CellType>
 void hdg_model<dim, CellType>::assemble_globals(const solver_update_keys &keys)
 {
-  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
-  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
+  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 1);
+  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 1);
 #ifdef _OPENMP
 #pragma omp parallel
   {
@@ -1076,8 +1076,8 @@ bool hdg_model<dim, CellType>::compute_internal_dofs(double *const local_uhat)
   bool next_iter_required = false;
   double this_iter_increment = 0.;
   typedef typename GenericCell<dim>::elem_basis_type elem_basis_type;
-  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 2);
-  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 2);
+  dealii::QGaussLobatto<dim> LGL_elem_support_points(poly_order + 1);
+  dealii::QGaussLobatto<dim - 1> LGL_face_support_points(poly_order + 1);
 
   /* active indices contain both ghost and locally owned indices. */
   local_nodal_sol<dim> refn_local_nodal(&this->DoF_H_Refine,

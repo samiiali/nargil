@@ -3,35 +3,27 @@
 
 template <int dim>
 kappa_inv_class<dim, Eigen::MatrixXd> Diffusion<dim>::kappa_inv{};
-template <int dim>
-tau_func_class<dim> Diffusion<dim>::tau_func{};
-template <int dim>
-u_func_class<dim> Diffusion<dim>::u_func{};
+template <int dim> tau_func_class<dim> Diffusion<dim>::tau_func{};
+template <int dim> u_func_class<dim> Diffusion<dim>::u_func{};
 template <int dim>
 q_func_class<dim, dealii::Tensor<1, dim> > Diffusion<dim>::q_func{};
-template <int dim>
-divq_func_class<dim> Diffusion<dim>::divq_func{};
-template <int dim>
-f_func_class<dim> Diffusion<dim>::f_func{};
+template <int dim> divq_func_class<dim> Diffusion<dim>::divq_func{};
+template <int dim> f_func_class<dim> Diffusion<dim>::f_func{};
 template <int dim>
 dirichlet_BC_func_class<dim> Diffusion<dim>::dirichlet_bc_func{};
-template <int dim>
-neumann_BC_func_class<dim> Diffusion<dim>::Neumann_BC_func{};
+template <int dim> neumann_BC_func_class<dim> Diffusion<dim>::Neumann_BC_func{};
 
-template <int dim>
-solver_options Diffusion<dim>::required_solver_options()
+template <int dim> solver_options Diffusion<dim>::required_solver_options()
 {
   return solver_options::spd_matrix;
 }
 
-template <int dim>
-solver_type Diffusion<dim>::required_solver_type()
+template <int dim> solver_type Diffusion<dim>::required_solver_type()
 {
   return solver_type::implicit_petsc_aij;
 }
 
-template <int dim>
-unsigned Diffusion<dim>::get_num_dofs_per_node()
+template <int dim> unsigned Diffusion<dim>::get_num_dofs_per_node()
 {
   return 1;
 }
@@ -96,18 +88,11 @@ void Diffusion<dim>::assign_BCs(const bool &at_boundary,
   /* End of example 1 */
 }
 
-template <int dim>
-Diffusion<dim>::~Diffusion()
-{
-}
+template <int dim> Diffusion<dim>::~Diffusion() {}
 
-template <int dim>
-void Diffusion<dim>::assign_initial_data()
-{
-}
+template <int dim> void Diffusion<dim>::assign_initial_data() {}
 
-template <int dim>
-void Diffusion<dim>::calculate_matrices()
+template <int dim> void Diffusion<dim>::calculate_matrices()
 {
   const unsigned n_faces = this->n_faces;
   const unsigned n_cell_basis = this->n_cell_bases;
@@ -220,8 +205,7 @@ void Diffusion<dim>::calculate_matrices()
   }
 }
 
-template <int dim>
-void Diffusion<dim>::calculate_postprocess_matrices()
+template <int dim> void Diffusion<dim>::calculate_postprocess_matrices()
 {
   const unsigned n_cell_basis = this->n_cell_bases;
   const unsigned elem_quad_size = this->elem_quad_bundle->size();
@@ -465,8 +449,9 @@ double Diffusion<dim>::compute_internal_dofs(
       }
     }
   }
-  u_vec = lu_of_BT_Ainv_B_plus_D.solve(
-    M * exact_f_vec + BT_Ainv * C * solved_uhat_vec + E * solved_uhat_vec);
+  eigen3mat F_ = M * exact_f_vec;
+  u_vec = lu_of_BT_Ainv_B_plus_D.solve(F_ + BT_Ainv * C * solved_uhat_vec +
+                                       E * solved_uhat_vec);
   q_vec = B * u_vec - C * solved_uhat_vec;
   q_vec = lu_of_A.solve(q_vec);
 
@@ -544,15 +529,9 @@ void Diffusion<dim>::internal_vars_errors(const eigen3mat &u_vec,
   q_error += error_q3;
 }
 
-template <int dim>
-void Diffusion<dim>::ready_for_next_iteration()
-{
-}
+template <int dim> void Diffusion<dim>::ready_for_next_iteration() {}
 
-template <int dim>
-void Diffusion<dim>::ready_for_next_time_step()
-{
-}
+template <int dim> void Diffusion<dim>::ready_for_next_time_step() {}
 
 template <int dim>
 double Diffusion<dim>::get_postprocessed_error_in_cell(

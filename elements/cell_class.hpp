@@ -27,10 +27,10 @@ struct GenericCell
     dealiiCell;
   typedef typename std::vector<std::unique_ptr<GenericCell> >::iterator
     vec_iter_ptr_type;
-  typedef JacobiPolys<dim> elem_basis_type;
-  typedef JacobiPolys<dim - 1> face_basis_type;
-  //  typedef LagrangePolys<dim> elem_basis_type;
-  //  typedef LagrangePolys<dim - 1> face_basis_type;
+  //  typedef JacobiPolys<dim> elem_basis_type;
+  //  typedef JacobiPolys<dim - 1> face_basis_type;
+  typedef LagrangePolys<dim> elem_basis_type;
+  typedef LagrangePolys<dim - 1> face_basis_type;
   typedef std::unique_ptr<dealii::FEValues<dim> > FE_val_ptr;
   typedef std::unique_ptr<dealii::FEFaceValues<dim> > FEFace_val_ptr;
   /*!

@@ -51,7 +51,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
     execution_time.open("Execution_Time.txt",
                         std::ofstream::out | std::fstream::app);
   }
-  if (true) // Long Strip Example 1
+  if (false) // Long Strip Example 1
   {
     std::vector<unsigned> repeats(dim, 1);
     repeats[0] = 120;
@@ -174,10 +174,10 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
   }
   // End of Long Strip Example 8 if GN (30 deg rotated)
 
-  if (false) // Example 1
+  if (true) // Example 1
   {
-    std::vector<unsigned> repeats(dim, 1);
-    repeats[0] = 1;
+    std::vector<unsigned> repeats(dim, 4);
+    repeats[0] = 4;
     dealii::Point<dim> point_1, point_2;
     point_1 = {-1.0, -1.0};
     point_2 = {1.0, 1.0};
@@ -339,8 +339,7 @@ SolutionManager<dim>::SolutionManager(const unsigned &order,
   // End of Long Strip Dissertation Example 4
 }
 
-template <int dim>
-SolutionManager<dim>::~SolutionManager()
+template <int dim> SolutionManager<dim>::~SolutionManager()
 {
   if (comm_rank == 0)
   {
@@ -354,7 +353,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
 {
   Vec sol_vec;
 
-  if (false) // Diffusion test
+  if (true) // Diffusion test
   {
     BDFIntegrator time_integrator0(1.e-3, 1);
     hdg_model<dim, Diffusion> model0(this, &time_integrator0);
@@ -876,7 +875,7 @@ void SolutionManager<dim>::solve(const unsigned &h_1, const unsigned &h_2)
     model1.DoF_H_System.clear();
   }
 
-  if (true) // Explicit GN Dispersive part test
+  if (false) // Explicit GN Dispersive part test
   {
     double t11, t12, t21, t22, t31, t32, local_ops_time = 0.,
                                          global_ops_time = 0.;
@@ -1631,8 +1630,7 @@ int SolutionManager<dim>::cell_id_to_num_finder(
     return -1;
 }
 
-template <int dim>
-void SolutionManager<dim>::write_grid()
+template <int dim> void SolutionManager<dim>::write_grid()
 {
   dealii::GridOut Grid1_Out;
   dealii::GridOutFlags::Svg svg_flags(
@@ -1667,8 +1665,7 @@ void SolutionManager<dim>::write_grid()
   }
 }
 
-template <int dim>
-void SolutionManager<dim>::free_containers()
+template <int dim> void SolutionManager<dim>::free_containers()
 {
   wreck_it_Ralph(cell_ID_to_num);
 }
