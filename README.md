@@ -8,7 +8,7 @@ it simply means coconut in Persian !
 - [Intro](###Intro)
 - [Current Status](###current-status)
 
-###Intro
+### Intro
 Although, *nargil* is a program for solving a few well-known PDEs, it is
 mainly written in the form of a library, which can be used in other codes.
 It highly depends on deal.II, but the hybridized dG method employed hereby
@@ -19,6 +19,6 @@ Green-Naghdi equation, I decided to change the development direction towards
 more generic tools. These tools are not specifically suited for GN equations
 and can be used for many other problems, as well.
 
-###Current Status
+### Current Status
 Currently, there is only one type of finite element (HDG element) in the
 toolset, along with a few model equations. 
